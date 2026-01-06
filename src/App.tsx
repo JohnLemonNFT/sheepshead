@@ -451,66 +451,66 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 text-white">
+    <div className="min-h-screen p-2 sm:p-4 md:p-8 text-white">
       <div className="max-w-6xl mx-auto">
         {/* Header with Menu */}
-        <header className="text-center mb-6 relative">
-          {/* Menu Button */}
+        <header className="text-center mb-4 sm:mb-6 relative">
+          {/* Menu Button - 44px minimum touch target */}
           <div className="absolute left-0 top-0">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors"
+              className="bg-gray-800 hover:bg-gray-700 text-white p-3 sm:p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             {showMenu && (
-              <div className="absolute left-0 top-12 bg-gray-800 rounded-lg shadow-xl py-2 z-50 w-48">
+              <div className="absolute left-0 top-14 bg-gray-800 rounded-lg shadow-xl py-2 z-50 w-48">
                 <button
                   onClick={() => { goToHome(); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-700 text-white"
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
                 >
                   Home
                 </button>
                 <button
                   onClick={() => { newGame(); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-700 text-white"
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
                 >
                   New Game
                 </button>
                 <hr className="border-gray-700 my-1" />
                 <button
                   onClick={() => { openRules(); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-700 text-white"
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
                 >
                   Rules
                 </button>
                 <button
                   onClick={() => { openStrategy(); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-700 text-white"
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
                 >
                   Strategy
                 </button>
                 <button
                   onClick={() => { openSettings(); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-700 text-white"
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
                 >
                   Settings
                 </button>
               </div>
             )}
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1">🐑 Sheepshead</h1>
-          <p className="text-green-300 text-sm">
-            Hand #{handsPlayed + 1} • Dealer: Player {dealerPosition + 1}
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1">Sheepshead</h1>
+          <p className="text-green-300 text-xs sm:text-sm">
+            Hand #{handsPlayed + 1} | Dealer: Player {dealerPosition + 1}
           </p>
         </header>
 
         {/* Main game area */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           {/* Left sidebar - scores, tips, and log */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-3 sm:space-y-4">
             <ScoreBoard
               scores={playerScores}
               pickerPosition={pickerPosition}
@@ -547,9 +547,9 @@ function App() {
           </div>
 
           {/* Center - game table and controls */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-3 sm:space-y-4 lg:space-y-6">
             {/* AI players */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2">
               {players.slice(1).map((player, i) => {
                 const playerPos = i + 1;
                 const isPlayerDefender = pickerPosition !== null &&
@@ -577,7 +577,7 @@ function App() {
             </div>
 
             {/* Game table / Current trick */}
-            <div className="bg-green-900/50 rounded-xl p-3 sm:p-6">
+            <div className="bg-green-900/50 rounded-xl p-2 sm:p-4 md:p-6">
               {/* Team banner - shows active player's role */}
               {pickerPosition !== null && phase === 'playing' && (
                 <TeamBanner
@@ -591,15 +591,15 @@ function App() {
 
               {/* Blind */}
               {blind.length > 0 && (
-                <div className="text-center mb-4 sm:mb-6">
-                  <p className="text-green-300 text-sm mb-2">Blind</p>
-                  <div className="flex justify-center gap-2">
+                <div className="text-center mb-3 sm:mb-4 md:mb-6">
+                  <p className="text-green-300 text-xs sm:text-sm mb-2">Blind</p>
+                  <div className="flex justify-center gap-1 sm:gap-2">
                     {blind.map((_, i) => (
                       <div
                         key={i}
-                        className="w-12 h-18 sm:w-16 sm:h-24 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center border-2 border-blue-700"
+                        className="w-10 h-14 sm:w-12 sm:h-[4.5rem] md:w-16 md:h-24 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center border-2 border-blue-700"
                       >
-                        <span className="text-blue-400 text-base sm:text-xl">🐑</span>
+                        <span className="text-blue-400 text-sm sm:text-base md:text-xl">&#x1F411;</span>
                       </div>
                     ))}
                   </div>
@@ -608,12 +608,12 @@ function App() {
 
               {/* Current trick */}
               {phase === 'playing' && (
-                <div className="text-center mb-6">
-                  <p className="text-green-300 text-sm mb-2">
+                <div className="text-center mb-3 sm:mb-4 md:mb-6">
+                  <p className="text-green-300 text-xs sm:text-sm mb-2">
                     Trick {trickNumber}/6
                     {calledAce && (
-                      <span className="ml-2">
-                        • Called: {calledAce.suit}
+                      <span className="ml-1 sm:ml-2">
+                        | Called: {calledAce.suit}
                         {calledAce.revealed && ' (revealed)'}
                       </span>
                     )}
@@ -621,17 +621,17 @@ function App() {
 
                   {/* Winner banner when trick is complete */}
                   {trickResult && (
-                    <div className="bg-green-700/80 border-2 border-green-400 rounded-lg px-4 py-2 mb-4 animate-slideIn">
-                      <span className="text-green-100 font-bold text-lg">
-                        🏆 {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} wins!
+                    <div className="bg-green-700/80 border-2 border-green-400 rounded-lg px-2 sm:px-4 py-2 mb-3 sm:mb-4 animate-slideIn">
+                      <span className="text-green-100 font-bold text-sm sm:text-base md:text-lg">
+                        {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} wins!
                       </span>
-                      <span className="text-green-200 ml-2">
-                        (+{trickResult.points} points)
+                      <span className="text-green-200 ml-1 sm:ml-2 text-xs sm:text-sm md:text-base">
+                        (+{trickResult.points} pts)
                       </span>
                     </div>
                   )}
 
-                  <div className="flex justify-center gap-3 min-h-[100px] items-center">
+                  <div className="flex justify-center gap-1 sm:gap-2 md:gap-3 min-h-[80px] sm:min-h-[100px] items-center flex-wrap">
                     {currentTrick.cards.length === 0 ? (
                       <p className="text-gray-400">Waiting for lead...</p>
                     ) : (
@@ -657,10 +657,10 @@ function App() {
                         return (
                           <div
                             key={i}
-                            className={`text-center p-2 rounded-lg transition-all duration-300 ${teamColorClass} ${winnerClass}`}
+                            className={`text-center p-1 sm:p-2 rounded-lg transition-all duration-300 ${teamColorClass} ${winnerClass}`}
                           >
                             <Card card={play.card} />
-                            <p className={`text-xs mt-1 font-medium ${
+                            <p className={`text-[10px] sm:text-xs mt-1 font-medium ${
                               isWinner
                                 ? 'text-green-300 font-bold'
                                 : isPicker
@@ -696,7 +696,7 @@ function App() {
               )}
 
               {/* Game controls */}
-              <div className="mt-6">
+              <div className="mt-3 sm:mt-4 md:mt-6">
                 <GameControls
                   phase={phase}
                   isHumanTurn={isHumanTurn}
@@ -717,7 +717,7 @@ function App() {
 
             {/* Active human player's hand */}
             {activePlayer && (
-              <div className="bg-black/30 rounded-xl p-2 sm:p-4">
+              <div className="bg-black/30 rounded-xl p-2 sm:p-3 md:p-4">
                 <Hand
                   cards={activePlayer.hand}
                   onCardClick={handleCardClick}
@@ -737,9 +737,9 @@ function App() {
         </div>
 
         {/* Footer */}
-        <footer className="text-center mt-8 text-green-300/50 text-sm">
-          <p>Click cards to {phase === 'burying' ? 'select for burying' : 'play'}</p>
-          <p className="mt-1">Yellow ring = Trump • Green highlight = Legal play</p>
+        <footer className="text-center mt-4 sm:mt-6 md:mt-8 text-green-300/50 text-xs sm:text-sm">
+          <p>Tap cards to {phase === 'burying' ? 'select for burying' : 'play'}</p>
+          <p className="mt-1">Yellow ring = Trump | Green = Legal play</p>
         </footer>
       </div>
 

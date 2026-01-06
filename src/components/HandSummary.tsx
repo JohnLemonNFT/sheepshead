@@ -17,24 +17,24 @@ export function HandSummary({
   calledSuit,
   onClose,
 }: HandSummaryProps) {
-  const getPlayerName = (pos: number) => (pos === 0 ? 'You' : `Player ${pos + 1}`);
+  const getPlayerName = (pos: number) => (pos === 0 ? 'You' : `P${pos + 1}`);
 
   // Leaster
   if (pickerPosition === null) {
     const winner = score.playerScores.find(ps => ps.points > 0);
     return (
-      <div className="bg-black/80 rounded-xl p-6 max-w-md mx-auto text-center">
-        <h2 className="text-2xl font-bold text-yellow-400 mb-4">Leaster!</h2>
-        <p className="text-lg mb-4">Nobody picked - fewest points wins</p>
+      <div className="bg-black/80 rounded-xl p-4 sm:p-6 max-w-md mx-auto text-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-yellow-400 mb-3 sm:mb-4">Leaster!</h2>
+        <p className="text-sm sm:text-lg mb-3 sm:mb-4">Nobody picked - fewest points wins</p>
         {winner && (
-          <p className="text-green-400 text-xl">
+          <p className="text-green-400 text-base sm:text-xl">
             {getPlayerName(winner.position)} wins with fewest points!
           </p>
         )}
-        <div className="mt-6 space-y-2">
-          <h3 className="text-sm text-green-300 font-bold">Score Changes:</h3>
+        <div className="mt-4 sm:mt-6 space-y-1.5 sm:space-y-2">
+          <h3 className="text-xs sm:text-sm text-green-300 font-bold">Score Changes:</h3>
           {score.playerScores.map(ps => (
-            <div key={ps.position} className="flex justify-between">
+            <div key={ps.position} className="flex justify-between text-sm sm:text-base">
               <span>{getPlayerName(ps.position)}</span>
               <span className={ps.points >= 0 ? 'text-green-400' : 'text-red-400'}>
                 {ps.points >= 0 ? '+' : ''}{ps.points}
@@ -51,10 +51,10 @@ export function HandSummary({
   const goingAlone = partnerPosition === null;
 
   return (
-    <div className="bg-black/80 rounded-xl p-6 max-w-md mx-auto">
+    <div className="bg-black/80 rounded-xl p-4 sm:p-6 max-w-md mx-auto">
       {/* Result header */}
       <h2
-        className={`text-2xl font-bold text-center mb-4 ${
+        className={`text-lg sm:text-2xl font-bold text-center mb-3 sm:mb-4 ${
           score.pickerWins ? 'text-yellow-400' : 'text-red-400'
         }`}
       >
@@ -64,10 +64,10 @@ export function HandSummary({
       </h2>
 
       {/* Teams */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-yellow-900/30 rounded-lg p-3">
-          <h3 className="text-yellow-400 font-bold text-sm mb-2">Picker Team</h3>
-          <p className="text-white">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-yellow-900/30 rounded-lg p-2 sm:p-3">
+          <h3 className="text-yellow-400 font-bold text-xs sm:text-sm mb-1 sm:mb-2">Picker Team</h3>
+          <p className="text-white text-xs sm:text-sm">
             {pickerName} (P)
             {partnerName && (
               <>
@@ -75,21 +75,21 @@ export function HandSummary({
                 {partnerName} (A)
               </>
             )}
-            {goingAlone && <span className="text-sm text-gray-400"> (alone)</span>}
+            {goingAlone && <span className="text-[10px] sm:text-sm text-gray-400"> (alone)</span>}
           </p>
-          <p className="text-2xl font-bold text-yellow-400 mt-2">
+          <p className="text-lg sm:text-2xl font-bold text-yellow-400 mt-1 sm:mt-2">
             {score.pickerTeamPoints} pts
           </p>
         </div>
-        <div className="bg-blue-900/30 rounded-lg p-3">
-          <h3 className="text-blue-400 font-bold text-sm mb-2">Defenders</h3>
-          <p className="text-white text-sm">
+        <div className="bg-blue-900/30 rounded-lg p-2 sm:p-3">
+          <h3 className="text-blue-400 font-bold text-xs sm:text-sm mb-1 sm:mb-2">Defenders</h3>
+          <p className="text-white text-[10px] sm:text-sm">
             {[0, 1, 2, 3, 4]
               .filter(i => i !== pickerPosition && i !== partnerPosition)
               .map(i => getPlayerName(i))
               .join(', ')}
           </p>
-          <p className="text-2xl font-bold text-blue-400 mt-2">
+          <p className="text-lg sm:text-2xl font-bold text-blue-400 mt-1 sm:mt-2">
             {score.defenderTeamPoints} pts
           </p>
         </div>
@@ -97,21 +97,21 @@ export function HandSummary({
 
       {/* Called ace info */}
       {calledSuit && (
-        <p className="text-center text-gray-300 text-sm mb-4">
+        <p className="text-center text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4">
           Called ace: {calledSuit.charAt(0).toUpperCase() + calledSuit.slice(1)}
         </p>
       )}
 
       {/* Score changes */}
-      <div className="border-t border-gray-700 pt-4">
-        <h3 className="text-sm text-green-300 font-bold mb-3 text-center">
+      <div className="border-t border-gray-700 pt-3 sm:pt-4">
+        <h3 className="text-xs sm:text-sm text-green-300 font-bold mb-2 sm:mb-3 text-center">
           Score Changes (x{score.multiplier})
         </h3>
-        <div className="space-y-2">
+        <div className="space-y-1 sm:space-y-2">
           {score.playerScores.map(ps => (
             <div
               key={ps.position}
-              className="flex justify-between items-center px-2"
+              className="flex justify-between items-center px-1 sm:px-2 text-sm sm:text-base"
             >
               <span className="text-white">
                 {getPlayerName(ps.position)}
