@@ -501,7 +501,7 @@ function App() {
               </div>
             )}
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-1">🐑 Sheepshead</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1">🐑 Sheepshead</h1>
           <p className="text-green-300 text-sm">
             Hand #{handsPlayed + 1} • Dealer: Player {dealerPosition + 1}
           </p>
@@ -549,7 +549,7 @@ function App() {
           {/* Center - game table and controls */}
           <div className="lg:col-span-3 space-y-6">
             {/* AI players */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {players.slice(1).map((player, i) => {
                 const playerPos = i + 1;
                 const isPlayerDefender = pickerPosition !== null &&
@@ -577,7 +577,7 @@ function App() {
             </div>
 
             {/* Game table / Current trick */}
-            <div className="bg-green-900/50 rounded-xl p-6">
+            <div className="bg-green-900/50 rounded-xl p-3 sm:p-6">
               {/* Team banner - shows active player's role */}
               {pickerPosition !== null && phase === 'playing' && (
                 <TeamBanner
@@ -591,15 +591,15 @@ function App() {
 
               {/* Blind */}
               {blind.length > 0 && (
-                <div className="text-center mb-6">
+                <div className="text-center mb-4 sm:mb-6">
                   <p className="text-green-300 text-sm mb-2">Blind</p>
                   <div className="flex justify-center gap-2">
                     {blind.map((_, i) => (
                       <div
                         key={i}
-                        className="w-16 h-24 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center border-2 border-blue-700"
+                        className="w-12 h-18 sm:w-16 sm:h-24 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center border-2 border-blue-700"
                       >
-                        <span className="text-blue-400 text-xl">🐑</span>
+                        <span className="text-blue-400 text-base sm:text-xl">🐑</span>
                       </div>
                     ))}
                   </div>
@@ -717,7 +717,7 @@ function App() {
 
             {/* Active human player's hand */}
             {activePlayer && (
-              <div className="bg-black/30 rounded-xl p-4">
+              <div className="bg-black/30 rounded-xl p-2 sm:p-4">
                 <Hand
                   cards={activePlayer.hand}
                   onCardClick={handleCardClick}

@@ -43,18 +43,18 @@ export function GameControls({
   // Picking phase
   if (phase === 'picking' && isHumanTurn) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-lg">Pick up the blind?</p>
-        <div className="flex gap-4">
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        <p className="text-base sm:text-lg">Pick up the blind?</p>
+        <div className="flex gap-3 sm:gap-4">
           <button
             onClick={onPick}
-            className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 px-8 rounded-lg text-lg transition-colors"
+            className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 px-5 sm:py-3 sm:px-8 rounded-lg text-base sm:text-lg transition-colors"
           >
             Pick
           </button>
           <button
             onClick={onPass}
-            className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors"
+            className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-5 sm:py-3 sm:px-8 rounded-lg text-base sm:text-lg transition-colors"
           >
             Pass
           </button>
@@ -66,8 +66,8 @@ export function GameControls({
   // Burying phase
   if (phase === 'burying' && isHumanTurn) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-lg">Select 2 cards to bury ({selectedCount}/2)</p>
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        <p className="text-base sm:text-lg">Select 2 cards to bury ({selectedCount}/2)</p>
         {buryReason && (
           <p className="text-red-400 text-sm">{buryReason}</p>
         )}
@@ -75,7 +75,7 @@ export function GameControls({
           onClick={onBury}
           disabled={!canBury}
           className={`
-            font-bold py-3 px-8 rounded-lg text-lg transition-colors
+            font-bold py-2 px-5 sm:py-3 sm:px-8 rounded-lg text-base sm:text-lg transition-colors
             ${canBury
               ? 'bg-green-500 hover:bg-green-400 text-black'
               : 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -91,25 +91,25 @@ export function GameControls({
   // Calling phase
   if (phase === 'calling' && isHumanTurn) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-lg">Call an ace for your partner</p>
-        <div className="flex gap-3 flex-wrap justify-center">
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        <p className="text-base sm:text-lg">Call an ace for your partner</p>
+        <div className="flex gap-2 sm:gap-3 flex-wrap justify-center">
           {callableSuits.map(suit => (
             <button
               key={suit}
               onClick={() => onCallAce(suit)}
-              className="bg-white hover:bg-gray-100 text-black font-bold py-3 px-6 rounded-lg text-lg transition-colors flex items-center gap-2"
+              className="bg-white hover:bg-gray-100 text-black font-bold py-2 px-4 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg transition-colors flex items-center gap-1 sm:gap-2"
             >
               <span className={SUIT_DISPLAY[suit].color}>
                 {SUIT_DISPLAY[suit].symbol}
               </span>
-              {suit.charAt(0).toUpperCase() + suit.slice(1)}
+              <span className="hidden sm:inline">{suit.charAt(0).toUpperCase() + suit.slice(1)}</span>
             </button>
           ))}
         </div>
         <button
           onClick={onGoAlone}
-          className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+          className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 sm:px-6 rounded-lg text-sm sm:text-base transition-colors"
         >
           Go Alone
         </button>
@@ -121,7 +121,7 @@ export function GameControls({
   if (phase === 'playing' && isHumanTurn) {
     return (
       <div className="text-center">
-        <p className="text-lg text-yellow-300">Your turn - select a card to play</p>
+        <p className="text-base sm:text-lg text-yellow-300">Your turn - select a card to play</p>
       </div>
     );
   }
@@ -129,17 +129,17 @@ export function GameControls({
   // Scoring phase
   if (phase === 'scoring') {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <div className="flex gap-4">
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        <div className="flex gap-3 sm:gap-4">
           <button
             onClick={onPlayAgain}
-            className="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-8 rounded-lg text-lg transition-colors"
+            className="bg-green-500 hover:bg-green-400 text-black font-bold py-2 px-5 sm:py-3 sm:px-8 rounded-lg text-base sm:text-lg transition-colors"
           >
             Next Hand
           </button>
           <button
             onClick={onNewGame}
-            className="bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors"
+            className="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-5 sm:py-3 sm:px-8 rounded-lg text-base sm:text-lg transition-colors"
           >
             New Game
           </button>

@@ -123,7 +123,7 @@ export function Hand({
           </p>
         )}
       </div>
-      <div className="flex justify-center gap-2 flex-wrap">
+      <div className="flex justify-center gap-1 sm:gap-2 flex-wrap">
         {cards.map(card => (
           <Card
             key={card.id}

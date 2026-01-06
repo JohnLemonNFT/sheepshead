@@ -36,13 +36,13 @@ export function Card({
     return (
       <div
         className={`
-          ${small ? 'w-10 h-14' : 'w-16 h-24'}
+          ${small ? 'w-8 h-12 sm:w-10 sm:h-14' : 'w-12 h-18 sm:w-16 sm:h-24'}
           bg-gradient-to-br from-blue-800 to-blue-900
           rounded-lg shadow-lg flex items-center justify-center
           border-2 border-blue-700
         `}
       >
-        <div className="text-blue-400 text-xl">🐑</div>
+        <div className={`text-blue-400 ${small ? 'text-xs sm:text-sm' : 'text-base sm:text-xl'}`}>🐑</div>
       </div>
     );
   }
@@ -52,10 +52,10 @@ export function Card({
       onClick={onClick}
       disabled={disabled && !onClick}
       className={`
-        ${small ? 'w-10 h-14 text-xs' : 'w-16 h-24'}
+        ${small ? 'w-8 h-12 sm:w-10 sm:h-14 text-xs' : 'w-12 h-18 sm:w-16 sm:h-24'}
         bg-white rounded-lg shadow-lg
-        flex flex-col justify-between p-1
-        transition-all duration-150
+        flex flex-col justify-between p-0.5 sm:p-1
+        transition-all duration-150 relative
         ${isRed ? 'text-red-600' : 'text-gray-800'}
         ${cardIsTrump ? 'ring-2 ring-yellow-400' : ''}
         ${selected ? 'ring-4 ring-green-400 -translate-y-2 scale-105' : ''}
@@ -64,19 +64,19 @@ export function Card({
         ${onClick && !disabled ? 'hover:-translate-y-1' : ''}
       `}
     >
-      <div className={`text-left font-bold ${small ? 'text-xs' : 'text-sm'}`}>
+      <div className={`text-left font-bold ${small ? 'text-[10px] sm:text-xs' : 'text-xs sm:text-sm'}`}>
         {card.rank}
         <span className="ml-0.5">{SUIT_SYMBOLS[card.suit]}</span>
       </div>
-      <div className={`self-center ${small ? 'text-lg' : 'text-3xl'}`}>
+      <div className={`self-center ${small ? 'text-sm sm:text-lg' : 'text-xl sm:text-3xl'}`}>
         {SUIT_SYMBOLS[card.suit]}
       </div>
-      <div className={`text-right font-bold rotate-180 ${small ? 'text-xs' : 'text-sm'}`}>
+      <div className={`text-right font-bold rotate-180 ${small ? 'text-[10px] sm:text-xs' : 'text-xs sm:text-sm'}`}>
         {card.rank}
         <span className="ml-0.5">{SUIT_SYMBOLS[card.suit]}</span>
       </div>
       {points > 0 && !small && (
-        <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+        <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
           {points}
         </div>
       )}
@@ -88,13 +88,13 @@ export function CardBack({ small = false }: { small?: boolean }) {
   return (
     <div
       className={`
-        ${small ? 'w-10 h-14' : 'w-16 h-24'}
+        ${small ? 'w-8 h-12 sm:w-10 sm:h-14' : 'w-12 h-18 sm:w-16 sm:h-24'}
         bg-gradient-to-br from-blue-800 to-blue-900
         rounded-lg shadow-lg flex items-center justify-center
         border-2 border-blue-700
       `}
     >
-      <div className={`text-blue-400 ${small ? 'text-sm' : 'text-xl'}`}>🐑</div>
+      <div className={`text-blue-400 ${small ? 'text-xs sm:text-sm' : 'text-base sm:text-xl'}`}>🐑</div>
     </div>
   );
 }
