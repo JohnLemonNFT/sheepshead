@@ -1,6 +1,6 @@
-// GameLog component - shows history of actions with AI reasoning
+// GameLog component - collapsible history panel
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface LogEntry {
   id: number;
@@ -19,13 +19,14 @@ interface GameLogProps {
 
 export function GameLog({ entries, onClear }: GameLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Auto-scroll to bottom when new entries added
+  // Auto-scroll to bottom when new entries added and expanded
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && isExpanded) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [entries.length]);
+  }, [entries.length, isExpanded]);
 
   const getActionColor = (phase: string, isHuman: boolean) => {
     if (isHuman) return 'text-green-400';
@@ -39,48 +40,67 @@ export function GameLog({ entries, onClear }: GameLogProps) {
   };
 
   return (
-    <div className="hidden lg:flex bg-black/40 rounded-lg p-3 h-full flex-col">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-green-300 font-bold text-sm">Game Log</h3>
-        {onClear && entries.length > 0 && (
-          <button
-            onClick={onClear}
-            className="text-xs text-gray-400 hover:text-white"
-          >
-            Clear
-          </button>
-        )}
-      </div>
-
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto space-y-2 text-xs min-h-[200px] max-h-[300px]"
+    <div className="hidden lg:block bg-black/40 rounded-lg overflow-hidden">
+      {/* Collapsed header - always visible */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex justify-between items-center p-3 hover:bg-white/5 transition-colors"
       >
-        {entries.length === 0 ? (
-          <p className="text-gray-500 italic">Game actions will appear here...</p>
-        ) : (
-          entries.map((entry) => (
-            <div
-              key={entry.id}
-              className={`border-l-2 pl-2 py-1 ${
-                entry.isHuman ? 'border-green-500' : 'border-gray-600'
-              }`}
+        <h3 className="text-green-300 font-bold text-sm flex items-center gap-2">
+          <span>📜</span>
+          <span>History</span>
+          {entries.length > 0 && (
+            <span className="text-xs text-gray-500">({entries.length})</span>
+          )}
+        </h3>
+        <span className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+          ▼
+        </span>
+      </button>
+
+      {/* Expanded content */}
+      {isExpanded && (
+        <div className="px-3 pb-3">
+          {onClear && entries.length > 0 && (
+            <button
+              onClick={onClear}
+              className="text-xs text-gray-400 hover:text-white mb-2"
             >
-              <div className="flex items-center gap-2">
-                <span className={`font-bold ${getActionColor(entry.phase, entry.isHuman)}`}>
-                  {entry.player}
-                </span>
-                <span className="text-white">{entry.action}</span>
-              </div>
-              {entry.reason && (
-                <p className="text-gray-400 mt-0.5 italic">
-                  "{entry.reason}"
-                </p>
-              )}
-            </div>
-          ))
-        )}
-      </div>
+              Clear
+            </button>
+          )}
+
+          <div
+            ref={scrollRef}
+            className="overflow-y-auto space-y-2 text-xs max-h-[250px]"
+          >
+            {entries.length === 0 ? (
+              <p className="text-gray-500 italic">No actions yet...</p>
+            ) : (
+              entries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className={`border-l-2 pl-2 py-1 ${
+                    entry.isHuman ? 'border-green-500' : 'border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold ${getActionColor(entry.phase, entry.isHuman)}`}>
+                      {entry.player}
+                    </span>
+                    <span className="text-white">{entry.action}</span>
+                  </div>
+                  {entry.reason && (
+                    <p className="text-gray-400 mt-0.5 italic text-[11px]">
+                      "{entry.reason}"
+                    </p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
