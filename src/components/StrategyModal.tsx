@@ -28,17 +28,17 @@ function TipCard({ title, children, type = 'tip' }: TipCardProps) {
   };
 
   return (
-    <div className={`${colors[type]} border rounded-lg p-4 mb-4`}>
-      <h4 className="font-bold mb-2">{title}</h4>
-      <div className="text-gray-300 text-sm">{children}</div>
+    <div className={`${colors[type]} border rounded-lg p-3 sm:p-4 mb-3 sm:mb-4`}>
+      <h4 className="font-bold mb-1 sm:mb-2 text-sm sm:text-base">{title}</h4>
+      <div className="text-gray-300 text-xs sm:text-sm">{children}</div>
     </div>
   );
 }
 
 function PickingTab() {
   return (
-    <div className="space-y-4">
-      <p className="text-gray-300 mb-4">
+    <div className="space-y-3 sm:space-y-4">
+      <p className="text-gray-300 text-sm sm:text-base mb-3 sm:mb-4">
         Deciding whether to pick is one of the most important decisions in Sheepshead.
         A good pick puts you in control; a bad pick can cost you dearly.
       </p>
@@ -351,49 +351,49 @@ export function StrategyModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/80 flex items-start sm:items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-gray-900 rounded-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col my-2 sm:my-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-2xl font-bold text-white">&#x1F9E0; Strategy Guide</h2>
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-700">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Strategy Guide</h2>
           <button
             onClick={closeStrategy}
-            className="text-gray-400 hover:text-white text-2xl font-bold w-8 h-8 flex items-center justify-center rounded hover:bg-gray-800"
+            className="text-gray-400 hover:text-white text-xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-800 active:bg-gray-700"
           >
-            x
+            &times;
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-700 overflow-x-auto">
+        {/* Tabs - horizontal scroll on mobile, hide icons on small screens */}
+        <div className="flex border-b border-gray-700 overflow-x-auto scrollbar-hide">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2
+                px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 sm:gap-2 flex-shrink-0
                 ${activeTab === tab.id
                   ? 'text-green-400 border-b-2 border-green-400 bg-green-900/20'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  : 'text-gray-400 hover:text-white active:bg-gray-800'
                 }
               `}
             >
-              <span dangerouslySetInnerHTML={{ __html: tab.icon }} />
+              <span className="hidden sm:inline" dangerouslySetInnerHTML={{ __html: tab.icon }} />
               {tab.label}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           {renderContent()}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-700 flex justify-end">
+        <div className="p-3 sm:p-4 border-t border-gray-700">
           <button
             onClick={closeStrategy}
-            className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+            className="w-full sm:w-auto sm:float-right bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
           >
             Got It!
           </button>

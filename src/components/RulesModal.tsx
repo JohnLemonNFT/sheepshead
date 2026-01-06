@@ -13,14 +13,14 @@ const TABS: { id: RulesTab; label: string }[] = [
   { id: 'scoring', label: 'Scoring' },
 ];
 
-// Card display helper
+// Card display helper - smaller on mobile
 function CardDisplay({ rank, suit, highlight }: { rank: string; suit: string; highlight?: boolean }) {
   const isRed = suit === '&#x2665;' || suit === '&#x2666;';
   return (
     <span
       className={`
         inline-flex items-center justify-center
-        w-10 h-14 bg-white rounded shadow text-lg font-bold
+        w-8 h-11 sm:w-10 sm:h-14 bg-white rounded shadow text-sm sm:text-lg font-bold
         ${isRed ? 'text-red-600' : 'text-gray-800'}
         ${highlight ? 'ring-2 ring-yellow-400' : ''}
       `}
@@ -31,83 +31,72 @@ function CardDisplay({ rank, suit, highlight }: { rank: string; suit: string; hi
 
 function CardHierarchyTab() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-yellow-400 mb-3">Trump Cards (14 total)</h3>
-        <p className="text-gray-300 mb-4">
+        <h3 className="text-lg sm:text-xl font-bold text-yellow-400 mb-2 sm:mb-3">Trump Cards (14 total)</h3>
+        <p className="text-gray-300 text-sm sm:text-base mb-3 sm:mb-4">
           Trump cards always beat fail cards. Queens are highest, then Jacks, then Diamonds.
         </p>
 
-        <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
-          <div className="text-sm text-yellow-300 mb-3">Highest to Lowest:</div>
-          <div className="flex flex-wrap gap-2 items-center">
-            {/* Queens */}
-            <span className="text-xs text-gray-400 mr-1">Queens:</span>
-            <CardDisplay rank="Q" suit="&#x2663;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="Q" suit="&#x2660;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="Q" suit="&#x2665;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="Q" suit="&#x2666;" highlight />
+        <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-3 sm:p-4 space-y-3">
+          {/* Queens */}
+          <div>
+            <div className="text-xs text-yellow-300 mb-2">Queens (highest):</div>
+            <div className="flex flex-wrap gap-1 sm:gap-2">
+              <CardDisplay rank="Q" suit="&#x2663;" highlight />
+              <CardDisplay rank="Q" suit="&#x2660;" highlight />
+              <CardDisplay rank="Q" suit="&#x2665;" highlight />
+              <CardDisplay rank="Q" suit="&#x2666;" highlight />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 items-center mt-3">
-            {/* Jacks */}
-            <span className="text-xs text-gray-400 mr-1">Jacks:</span>
-            <CardDisplay rank="J" suit="&#x2663;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="J" suit="&#x2660;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="J" suit="&#x2665;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="J" suit="&#x2666;" highlight />
+          {/* Jacks */}
+          <div>
+            <div className="text-xs text-yellow-300 mb-2">Jacks:</div>
+            <div className="flex flex-wrap gap-1 sm:gap-2">
+              <CardDisplay rank="J" suit="&#x2663;" highlight />
+              <CardDisplay rank="J" suit="&#x2660;" highlight />
+              <CardDisplay rank="J" suit="&#x2665;" highlight />
+              <CardDisplay rank="J" suit="&#x2666;" highlight />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 items-center mt-3">
-            {/* Diamonds */}
-            <span className="text-xs text-gray-400 mr-1">Diamonds:</span>
-            <CardDisplay rank="A" suit="&#x2666;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="10" suit="&#x2666;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="K" suit="&#x2666;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="9" suit="&#x2666;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="8" suit="&#x2666;" highlight />
-            <span className="text-gray-500">{'>'}</span>
-            <CardDisplay rank="7" suit="&#x2666;" highlight />
+          {/* Diamonds */}
+          <div>
+            <div className="text-xs text-yellow-300 mb-2">Diamonds (lowest trump):</div>
+            <div className="flex flex-wrap gap-1 sm:gap-2">
+              <CardDisplay rank="A" suit="&#x2666;" highlight />
+              <CardDisplay rank="10" suit="&#x2666;" highlight />
+              <CardDisplay rank="K" suit="&#x2666;" highlight />
+              <CardDisplay rank="9" suit="&#x2666;" highlight />
+              <CardDisplay rank="8" suit="&#x2666;" highlight />
+              <CardDisplay rank="7" suit="&#x2666;" highlight />
+            </div>
           </div>
         </div>
       </div>
 
       <div>
-        <h3 className="text-xl font-bold text-gray-300 mb-3">Fail Cards (6 per suit)</h3>
-        <p className="text-gray-400 mb-4">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-300 mb-2 sm:mb-3">Fail Cards (6 per suit)</h3>
+        <p className="text-gray-400 text-sm sm:text-base mb-3 sm:mb-4">
           Clubs, Spades, and Hearts (without Queens/Jacks) are "fail" suits.
         </p>
-        <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
-          <div className="text-sm text-gray-400 mb-3">Each fail suit (highest to lowest):</div>
-          <div className="flex flex-wrap gap-2 items-center">
+        <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 sm:p-4">
+          <div className="text-xs text-gray-400 mb-2">Each fail suit (A highest, 7 lowest):</div>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             <CardDisplay rank="A" suit="&#x2663;" />
-            <span className="text-gray-500">{'>'}</span>
             <CardDisplay rank="10" suit="&#x2663;" />
-            <span className="text-gray-500">{'>'}</span>
             <CardDisplay rank="K" suit="&#x2663;" />
-            <span className="text-gray-500">{'>'}</span>
             <CardDisplay rank="9" suit="&#x2663;" />
-            <span className="text-gray-500">{'>'}</span>
             <CardDisplay rank="8" suit="&#x2663;" />
-            <span className="text-gray-500">{'>'}</span>
             <CardDisplay rank="7" suit="&#x2663;" />
           </div>
         </div>
       </div>
 
-      <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-4">
-        <h4 className="font-bold text-blue-300 mb-2">Remember:</h4>
-        <ul className="text-sm text-gray-300 space-y-1">
-          <li>&#x2022; ALL Queens and Jacks are trump, regardless of their suit</li>
-          <li>&#x2022; The suit order is always: Clubs {'>'} Spades {'>'} Hearts {'>'} Diamonds</li>
+      <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-3 sm:p-4">
+        <h4 className="font-bold text-blue-300 mb-2 text-sm sm:text-base">Remember:</h4>
+        <ul className="text-xs sm:text-sm text-gray-300 space-y-1">
+          <li>&#x2022; ALL Queens and Jacks are trump, regardless of suit</li>
+          <li>&#x2022; Suit order: Clubs &gt; Spades &gt; Hearts &gt; Diamonds</li>
           <li>&#x2022; Any trump beats any fail card</li>
         </ul>
       </div>
@@ -413,30 +402,30 @@ export function RulesModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/80 flex items-start sm:items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-gray-900 rounded-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col my-2 sm:my-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-2xl font-bold text-white">&#x1F4D6; Sheepshead Rules</h2>
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-700">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Rules</h2>
           <button
             onClick={closeRules}
-            className="text-gray-400 hover:text-white text-2xl font-bold w-8 h-8 flex items-center justify-center rounded hover:bg-gray-800"
+            className="text-gray-400 hover:text-white text-xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-800 active:bg-gray-700"
           >
-            x
+            &times;
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-700 overflow-x-auto">
+        {/* Tabs - horizontal scroll on mobile */}
+        <div className="flex border-b border-gray-700 overflow-x-auto scrollbar-hide">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors
+                px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0
                 ${activeTab === tab.id
                   ? 'text-green-400 border-b-2 border-green-400 bg-green-900/20'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  : 'text-gray-400 hover:text-white active:bg-gray-800'
                 }
               `}
             >
@@ -446,15 +435,15 @@ export function RulesModal() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           {renderContent()}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-700 flex justify-end">
+        <div className="p-3 sm:p-4 border-t border-gray-700">
           <button
             onClick={closeRules}
-            className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+            className="w-full sm:w-auto sm:float-right bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
           >
             Got It!
           </button>
