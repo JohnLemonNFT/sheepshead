@@ -1,7 +1,7 @@
 # Sheepshead Project Progress
 
 > **Last Updated:** 2025-01-06
-> **Current Phase:** Premium UI Polish Complete - Ready for Testing
+> **Current Phase:** UI Fixes Applied - Testing
 
 ---
 
@@ -96,6 +96,10 @@
 
 ### Bugs
 - None currently identified
+
+### Recently Fixed
+- **Grainy background** - Replaced SVG noise texture with clean gradient
+- **Animation flicker** - Removed staggered delays, made animations subtler
 
 ### Limitations
 - **Leaster variant:** Placeholder implementation - just goes to scoring when all pass
