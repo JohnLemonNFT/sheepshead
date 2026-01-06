@@ -4,7 +4,19 @@ import { useState, useEffect } from 'react';
 import type { OnlineGameState, OnlineGameActions } from '../hooks/useOnlineGame';
 
 // Use production server if deployed, otherwise localhost
-const DEFAULT_SERVER_URL = import.meta.env.VITE_WS_SERVER_URL || 'ws://localhost:3001';
+const getDefaultServerUrl = () => {
+  // Check for explicit env var first
+  if (import.meta.env.VITE_WS_SERVER_URL) {
+    return import.meta.env.VITE_WS_SERVER_URL;
+  }
+  // Auto-detect: if we're on vercel, use the render server
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'wss://sheepshead.onrender.com';
+  }
+  // Local development
+  return 'ws://localhost:3001';
+};
+const DEFAULT_SERVER_URL = getDefaultServerUrl();
 
 interface OnlineLobbyProps {
   onlineState: OnlineGameState;
