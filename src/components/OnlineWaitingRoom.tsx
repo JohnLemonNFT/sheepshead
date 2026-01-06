@@ -24,7 +24,7 @@ function PlayerSlot({ position, player, isMe }: { position: number; player: Play
           w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-lg font-bold flex-shrink-0
           ${isBot ? 'bg-blue-600' : 'bg-green-600'}
         `}>
-          {isBot ? '&#x1F916;' : name.charAt(0).toUpperCase()}
+          {isBot ? '🤖' : name.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">
           <div className="font-medium text-white flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
@@ -180,7 +180,7 @@ export function OnlineWaitingRoom({ onlineState, onlineActions }: OnlineWaitingR
         {isHost && (
           <section className="mt-4 sm:mt-6 text-center">
             <span className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-yellow-400 bg-yellow-900/30 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
-              <span className="text-base sm:text-lg">&#x1F451;</span>
+              <span className="text-base sm:text-lg">👑</span>
               You are the host
             </span>
           </section>

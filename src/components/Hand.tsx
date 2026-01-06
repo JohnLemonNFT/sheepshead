@@ -1,4 +1,4 @@
-// Hand component for displaying a player's cards
+// Hand component for displaying a player's cards - Premium Edition
 
 import { Card as CardType } from '../game/types';
 import { Card, CardBack } from './Card';
@@ -18,6 +18,7 @@ interface HandProps {
   isDefender?: boolean;
   playerPosition?: number;
   showAvatar?: boolean;
+  animate?: boolean; // Enable dealing animation
 }
 
 export function Hand({
@@ -34,6 +35,7 @@ export function Hand({
   isDefender = false,
   playerPosition = 0,
   showAvatar = false,
+  animate = false,
 }: HandProps) {
   const isCardSelected = (card: CardType) =>
     selectedCards.some(c => c.id === card.id);
@@ -41,18 +43,31 @@ export function Hand({
   const isCardLegal = (card: CardType) =>
     legalPlays.length === 0 || legalPlays.some(c => c.id === card.id);
 
-  // Determine background/border styling based on role
+  // Determine background/border styling based on role - Premium glass effect
   const getRoleStyles = () => {
-    if (isPicker) return 'bg-yellow-900/40 border-2 border-yellow-500 rounded-lg p-1.5 sm:p-2';
-    if (isPartner) return 'bg-blue-900/40 border-2 border-blue-500 rounded-lg p-1.5 sm:p-2';
-    if (isDefender) return 'bg-red-900/30 border-2 border-red-500/50 rounded-lg p-1.5 sm:p-2';
+    if (isPicker) return 'glass bg-yellow-900/30 border border-yellow-500/50 rounded-xl p-2 sm:p-3 shadow-lg';
+    if (isPartner) return 'glass bg-blue-900/30 border border-blue-500/50 rounded-xl p-2 sm:p-3 shadow-lg';
+    if (isDefender) return 'glass bg-red-900/20 border border-red-500/30 rounded-xl p-2 sm:p-3 shadow-lg';
+    if (isCurrentPlayer) return 'glass bg-green-900/20 border border-green-500/40 rounded-xl p-2 sm:p-3 shadow-lg your-turn-glow';
     return '';
   };
 
   const getRoleBadge = () => {
-    if (isPicker) return <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 bg-yellow-500 text-black text-[10px] sm:text-xs font-bold rounded">PICKER</span>;
-    if (isPartner) return <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 bg-blue-500 text-white text-[10px] sm:text-xs font-bold rounded">PARTNER</span>;
-    if (isDefender) return <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 bg-red-500/80 text-white text-[10px] sm:text-xs font-bold rounded">DEF</span>;
+    if (isPicker) return (
+      <span className="ml-1 sm:ml-2 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-black text-[9px] sm:text-xs font-bold rounded-full shadow-md">
+        👑 PICKER
+      </span>
+    );
+    if (isPartner) return (
+      <span className="ml-1 sm:ml-2 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[9px] sm:text-xs font-bold rounded-full shadow-md">
+        🤝 PARTNER
+      </span>
+    );
+    if (isDefender) return (
+      <span className="ml-1 sm:ml-2 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gradient-to-r from-red-500 to-rose-600 text-white text-[9px] sm:text-xs font-bold rounded-full shadow-md">
+        ⚔️ DEF
+      </span>
+    );
     return null;
   };
 
@@ -123,8 +138,8 @@ export function Hand({
           </p>
         )}
       </div>
-      <div className="flex justify-center gap-0.5 sm:gap-1 md:gap-2 flex-wrap">
-        {cards.map(card => (
+      <div className="flex justify-center gap-1 sm:gap-1.5 md:gap-2 flex-wrap">
+        {cards.map((card, index) => (
           <Card
             key={card.id}
             card={card}
@@ -133,6 +148,8 @@ export function Hand({
             disabled={onCardClick ? !isCardLegal(card) : false}
             highlight={isCardLegal(card) && legalPlays.length > 0}
             small={compact}
+            animate={animate ? 'deal' : null}
+            animationDelay={animate ? index * 80 : 0}
           />
         ))}
       </div>

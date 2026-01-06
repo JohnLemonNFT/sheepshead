@@ -118,10 +118,10 @@ function VolumeSlider({ volume, muted, onVolumeChange, onMutedChange }: VolumeSl
   };
 
   const getVolumeIcon = () => {
-    if (muted || volume === 0) return '&#x1F507;';
-    if (volume < 33) return '&#x1F508;';
-    if (volume < 66) return '&#x1F509;';
-    return '&#x1F50A;';
+    if (muted || volume === 0) return '🔇';
+    if (volume < 33) return '🔈';
+    if (volume < 66) return '🔉';
+    return '🔊';
   };
 
   return (

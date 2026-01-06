@@ -599,7 +599,7 @@ function App() {
                         key={i}
                         className="w-10 h-14 sm:w-12 sm:h-[4.5rem] md:w-16 md:h-24 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center border-2 border-blue-700"
                       >
-                        <span className="text-blue-400 text-sm sm:text-base md:text-xl">&#x1F411;</span>
+                        <span className="text-blue-400 text-sm sm:text-base md:text-xl">🐑</span>
                       </div>
                     ))}
                   </div>

@@ -6,12 +6,12 @@ import { useGameStore } from '../store/gameStore';
 type StrategyTab = 'picking' | 'burying' | 'calling' | 'picker' | 'partner' | 'defender';
 
 const TABS: { id: StrategyTab; label: string; icon: string }[] = [
-  { id: 'picking', label: 'When to Pick', icon: '&#x1F3AF;' },
-  { id: 'burying', label: 'Burying', icon: '&#x1F4E6;' },
-  { id: 'calling', label: 'Calling Partner', icon: '&#x1F91D;' },
-  { id: 'picker', label: 'As Picker', icon: '&#x1F451;' },
-  { id: 'partner', label: 'As Partner', icon: '&#x1F499;' },
-  { id: 'defender', label: 'As Defender', icon: '&#x1F6E1;' },
+  { id: 'picking', label: 'When to Pick', icon: '🎯' },
+  { id: 'burying', label: 'Burying', icon: '📦' },
+  { id: 'calling', label: 'Calling Partner', icon: '🤝' },
+  { id: 'picker', label: 'As Picker', icon: '👑' },
+  { id: 'partner', label: 'As Partner', icon: '💙' },
+  { id: 'defender', label: 'As Defender', icon: '🛡️' },
 ];
 
 interface TipCardProps {

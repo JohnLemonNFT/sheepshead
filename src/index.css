@@ -9,30 +9,96 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a472a 0%, #0f2d1a 100%);
+  background:
+    /* Felt texture overlay */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"),
+    /* Rich gradient base */
+    radial-gradient(ellipse at center, #1e5233 0%, #143d24 40%, #0d2818 100%);
+  background-blend-mode: soft-light, normal;
 }
 
-/* Card styling */
+/* Premium felt table surface */
+.felt-surface {
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at center, #1a5c38 0%, #145030 50%, #0f3d24 100%);
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.4),
+    inset 0 0 120px rgba(0, 0, 0, 0.2);
+}
+
+/* Wood rail around table */
+.table-rail {
+  background: linear-gradient(180deg, #5c3d2e 0%, #3d2820 50%, #2a1a14 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Premium Card styling */
 .card {
-  @apply bg-white rounded-lg shadow-lg transition-transform duration-150;
-  @apply hover:scale-105 hover:shadow-xl cursor-pointer;
+  @apply bg-gradient-to-br from-white to-gray-100 rounded-lg transition-all duration-200;
   aspect-ratio: 2.5 / 3.5;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.card:hover:not(.disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.15),
+    0 16px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .card-red {
-  color: #dc2626;
+  color: #c41e3a;
 }
 
 .card-black {
-  color: #1f2937;
+  color: #1a1a2e;
 }
 
 .card.selected {
-  @apply ring-4 ring-yellow-400 scale-105;
+  @apply ring-4 ring-green-400 scale-105;
+  transform: translateY(-8px);
 }
 
 .card.disabled {
   @apply opacity-50 cursor-not-allowed;
+  filter: grayscale(30%);
+}
+
+/* Trump card glow */
+.card-trump {
+  box-shadow:
+    0 0 0 2px rgba(250, 204, 21, 0.6),
+    0 0 20px rgba(250, 204, 21, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card back design */
+.card-back {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #1e3a5f 0px,
+      #1e3a5f 2px,
+      #234b7a 2px,
+      #234b7a 4px
+    );
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    inset 0 0 0 3px #1a3050,
+    inset 0 0 0 5px #2a5080;
 }
 
 /* Game table */
@@ -58,10 +124,109 @@ body {
   }
 }
 
+@keyframes cardDeal {
+  from {
+    opacity: 0;
+    transform: translateY(-100px) rotateY(180deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateY(0) scale(1);
+  }
+}
+
+@keyframes cardPlay {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1) translateY(-20px);
+  }
+  100% {
+    transform: scale(0.9) translateY(0);
+  }
+}
+
+@keyframes trickCollect {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) translateY(20px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(74, 222, 128, 0.5), 0 0 10px rgba(74, 222, 128, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.8), 0 0 30px rgba(74, 222, 128, 0.5);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
 
 .animate-slideIn {
   animation: slideIn 0.3s ease-out;
+}
+
+.animate-cardDeal {
+  animation: cardDeal 0.4s ease-out;
+}
+
+.animate-cardPlay {
+  animation: cardPlay 0.3s ease-out;
+}
+
+.animate-trickCollect {
+  animation: trickCollect 0.5s ease-in forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Your turn indicator */
+.your-turn-glow {
+  box-shadow:
+    0 0 10px rgba(74, 222, 128, 0.6),
+    0 0 20px rgba(74, 222, 128, 0.4),
+    0 0 40px rgba(74, 222, 128, 0.2);
+}
+
+/* Glass morphism for modals and overlays */
+.glass {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Chip/token styling */
+.chip {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
