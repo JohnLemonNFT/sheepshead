@@ -128,7 +128,7 @@ export function Card({
 
       {/* Point value badge */}
       {points > 0 && !small && (
-        <div className="absolute -top-2 -right-2 sm:-top-2.5 sm:-right-2.5 bg-gradient-to-br from-amber-400 to-amber-600 text-black text-xs sm:text-sm font-black rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center shadow-lg border-2 border-white/80">
+        <div className="absolute -top-2.5 -right-2.5 sm:-top-3 sm:-right-3 bg-red-600 text-white text-sm sm:text-base font-bold rounded-full min-w-7 h-7 sm:min-w-8 sm:h-8 px-1 flex items-center justify-center shadow-lg border-2 border-white">
           {points}
         </div>
       )}
