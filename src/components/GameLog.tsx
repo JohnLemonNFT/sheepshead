@@ -39,7 +39,7 @@ export function GameLog({ entries, onClear }: GameLogProps) {
   };
 
   return (
-    <div className="bg-black/40 rounded-lg p-3 h-full flex flex-col">
+    <div className="hidden lg:flex bg-black/40 rounded-lg p-3 h-full flex-col">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-green-300 font-bold text-sm">Game Log</h3>
         {onClear && entries.length > 0 && (

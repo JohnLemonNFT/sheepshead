@@ -524,8 +524,8 @@ function App() {
 
         {/* Main game area */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          {/* Left sidebar - scores, tips, and log */}
-          <div className="lg:col-span-1 space-y-3 sm:space-y-4">
+          {/* Left sidebar - scores, tips, and log - hidden on mobile during play */}
+          <div className={`lg:col-span-1 space-y-3 sm:space-y-4 ${phase === 'playing' ? 'hidden lg:block' : ''}`}>
             <ScoreBoard
               scores={playerScores}
               pickerPosition={pickerPosition}
@@ -564,13 +564,9 @@ function App() {
           {/* Center - game table and controls */}
           <div className="lg:col-span-3 space-y-3 sm:space-y-4 lg:space-y-6">
             {/* AI players - compact status strip on mobile */}
-            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-0">
+            <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mb-1 sm:mb-0">
               {players.slice(1).map((player, i) => {
                 const playerPos = i + 1;
-                const isPlayerDefender = pickerPosition !== null &&
-                  !player.isPicker &&
-                  !player.isPartner &&
-                  calledAce?.revealed;
                 const displayInfo = getPlayerDisplayInfo(playerPos as PlayerPosition);
                 const isThinking = currentPlayer === playerPos;
 
@@ -578,19 +574,17 @@ function App() {
                   <div
                     key={playerPos}
                     className={`
-                      flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs
-                      ${isThinking ? 'bg-green-600/30 ring-1 ring-green-400' : 'bg-black/20'}
+                      flex items-center gap-1 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-[10px] sm:text-xs
+                      ${isThinking ? 'bg-green-600/40 ring-1 ring-green-400' : 'bg-black/30'}
                       ${player.isPicker ? 'ring-1 ring-yellow-400' : ''}
                       ${player.isPartner && calledAce?.revealed ? 'ring-1 ring-blue-400' : ''}
-                      ${isPlayerDefender ? 'ring-1 ring-red-400/50' : ''}
                     `}
                   >
-                    <span className="text-base">{displayInfo.avatar}</span>
-                    <span className="text-white/90 font-medium">{displayInfo.name}</span>
-                    {player.isPicker && <span className="text-yellow-400">👑</span>}
-                    {player.isPartner && calledAce?.revealed && <span className="text-blue-400">🤝</span>}
-                    {isThinking && <span className="text-green-300 text-[10px]">thinking...</span>}
-                    <span className="text-white/50 text-[10px]">{player.hand.length}♠</span>
+                    <span className="text-sm sm:text-base">{displayInfo.avatar}</span>
+                    <span className="text-white/90 font-medium hidden sm:inline">{displayInfo.name}</span>
+                    {player.isPicker && <span className="text-yellow-400 text-xs">👑</span>}
+                    {player.isPartner && calledAce?.revealed && <span className="text-blue-400 text-xs">🤝</span>}
+                    <span className="text-white/50">{player.hand.length}</span>
                   </div>
                 );
               })}
@@ -628,8 +622,8 @@ function App() {
 
               {/* Current trick */}
               {phase === 'playing' && (
-                <div className="text-center mb-2 sm:mb-3">
-                  <p className="text-green-300/80 text-[10px] sm:text-xs mb-1.5">
+                <div className="text-center mb-2 sm:mb-3 relative z-10">
+                  <p className="text-green-300/80 text-[10px] sm:text-xs mb-1">
                     Trick {trickNumber}/6
                     {calledAce && (
                       <span className="ml-1">
@@ -640,14 +634,14 @@ function App() {
 
                   {/* Winner banner when trick is complete */}
                   {trickResult && (
-                    <div className="bg-green-700/80 border border-green-400 rounded px-2 py-1 mb-2 inline-block">
-                      <span className="text-green-100 font-bold text-xs sm:text-sm">
+                    <div className="bg-green-700/80 border border-green-400 rounded px-2 py-0.5 mb-1 inline-block">
+                      <span className="text-green-100 font-bold text-[10px] sm:text-sm">
                         {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} wins +{trickResult.points}
                       </span>
                     </div>
                   )}
 
-                  <div className="flex justify-center gap-1 sm:gap-2 min-h-[60px] sm:min-h-[80px] items-center flex-wrap">
+                  <div className="flex justify-center gap-0.5 sm:gap-2 min-h-[50px] sm:min-h-[80px] items-center">
                     {currentTrick.cards.length === 0 ? (
                       <p className="text-gray-400">Waiting for lead...</p>
                     ) : (
@@ -729,7 +723,7 @@ function App() {
             {gameSettings.showAIExplanations && lastAIExplanation && phase === 'playing' && (
               <button
                 onClick={() => showWhyExplanation(lastAIExplanation.playerPosition)}
-                className="lg:hidden w-full bg-purple-600/90 hover:bg-purple-500 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                className="lg:hidden w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 relative z-20"
               >
                 <span>🤔</span>
                 <span>Why did {getPlayerDisplayInfo(lastAIExplanation.playerPosition).name} do that?</span>

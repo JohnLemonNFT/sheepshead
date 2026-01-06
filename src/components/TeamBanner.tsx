@@ -66,10 +66,10 @@ export function TeamBanner({
   };
 
   return (
-    <div className={`${getBgColor()} border rounded-lg px-3 py-2 mb-3 flex items-center justify-center gap-2 text-sm`}>
-      <span>{getIcon()}</span>
+    <div className={`${getBgColor()} border rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm`}>
+      <span className="text-sm sm:text-base">{getIcon()}</span>
       <span className="font-bold text-white">{getLabel()}</span>
-      <span className="text-white/80 text-xs">{getInfo()}</span>
+      <span className="text-white/70 text-[10px] sm:text-xs">{getInfo()}</span>
     </div>
   );
 }
