@@ -1,6 +1,6 @@
 # Sheepshead Project Progress
 
-> **Last Updated:** 2025-01-06
+> **Last Updated:** 2026-01-06
 > **Current Phase:** UI Fixes Applied - Testing
 
 ---
@@ -101,6 +101,8 @@
 - **Grainy background** - Replaced SVG noise texture with clean gradient
 - **Animation flicker** - Removed staggered delays, made animations subtler
 - **Cluttered mobile UI** - Compacted TeamBanner, AI player display, trick area
+- **Purple "Why did X" button cut off** - Moved to visible location above hand on mobile
+- **Card point badges too small** - Increased size from 16px to 20px on mobile with larger text
 
 ### Limitations
 - **Leaster variant:** Placeholder implementation - just goes to scoring when all pass

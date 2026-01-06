@@ -535,11 +535,11 @@ function App() {
             {/* Game log */}
             <GameLog entries={gameLog} onClear={clearLog} />
 
-            {/* AI explanation button (if enabled in settings) */}
+            {/* AI explanation button (if enabled in settings) - desktop only */}
             {gameSettings.showAIExplanations && lastAIExplanation && phase === 'playing' && (
               <button
                 onClick={() => showWhyExplanation(lastAIExplanation.playerPosition)}
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
+                className="hidden lg:block w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
               >
                 Why did {getPlayerDisplayInfo(lastAIExplanation.playerPosition).name} do that?
               </button>
@@ -709,6 +709,17 @@ function App() {
                 />
               </div>
             </div>
+
+            {/* Mobile AI explanation button - above the hand for visibility */}
+            {gameSettings.showAIExplanations && lastAIExplanation && phase === 'playing' && (
+              <button
+                onClick={() => showWhyExplanation(lastAIExplanation.playerPosition)}
+                className="lg:hidden w-full bg-purple-600/90 hover:bg-purple-500 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <span>🤔</span>
+                <span>Why did {getPlayerDisplayInfo(lastAIExplanation.playerPosition).name} do that?</span>
+              </button>
+            )}
 
             {/* Active human player's hand */}
             {activePlayer && (
