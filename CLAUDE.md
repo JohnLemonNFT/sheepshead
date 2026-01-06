@@ -1,7 +1,7 @@
 # Sheepshead App
 
 ## Current Status
-Last worked on: [Bug fix - prevented double card plays on fast clicks]
+Last worked on: [Mobile UI cleanup - hid sidebar during play, compacted all elements]
 
 ## Project Overview
 A web/mobile app for playing Sheepshead, the classic Wisconsin trick-taking card game. Our goal is to become the definitive resource for learning and playing Sheepshead online.
