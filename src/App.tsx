@@ -134,6 +134,9 @@ function App() {
   // Menu dropdown state
   const [showMenu, setShowMenu] = useState(false);
 
+  // Prevent double card plays
+  const [isPlayingCard, setIsPlayingCard] = useState(false);
+
   // Auto-clear trick result after delay and show coaching feedback
   useEffect(() => {
     if (trickResult) {
@@ -195,6 +198,13 @@ function App() {
   const isCurrentPlayerHuman = playerTypes[currentPlayer] === 'human';
   const isHumanTurn = isCurrentPlayerHuman && activeHumanPosition === currentPlayer;
 
+  // Reset play lock when turn changes back to human
+  useEffect(() => {
+    if (isHumanTurn) {
+      setIsPlayingCard(false);
+    }
+  }, [currentPlayer, isHumanTurn]);
+
   // The active human player (whose hand is shown)
   const activePlayer = activeHumanPosition !== null ? players[activeHumanPosition] : null;
 
@@ -210,7 +220,12 @@ function App() {
       if (phase === 'burying') {
         toggleCardSelection(card);
       } else if (phase === 'playing') {
+        // Prevent double-plays while processing
+        if (isPlayingCard) return;
+
         if (legalPlays.some(c => c.id === card.id)) {
+          setIsPlayingCard(true);
+
           // Record play for coaching feedback
           if (gameSettings.showStrategyTips && activePlayer) {
             coachingActions.recordPlay(
@@ -231,7 +246,7 @@ function App() {
         }
       }
     },
-    [phase, isHumanTurn, activeHumanPosition, legalPlays, toggleCardSelection, playCard, addLogEntry, gameSettings.showStrategyTips, activePlayer, coachingActions, currentTrick, calledAce, pickerPosition, trickNumber]
+    [phase, isHumanTurn, activeHumanPosition, legalPlays, toggleCardSelection, playCard, addLogEntry, gameSettings.showStrategyTips, activePlayer, coachingActions, currentTrick, calledAce, pickerPosition, trickNumber, isPlayingCard]
   );
 
   // Get display name for active human player
