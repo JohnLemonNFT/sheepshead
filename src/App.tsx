@@ -548,8 +548,8 @@ function App() {
 
           {/* Center - game table and controls */}
           <div className="lg:col-span-3 space-y-3 sm:space-y-4 lg:space-y-6">
-            {/* AI players */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2">
+            {/* AI players - compact status strip on mobile */}
+            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-0">
               {players.slice(1).map((player, i) => {
                 const playerPos = i + 1;
                 const isPlayerDefender = pickerPosition !== null &&
@@ -557,27 +557,32 @@ function App() {
                   !player.isPartner &&
                   calledAce?.revealed;
                 const displayInfo = getPlayerDisplayInfo(playerPos as PlayerPosition);
+                const isThinking = currentPlayer === playerPos;
 
                 return (
-                  <Hand
+                  <div
                     key={playerPos}
-                    cards={player.hand}
-                    faceDown
-                    label={displayInfo.name}
-                    isCurrentPlayer={currentPlayer === playerPos}
-                    compact
-                    isPicker={player.isPicker}
-                    isPartner={player.isPartner && calledAce?.revealed}
-                    isDefender={isPlayerDefender}
-                    playerPosition={playerPos}
-                    showAvatar
-                  />
+                    className={`
+                      flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs
+                      ${isThinking ? 'bg-green-600/30 ring-1 ring-green-400' : 'bg-black/20'}
+                      ${player.isPicker ? 'ring-1 ring-yellow-400' : ''}
+                      ${player.isPartner && calledAce?.revealed ? 'ring-1 ring-blue-400' : ''}
+                      ${isPlayerDefender ? 'ring-1 ring-red-400/50' : ''}
+                    `}
+                  >
+                    <span className="text-base">{displayInfo.avatar}</span>
+                    <span className="text-white/90 font-medium">{displayInfo.name}</span>
+                    {player.isPicker && <span className="text-yellow-400">👑</span>}
+                    {player.isPartner && calledAce?.revealed && <span className="text-blue-400">🤝</span>}
+                    {isThinking && <span className="text-green-300 text-[10px]">thinking...</span>}
+                    <span className="text-white/50 text-[10px]">{player.hand.length}♠</span>
+                  </div>
                 );
               })}
             </div>
 
             {/* Game table / Current trick */}
-            <div className="bg-green-900/50 rounded-xl p-2 sm:p-4 md:p-6">
+            <div className="bg-black/20 rounded-xl p-2 sm:p-3 md:p-4">
               {/* Team banner - shows active player's role */}
               {pickerPosition !== null && phase === 'playing' && (
                 <TeamBanner
@@ -608,30 +613,26 @@ function App() {
 
               {/* Current trick */}
               {phase === 'playing' && (
-                <div className="text-center mb-3 sm:mb-4 md:mb-6">
-                  <p className="text-green-300 text-xs sm:text-sm mb-2">
+                <div className="text-center mb-2 sm:mb-3">
+                  <p className="text-green-300/80 text-[10px] sm:text-xs mb-1.5">
                     Trick {trickNumber}/6
                     {calledAce && (
-                      <span className="ml-1 sm:ml-2">
-                        | Called: {calledAce.suit}
-                        {calledAce.revealed && ' (revealed)'}
+                      <span className="ml-1">
+                        • {calledAce.suit} {calledAce.revealed ? '✓' : ''}
                       </span>
                     )}
                   </p>
 
                   {/* Winner banner when trick is complete */}
                   {trickResult && (
-                    <div className="bg-green-700/80 border-2 border-green-400 rounded-lg px-2 sm:px-4 py-2 mb-3 sm:mb-4 animate-slideIn">
-                      <span className="text-green-100 font-bold text-sm sm:text-base md:text-lg">
-                        {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} wins!
-                      </span>
-                      <span className="text-green-200 ml-1 sm:ml-2 text-xs sm:text-sm md:text-base">
-                        (+{trickResult.points} pts)
+                    <div className="bg-green-700/80 border border-green-400 rounded px-2 py-1 mb-2 inline-block">
+                      <span className="text-green-100 font-bold text-xs sm:text-sm">
+                        {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} wins +{trickResult.points}
                       </span>
                     </div>
                   )}
 
-                  <div className="flex justify-center gap-1 sm:gap-2 md:gap-3 min-h-[80px] sm:min-h-[100px] items-center flex-wrap">
+                  <div className="flex justify-center gap-1 sm:gap-2 min-h-[60px] sm:min-h-[80px] items-center flex-wrap">
                     {currentTrick.cards.length === 0 ? (
                       <p className="text-gray-400">Waiting for lead...</p>
                     ) : (
@@ -657,24 +658,18 @@ function App() {
                         return (
                           <div
                             key={i}
-                            className={`text-center p-1 sm:p-2 rounded-lg transition-all duration-300 ${teamColorClass} ${winnerClass}`}
+                            className={`text-center p-0.5 sm:p-1 rounded transition-all ${teamColorClass} ${winnerClass}`}
                           >
-                            <Card card={play.card} />
-                            <p className={`text-[10px] sm:text-xs mt-1 font-medium ${
-                              isWinner
-                                ? 'text-green-300 font-bold'
-                                : isPicker
-                                  ? 'text-yellow-300'
-                                  : isPartnerPlay
-                                    ? 'text-blue-300'
-                                    : showTeamColor && !playerOnPickerTeam
-                                      ? 'text-red-300'
-                                      : 'text-green-300'
+                            <Card card={play.card} small />
+                            <p className={`text-[9px] sm:text-[10px] mt-0.5 truncate max-w-[50px] sm:max-w-none ${
+                              isWinner ? 'text-green-300 font-bold' :
+                              isPicker ? 'text-yellow-300' :
+                              isPartnerPlay ? 'text-blue-300' :
+                              'text-white/70'
                             }`}>
                               {getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
-                              {isWinner && ' 🏆'}
-                              {!isWinner && isPicker && ' 👑'}
-                              {!isWinner && isPartnerPlay && ' 🤝'}
+                              {isPicker && '👑'}
+                              {isPartnerPlay && '🤝'}
                             </p>
                           </div>
                         );
@@ -717,7 +712,7 @@ function App() {
 
             {/* Active human player's hand */}
             {activePlayer && (
-              <div className="bg-black/30 rounded-xl p-2 sm:p-3 md:p-4">
+              <div className="bg-black/30 rounded-lg p-1.5 sm:p-2 md:p-3">
                 <Hand
                   cards={activePlayer.hand}
                   onCardClick={handleCardClick}
@@ -736,10 +731,9 @@ function App() {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="text-center mt-4 sm:mt-6 md:mt-8 text-green-300/50 text-xs sm:text-sm">
-          <p>Tap cards to {phase === 'burying' ? 'select for burying' : 'play'}</p>
-          <p className="mt-1">Yellow ring = Trump | Green = Legal play</p>
+        {/* Footer - hidden on mobile to save space */}
+        <footer className="hidden sm:block text-center mt-4 md:mt-6 text-green-300/40 text-xs">
+          <p>Yellow ring = Trump | Green = Legal play</p>
         </footer>
       </div>
 
