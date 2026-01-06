@@ -100,6 +100,7 @@
 ### Recently Fixed
 - **Grainy background** - Replaced SVG noise texture with clean gradient
 - **Animation flicker** - Removed staggered delays, made animations subtler
+- **Cluttered mobile UI** - Compacted TeamBanner, AI player display, trick area
 
 ### Limitations
 - **Leaster variant:** Placeholder implementation - just goes to scoring when all pass
