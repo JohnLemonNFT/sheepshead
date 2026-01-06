@@ -118,7 +118,10 @@ export function joinRoom(
   return { room, position };
 }
 
-// Leave a room
+// Room cleanup timers
+const roomCleanupTimers = new Map<string, NodeJS.Timeout>();
+
+// Leave a room (mark as disconnected, don't fully remove for reconnection)
 export function leaveRoom(ws: WebSocket): Room | null {
   const info = wsToRoom.get(ws);
   if (!info) return null;
@@ -129,24 +132,66 @@ export function leaveRoom(ws: WebSocket): Room | null {
   const player = room.players.get(info.position);
   if (!player) return null;
 
-  // If game hasn't started, fully remove player
-  if (!room.gameStarted) {
-    room.players.delete(info.position);
-    room.aiPositions.add(info.position); // Convert back to AI slot
-  } else {
-    // During game, mark as disconnected (AI takes over)
-    player.connected = false;
-  }
+  // Mark as disconnected (keep player info for reconnection)
+  player.connected = false;
 
   wsToRoom.delete(ws);
 
-  // If room is empty or host left before game started, delete room
-  if (room.players.size === 0 || (!room.gameStarted && info.position === room.hostPosition)) {
-    rooms.delete(info.roomCode);
-    return null;
+  // Check if all players are disconnected
+  const allDisconnected = Array.from(room.players.values()).every(p => !p.connected);
+
+  if (allDisconnected) {
+    // Start cleanup timer - delete room after 5 minutes if no one reconnects
+    const existingTimer = roomCleanupTimers.get(info.roomCode);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    const timer = setTimeout(() => {
+      rooms.delete(info.roomCode);
+      roomCleanupTimers.delete(info.roomCode);
+      console.log(`Room ${info.roomCode} deleted due to inactivity`);
+    }, 5 * 60 * 1000); // 5 minutes
+
+    roomCleanupTimers.set(info.roomCode, timer);
   }
 
   return room;
+}
+
+// Rejoin an existing room
+export function rejoinRoom(
+  roomCode: string,
+  ws: WebSocket,
+  playerName: string,
+  position: PlayerPosition
+): { room: Room; position: PlayerPosition } | { error: string } {
+  const code = roomCode.toUpperCase();
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: 'Room no longer exists' };
+  }
+
+  const existingPlayer = room.players.get(position);
+
+  // Check if position exists and name matches (allow reconnection)
+  if (existingPlayer && existingPlayer.name === playerName) {
+    // Reconnecting to same position
+    existingPlayer.ws = ws;
+    existingPlayer.connected = true;
+    wsToRoom.set(ws, { roomCode: code, position });
+
+    // Cancel any cleanup timer
+    const timer = roomCleanupTimers.get(code);
+    if (timer) {
+      clearTimeout(timer);
+      roomCleanupTimers.delete(code);
+    }
+
+    return { room, position };
+  }
+
+  // Position doesn't exist or name doesn't match
+  return { error: 'Cannot rejoin - position taken or name mismatch' };
 }
 
 // Toggle AI for a position

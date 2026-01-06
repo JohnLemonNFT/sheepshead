@@ -57,12 +57,42 @@ export interface ClientGameState {
 type ServerMessage =
   | { type: 'room_created'; roomCode: string; position: PlayerPosition }
   | { type: 'room_joined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[] }
+  | { type: 'room_rejoined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; gameStarted: boolean }
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
+  | { type: 'player_reconnected'; position: PlayerPosition; name: string }
   | { type: 'room_update'; players: PlayerInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }
   | { type: 'error'; message: string };
+
+// Session storage for reconnection
+const SESSION_KEY = 'sheepshead_session';
+
+interface SavedSession {
+  serverUrl: string;
+  roomCode: string;
+  playerName: string;
+  position: PlayerPosition;
+}
+
+function saveSession(session: SavedSession): void {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function loadSession(): SavedSession | null {
+  const data = localStorage.getItem(SESSION_KEY);
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+function clearSession(): void {
+  localStorage.removeItem(SESSION_KEY);
+}
 
 export interface OnlineGameState {
   connected: boolean;
@@ -102,6 +132,10 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
 
   const wsRef = useRef<WebSocket | null>(null);
   const pendingName = useRef<string>('');
+  const serverUrlRef = useRef<string>('');
+  const reconnectAttempts = useRef<number>(0);
+  const maxReconnectAttempts = 3;
+  const intentionalDisconnect = useRef<boolean>(false);
 
   // Handle incoming messages
   const handleMessage = useCallback((event: MessageEvent) => {
@@ -110,6 +144,13 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
 
       switch (message.type) {
         case 'room_created':
+          // Save session for reconnection
+          saveSession({
+            serverUrl: serverUrlRef.current,
+            roomCode: message.roomCode,
+            playerName: pendingName.current,
+            position: message.position,
+          });
           setState(prev => ({
             ...prev,
             roomCode: message.roomCode,
@@ -124,12 +165,32 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
           break;
 
         case 'room_joined':
+          // Save session for reconnection
+          saveSession({
+            serverUrl: serverUrlRef.current,
+            roomCode: message.roomCode,
+            playerName: pendingName.current,
+            position: message.position,
+          });
           setState(prev => ({
             ...prev,
             roomCode: message.roomCode,
             myPosition: message.position,
             isHost: false,
             players: message.players,
+          }));
+          break;
+
+        case 'room_rejoined':
+          // Successfully rejoined
+          reconnectAttempts.current = 0;
+          setState(prev => ({
+            ...prev,
+            roomCode: message.roomCode,
+            myPosition: message.position,
+            isHost: message.position === 0,
+            players: message.players,
+            gameStarted: message.gameStarted,
           }));
           break;
 
@@ -144,7 +205,18 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
         case 'player_left':
           setState(prev => ({
             ...prev,
-            players: prev.players.filter(p => p.position !== message.position),
+            players: prev.players.map(p =>
+              p.position === message.position ? { ...p, connected: false } : p
+            ),
+          }));
+          break;
+
+        case 'player_reconnected':
+          setState(prev => ({
+            ...prev,
+            players: prev.players.map(p =>
+              p.position === message.position ? { ...p, connected: true, name: message.name } : p
+            ),
           }));
           break;
 
@@ -171,6 +243,10 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
           break;
 
         case 'error':
+          // If error is about room not existing, clear session
+          if (message.message.includes('Room no longer exists') || message.message.includes('Room not found')) {
+            clearSession();
+          }
           setState(prev => ({
             ...prev,
             error: message.message,
@@ -182,21 +258,59 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     }
   }, []);
 
+  // Try to rejoin a saved session
+  const tryRejoin = useCallback((ws: WebSocket, session: SavedSession) => {
+    pendingName.current = session.playerName;
+    ws.send(JSON.stringify({
+      type: 'rejoin_room',
+      roomCode: session.roomCode,
+      playerName: session.playerName,
+      position: session.position,
+    }));
+  }, []);
+
   // Connect to server
-  const connect = useCallback((serverUrl: string) => {
+  const connect = useCallback((serverUrl: string, autoRejoin: boolean = false) => {
     if (wsRef.current) {
       wsRef.current.close();
     }
 
+    intentionalDisconnect.current = false;
+    serverUrlRef.current = serverUrl;
     setState(prev => ({ ...prev, connecting: true, error: null }));
 
     const ws = new WebSocket(serverUrl);
+    const savedSession = loadSession();
 
     ws.onopen = () => {
       setState(prev => ({ ...prev, connected: true, connecting: false }));
+      reconnectAttempts.current = 0;
+
+      // Auto-rejoin if we have a saved session for this server
+      if (autoRejoin && savedSession && savedSession.serverUrl === serverUrl) {
+        tryRejoin(ws, savedSession);
+      }
     };
 
     ws.onclose = () => {
+      wsRef.current = null;
+
+      // Try to reconnect if not intentional
+      if (!intentionalDisconnect.current && reconnectAttempts.current < maxReconnectAttempts) {
+        const session = loadSession();
+        if (session) {
+          reconnectAttempts.current++;
+          console.log(`Connection lost, attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})...`);
+          setState(prev => ({ ...prev, connected: false, connecting: true }));
+          // Wait a bit before reconnecting
+          setTimeout(() => {
+            connect(session.serverUrl, true);
+          }, 1000 * reconnectAttempts.current); // Exponential backoff
+          return;
+        }
+      }
+
+      // Full disconnect
       setState({
         connected: false,
         connecting: false,
@@ -206,9 +320,8 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
         players: [],
         gameStarted: false,
         gameState: null,
-        error: null,
+        error: reconnectAttempts.current >= maxReconnectAttempts ? 'Connection lost. Please reconnect.' : null,
       });
-      wsRef.current = null;
     };
 
     ws.onerror = () => {
@@ -222,10 +335,12 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     ws.onmessage = handleMessage;
 
     wsRef.current = ws;
-  }, [handleMessage]);
+  }, [handleMessage, tryRejoin]);
 
-  // Disconnect from server
+  // Disconnect from server (intentional)
   const disconnect = useCallback(() => {
+    intentionalDisconnect.current = true;
+    clearSession();
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -270,8 +385,9 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     wsRef.current.send(JSON.stringify({ type: 'action', action }));
   }, []);
 
-  // Leave the current room
+  // Leave the current room (intentional)
   const leaveRoom = useCallback(() => {
+    clearSession(); // Clear saved session so we don't auto-rejoin
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -291,6 +407,15 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
+
+  // Auto-reconnect on mount if we have a saved session
+  useEffect(() => {
+    const session = loadSession();
+    if (session) {
+      console.log('Found saved session, attempting to reconnect...');
+      connect(session.serverUrl, true);
+    }
+  }, [connect]);
 
   // Cleanup on unmount
   useEffect(() => {

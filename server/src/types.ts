@@ -95,6 +95,7 @@ export interface PlayerInfo {
 export type ClientMessage =
   | { type: 'create_room'; playerName: string }
   | { type: 'join_room'; roomCode: string; playerName: string }
+  | { type: 'rejoin_room'; roomCode: string; playerName: string; position: PlayerPosition }
   | { type: 'start_game' }
   | { type: 'action'; action: GameAction }
   | { type: 'leave_room' }
@@ -104,8 +105,10 @@ export type ClientMessage =
 export type ServerMessage =
   | { type: 'room_created'; roomCode: string; position: PlayerPosition }
   | { type: 'room_joined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[] }
+  | { type: 'room_rejoined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; gameStarted: boolean }
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
+  | { type: 'player_reconnected'; position: PlayerPosition; name: string }
   | { type: 'room_update'; players: PlayerInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }

@@ -7,6 +7,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import {
   createRoom,
   joinRoom,
+  rejoinRoom,
   leaveRoom,
   getRoom,
   getRoomInfo,
@@ -129,6 +130,41 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
       }, ws);
 
       console.log(`${message.playerName} joined room ${room.code} at position ${position}`);
+      break;
+    }
+
+    case 'rejoin_room': {
+      const result = rejoinRoom(message.roomCode, ws, message.playerName, message.position);
+      if ('error' in result) {
+        sendTo(ws, { type: 'error', message: result.error });
+        return;
+      }
+
+      const { room, position } = result;
+
+      // Send rejoin confirmation
+      const rejoinResponse: ServerMessage = {
+        type: 'room_rejoined',
+        roomCode: room.code,
+        position,
+        players: getPlayerInfoList(room),
+        gameStarted: room.gameStarted,
+      };
+      sendTo(ws, rejoinResponse);
+
+      // Notify others that player reconnected
+      broadcast(room, {
+        type: 'player_reconnected',
+        position,
+        name: message.playerName,
+      }, ws);
+
+      // If game is in progress, send current game state
+      if (room.gameStarted && room.gameState) {
+        broadcastGameState(room);
+      }
+
+      console.log(`${message.playerName} rejoined room ${room.code} at position ${position}`);
       break;
     }
 
