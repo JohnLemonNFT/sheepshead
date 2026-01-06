@@ -20,8 +20,7 @@ function PlayerRow({ position, type, onToggle, delay = 0 }: PlayerRowProps) {
 
   return (
     <div
-      className="flex items-center justify-between p-3 sm:p-4 glass rounded-xl gap-3 animate-fadeIn hover:bg-white/5 transition-colors"
-      style={{ animationDelay: `${delay}ms` }}
+      className="flex items-center justify-between p-3 sm:p-4 glass rounded-xl gap-3 hover:bg-white/5 transition-colors"
     >
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
         <div className={`
@@ -96,7 +95,7 @@ export function GameSetup() {
     <div className="min-h-screen p-3 sm:p-4 md:p-8 text-white">
       <div className="max-w-xl mx-auto">
         {/* Header */}
-        <header className="text-center mb-6 sm:mb-8 pt-4 sm:pt-6 md:pt-8 animate-fadeIn">
+        <header className="text-center mb-6 sm:mb-8 pt-4 sm:pt-6 md:pt-8">
           <div className="text-4xl sm:text-5xl mb-3">🎮</div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
             Game Setup
@@ -115,14 +114,13 @@ export function GameSetup() {
                 position={i}
                 type={type}
                 onToggle={() => handleToggle(i)}
-                delay={100 + i * 50}
               />
             ))}
           </div>
         </section>
 
         {/* Summary */}
-        <section className="mb-6 sm:mb-8 glass rounded-2xl p-4 sm:p-5 animate-fadeIn" style={{ animationDelay: '350ms' }}>
+        <section className="mb-6 sm:mb-8 glass rounded-2xl p-4 sm:p-5">
           <div className="flex justify-center gap-8 sm:gap-12 text-center">
             <div className="group">
               <div className="text-3xl sm:text-4xl font-bold text-emerald-400 group-hover:scale-110 transition-transform">
@@ -148,7 +146,7 @@ export function GameSetup() {
         </section>
 
         {/* Actions */}
-        <section className="space-y-3 animate-fadeIn" style={{ animationDelay: '400ms' }}>
+        <section className="space-y-3">
           <button
             onClick={startGame}
             className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 active:scale-[0.98] text-white font-bold py-4 sm:py-5 px-4 sm:px-6 rounded-2xl transition-all duration-200 text-base sm:text-lg min-h-[56px] shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 flex items-center justify-center gap-2"
@@ -176,7 +174,7 @@ export function GameSetup() {
         </section>
 
         {/* Info */}
-        <section className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-emerald-200/40 px-2 animate-fadeIn" style={{ animationDelay: '500ms' }}>
+        <section className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-emerald-200/40 px-2">
           <p>
             In hotseat mode, a handoff screen will appear between human turns
             to keep each player's cards secret.

@@ -18,15 +18,12 @@ function MenuCard({ icon, title, description, onClick, gradient, delay = 0 }: Me
       className={`
         ${gradient}
         p-4 sm:p-5 md:p-6 rounded-2xl text-left
-        transform hover:scale-[1.03] hover:-translate-y-1 active:scale-[0.98] transition-all duration-300
-        shadow-lg hover:shadow-2xl
+        transform hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200
+        shadow-lg hover:shadow-xl
         w-full min-h-[100px] sm:min-h-[120px]
         border border-white/10
-        backdrop-blur-sm
         group
-        animate-fadeIn
       `}
-      style={{ animationDelay: `${delay}ms` }}
     >
       <div className="text-2xl sm:text-3xl md:text-4xl mb-2 sm:mb-3 transform group-hover:scale-110 transition-transform">
         {icon}
@@ -44,11 +41,11 @@ export function HomePage() {
     <div className="min-h-screen p-3 sm:p-4 md:p-8 text-white overflow-hidden">
       <div className="max-w-4xl mx-auto">
         {/* Hero Section */}
-        <header className="text-center mb-6 sm:mb-8 md:mb-12 pt-4 sm:pt-6 md:pt-8 animate-fadeIn">
+        <header className="text-center mb-6 sm:mb-8 md:mb-12 pt-4 sm:pt-6 md:pt-8">
           <div className="relative inline-block">
-            <div className="text-6xl sm:text-7xl md:text-8xl mb-3 sm:mb-4 animate-float">🐑</div>
+            <div className="text-6xl sm:text-7xl md:text-8xl mb-3 sm:mb-4">🐑</div>
             {/* Subtle glow behind sheep */}
-            <div className="absolute inset-0 blur-3xl bg-emerald-500/20 -z-10 scale-150"></div>
+            <div className="absolute inset-0 blur-2xl bg-emerald-500/10 -z-10 scale-125"></div>
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent drop-shadow-lg">
             Sheepshead
@@ -64,16 +61,13 @@ export function HomePage() {
         {/* Main Menu Grid */}
         <section className="mb-6 sm:mb-8 md:mb-12">
           {/* Tutorial Banner for New Players */}
-          <div className="mb-4 sm:mb-5 animate-fadeIn" style={{ animationDelay: '100ms' }}>
+          <div className="mb-4 sm:mb-5">
             <button
               onClick={openTutorial}
-              className="w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 p-4 sm:p-5 rounded-2xl text-left hover:from-blue-500 hover:via-indigo-400 hover:to-purple-500 active:scale-[0.98] transition-all duration-300 shadow-xl hover:shadow-2xl min-h-[70px] border border-white/10 group relative overflow-hidden"
+              className="w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 p-4 sm:p-5 rounded-2xl text-left hover:from-blue-500 hover:via-indigo-400 hover:to-purple-500 active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl min-h-[70px] border border-white/10 group"
             >
-              {/* Animated shimmer */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-
-              <div className="flex items-center gap-3 sm:gap-4 relative">
-                <span className="text-3xl sm:text-4xl md:text-5xl transform group-hover:scale-110 group-hover:rotate-3 transition-transform">🎓</span>
+              <div className="flex items-center gap-3 sm:gap-4">
+                <span className="text-3xl sm:text-4xl md:text-5xl transform group-hover:scale-105 transition-transform">🎓</span>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">New to Sheepshead?</h3>
                   <p className="text-blue-100/80 text-xs sm:text-sm truncate sm:whitespace-normal">Start here! Interactive lessons teach you step by step.</p>
@@ -90,7 +84,6 @@ export function HomePage() {
               description="Solo or hotseat with friends"
               onClick={goToSetup}
               gradient="bg-gradient-to-br from-violet-600/90 to-purple-800/90"
-              delay={150}
             />
             <MenuCard
               icon="🌐"
@@ -98,7 +91,6 @@ export function HomePage() {
               description="Play with friends over the network"
               onClick={goToOnline}
               gradient="bg-gradient-to-br from-emerald-600/90 to-teal-800/90"
-              delay={200}
             />
             <MenuCard
               icon="📖"
@@ -106,7 +98,6 @@ export function HomePage() {
               description="Card hierarchy, point values, and gameplay"
               onClick={openRules}
               gradient="bg-gradient-to-br from-amber-600/90 to-orange-800/90"
-              delay={250}
             />
             <MenuCard
               icon="🧠"
@@ -114,7 +105,6 @@ export function HomePage() {
               description="Tips for picking, burying, and winning"
               onClick={openStrategy}
               gradient="bg-gradient-to-br from-rose-600/90 to-pink-800/90"
-              delay={300}
             />
             <MenuCard
               icon="⚙️"
@@ -122,13 +112,12 @@ export function HomePage() {
               description="Game speed, variants, and display options"
               onClick={openSettings}
               gradient="bg-gradient-to-br from-slate-600/90 to-slate-800/90"
-              delay={350}
             />
           </div>
         </section>
 
         {/* Info Section */}
-        <section className="glass rounded-2xl p-4 sm:p-5 md:p-6 mb-6 sm:mb-8 animate-fadeIn" style={{ animationDelay: '400ms' }}>
+        <section className="glass rounded-2xl p-4 sm:p-5 md:p-6 mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg md:text-xl font-bold text-emerald-300 mb-3 sm:mb-4 flex items-center gap-2">
             <span>📜</span> About Sheepshead
           </h2>
@@ -155,7 +144,7 @@ export function HomePage() {
         </section>
 
         {/* Footer */}
-        <footer className="text-center text-emerald-200/40 text-xs sm:text-sm pb-6 sm:pb-8 animate-fadeIn" style={{ animationDelay: '500ms' }}>
+        <footer className="text-center text-emerald-200/40 text-xs sm:text-sm pb-6 sm:pb-8">
           <p>Play solo, hotseat, or online with friends</p>
           <p className="mt-1 sm:mt-2 flex items-center justify-center gap-1">
             Built with <span className="text-rose-400">❤️</span> for Sheepshead fans everywhere
