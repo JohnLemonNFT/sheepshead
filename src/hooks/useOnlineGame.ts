@@ -61,6 +61,7 @@ type ServerMessage =
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
   | { type: 'player_reconnected'; position: PlayerPosition; name: string }
+  | { type: 'player_timeout'; position: PlayerPosition; playerName: string }
   | { type: 'room_update'; players: PlayerInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }
@@ -218,6 +219,19 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
               p.position === message.position ? { ...p, connected: true, name: message.name } : p
             ),
           }));
+          break;
+
+        case 'player_timeout':
+          // Player timed out - AI is taking over for them
+          console.log(`${message.playerName} timed out - AI taking over`);
+          setState(prev => ({
+            ...prev,
+            error: `${message.playerName} took too long and is now controlled by AI`,
+          }));
+          // Auto-clear the error after 5 seconds
+          setTimeout(() => {
+            setState(prev => prev.error?.includes('took too long') ? { ...prev, error: null } : prev);
+          }, 5000);
           break;
 
         case 'room_update':

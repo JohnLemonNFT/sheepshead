@@ -22,6 +22,10 @@ export interface Room {
   // Score tracking
   playerScores: number[];
   handsPlayed: number;
+  // Turn timeout tracking
+  turnStartTime: number | null;
+  turnTimer: NodeJS.Timeout | null;
+  timedOutPlayers: Set<PlayerPosition>; // Players who timed out and are now AI
 }
 
 // Active rooms
@@ -58,6 +62,9 @@ export function createRoom(ws: WebSocket, playerName: string): Room {
     gameStarted: false,
     playerScores: [0, 0, 0, 0, 0],
     handsPlayed: 0,
+    turnStartTime: null,
+    turnTimer: null,
+    timedOutPlayers: new Set(),
   };
 
   room.players.set(position, {
@@ -244,6 +251,28 @@ export function getPlayerInfoList(room: Room): PlayerInfo[] {
   }
 
   return players;
+}
+
+// Convert a player to AI (due to timeout)
+export function convertToAI(room: Room, position: PlayerPosition): void {
+  room.timedOutPlayers.add(position);
+  // Note: We don't remove from players map so they can see the game continue
+  // The game logic will treat them as AI for decisions
+  console.log(`Player at position ${position} timed out - AI taking over`);
+}
+
+// Check if a position is now controlled by AI (either started as AI or timed out)
+export function isPositionAI(room: Room, position: PlayerPosition): boolean {
+  return room.aiPositions.has(position) || room.timedOutPlayers.has(position);
+}
+
+// Clear turn timer
+export function clearTurnTimer(room: Room): void {
+  if (room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
+  room.turnStartTime = null;
 }
 
 // Broadcast message to all players in a room

@@ -109,6 +109,7 @@ export type ServerMessage =
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
   | { type: 'player_reconnected'; position: PlayerPosition; name: string }
+  | { type: 'player_timeout'; position: PlayerPosition; playerName: string }
   | { type: 'room_update'; players: PlayerInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }

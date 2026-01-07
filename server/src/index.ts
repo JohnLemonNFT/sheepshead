@@ -14,18 +14,21 @@ import {
   getPlayerInfoList,
   broadcast,
   sendTo,
+  convertToAI,
+  isPositionAI,
+  clearTurnTimer,
 } from './room.js';
 import {
   createGameState,
   applyAction,
   calculateScores,
   getClientGameState,
-  isAITurn,
   getAIAction,
 } from './game.js';
 import type { ClientMessage, ServerMessage, PlayerPosition } from './types.js';
 
 const PORT = parseInt(process.env.PORT || '3001');
+const TURN_TIMEOUT_MS = 60000; // 60 seconds to make a move
 
 // Create HTTP server for health checks
 const server = createServer((req, res) => {
@@ -221,6 +224,9 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
         return;
       }
 
+      // Clear turn timer since player made a move
+      clearTurnTimer(room);
+
       const success = applyAction(room.gameState, info.position, message.action);
       if (!success) {
         sendTo(ws, { type: 'error', message: 'Invalid action' });
@@ -243,7 +249,7 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
       // Broadcast updated state
       broadcastGameState(room);
 
-      // Run AI if needed
+      // Run AI if needed (this also starts turn timer for humans)
       runAILoop(room);
       break;
     }
@@ -289,11 +295,15 @@ function runAILoop(room: import('./room.js').Room): void {
   if (!room.gameState) return;
   if (room.gameState.phase === 'scoring' || room.gameState.phase === 'gameOver') return;
 
-  // Check if current player is AI
-  if (isAITurn(room.gameState, room)) {
+  const currentPlayer = room.gameState.currentPlayer;
+  const isAI = isPositionAI(room, currentPlayer);
+
+  if (isAI) {
+    // AI's turn - make a move after a short delay
+    clearTurnTimer(room);
     setTimeout(() => {
       if (!room.gameState) return;
-      if (!isAITurn(room.gameState, room)) return;
+      if (room.gameState.currentPlayer !== currentPlayer) return; // Turn changed
 
       const position = room.gameState.currentPlayer;
       const action = getAIAction(room.gameState, position);
@@ -319,7 +329,43 @@ function runAILoop(room: import('./room.js').Room): void {
         }
       }
     }, 1000); // 1 second delay for AI actions
+  } else {
+    // Human's turn - start timeout timer
+    startTurnTimer(room);
   }
+}
+
+function startTurnTimer(room: import('./room.js').Room): void {
+  if (!room.gameState) return;
+
+  // Clear any existing timer
+  clearTurnTimer(room);
+
+  const currentPlayer = room.gameState.currentPlayer;
+  room.turnStartTime = Date.now();
+
+  room.turnTimer = setTimeout(() => {
+    if (!room.gameState) return;
+    if (room.gameState.currentPlayer !== currentPlayer) return; // Turn already changed
+
+    // Player timed out - convert to AI
+    const player = room.players.get(currentPlayer);
+    const playerName = player?.name || `Player ${currentPlayer + 1}`;
+
+    convertToAI(room, currentPlayer);
+
+    // Notify all players about the timeout
+    broadcast(room, {
+      type: 'player_timeout',
+      position: currentPlayer,
+      playerName,
+    });
+
+    console.log(`Player ${playerName} at position ${currentPlayer} timed out after ${TURN_TIMEOUT_MS / 1000} seconds`);
+
+    // Now have AI take over
+    runAILoop(room);
+  }, TURN_TIMEOUT_MS);
 }
 
 // Graceful shutdown
