@@ -74,23 +74,23 @@ function LessonSelector({ lessons, completedLessons, onSelectLesson, onClose, on
   const totalCount = lessons.length;
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 overflow-auto">
-      <div className="bg-gray-800 rounded-xl max-w-2xl w-full p-6 border border-gray-700">
-        <div className="flex justify-between items-start mb-6">
+    <div className="fixed inset-0 bg-black/90 flex items-start sm:items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-gray-800 rounded-xl max-w-2xl w-full p-4 sm:p-6 border border-gray-700 my-2 sm:my-4 max-h-[95vh] overflow-y-auto">
+        <div className="flex justify-between items-start mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Learn Sheepshead</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Learn Sheepshead</h1>
             <p className="text-gray-400">
               {completedCount === 0
                 ? 'New to Sheepshead? Start with Lesson 1!'
                 : `Progress: ${completedCount}/${totalCount} lessons completed`}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-700">
             ×
           </button>
         </div>
 
-        <div className="space-y-3 mb-6">
+        <div className="space-y-3 mb-4 sm:mb-6">
           {lessons.map((lesson, i) => {
             const isCompleted = completedLessons.includes(lesson.id);
             const isNext = i === 0 || completedLessons.includes(lessons[i - 1].id);
