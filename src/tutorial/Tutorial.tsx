@@ -133,7 +133,7 @@ function LessonSelector({ lessons, completedLessons, onSelectLesson, onClose, on
           </button>
           <button
             onClick={onClose}
-            className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg"
+            className="bg-green-600 hover:bg-green-500 active:bg-green-700 px-4 py-2 rounded-lg font-medium"
           >
             Back to Menu
           </button>
