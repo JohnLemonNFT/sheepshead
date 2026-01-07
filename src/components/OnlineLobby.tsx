@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { OnlineGameState, OnlineGameActions } from '../hooks/useOnlineGame';
+import { useGameStore, NoPickRule, PartnerVariant } from '../store/gameStore';
 
 // Use production server if deployed, otherwise localhost
 const getDefaultServerUrl = () => {
@@ -24,7 +25,8 @@ interface OnlineLobbyProps {
 export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyProps) {
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
-  const [mode, setMode] = useState<'choose' | 'join'>('choose');
+  const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose');
+  const { gameSettings, updateSettings } = useGameStore();
 
   const { connected, connecting, error } = onlineState;
 
@@ -120,7 +122,7 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
             {/* Create/Join Buttons */}
             <div className="space-y-2 sm:space-y-3">
               <button
-                onClick={handleCreateRoom}
+                onClick={() => setMode('create')}
                 disabled={!playerName.trim()}
                 className="w-full bg-green-600 hover:bg-green-500 active:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-xl transition-colors text-base sm:text-lg min-h-[48px]"
               >
@@ -140,6 +142,82 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                 Enter your name to continue
               </p>
             )}
+          </section>
+        )}
+
+        {/* Create Room Flow - Pick Rules */}
+        {connected && mode === 'create' && (
+          <section className="space-y-4 sm:space-y-5">
+            <div className="bg-gray-800 rounded-xl p-4 sm:p-5">
+              <p className="text-gray-400 mb-4 text-center text-sm sm:text-base">
+                Creating room as <span className="text-white font-medium">{playerName}</span>
+              </p>
+
+              {/* Game Rules */}
+              <div className="space-y-4">
+                <h3 className="text-base sm:text-lg font-semibold text-green-400 flex items-center gap-2">
+                  <span>🎯</span> Game Rules
+                </h3>
+
+                {/* Partner Variant */}
+                <div>
+                  <label className="block text-xs sm:text-sm text-gray-400 mb-2">Partner Variant</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'calledAce' as PartnerVariant, label: 'Called Ace', desc: 'Pick an ace' },
+                      { value: 'jackOfDiamonds' as PartnerVariant, label: 'Jack ♦', desc: 'J♦ is partner' },
+                      { value: 'none' as PartnerVariant, label: 'Solo', desc: 'No partner' },
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => updateSettings({ partnerVariant: option.value })}
+                        className={`
+                          px-2 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all min-h-[50px]
+                          ${gameSettings.partnerVariant === option.value
+                            ? 'bg-green-600 text-white ring-2 ring-green-400'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+                        `}
+                      >
+                        <div className="font-semibold">{option.label}</div>
+                        <div className="text-[9px] sm:text-[10px] opacity-70">{option.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* No-Pick Rule */}
+                <div>
+                  <label className="block text-xs sm:text-sm text-gray-400 mb-2">When Everyone Passes</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'leaster' as NoPickRule, label: 'Leaster', desc: 'Lowest points wins' },
+                      { value: 'forcedPick' as NoPickRule, label: 'Forced Pick', desc: 'Dealer must pick' },
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => updateSettings({ noPickRule: option.value })}
+                        className={`
+                          px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all min-h-[50px]
+                          ${gameSettings.noPickRule === option.value
+                            ? 'bg-green-600 text-white ring-2 ring-green-400'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+                        `}
+                      >
+                        <div className="font-semibold">{option.label}</div>
+                        <div className="text-[9px] sm:text-[10px] opacity-70">{option.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCreateRoom}
+                className="w-full mt-4 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-xl transition-colors text-sm sm:text-base min-h-[48px]"
+              >
+                Create Room
+              </button>
+            </div>
           </section>
         )}
 

@@ -20,3 +20,5 @@ export { StrategyModal } from './StrategyModal';
 export { OnlineLobby } from './OnlineLobby';
 export { OnlineWaitingRoom } from './OnlineWaitingRoom';
 export { OnlineGame } from './OnlineGame';
+export { InfoDrawer } from './InfoDrawer';
+export { TableLayout, TableLayoutCompact } from './TableLayout';

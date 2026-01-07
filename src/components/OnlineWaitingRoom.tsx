@@ -1,6 +1,7 @@
 // Online Waiting Room - Pre-game lobby showing connected players
 
 import type { OnlineGameState, OnlineGameActions, PlayerInfo } from '../hooks/useOnlineGame';
+import { useGameStore } from '../store/gameStore';
 
 interface OnlineWaitingRoomProps {
   onlineState: OnlineGameState;
@@ -58,6 +59,7 @@ function PlayerSlot({ position, player, isMe }: { position: number; player: Play
 
 export function OnlineWaitingRoom({ onlineState, onlineActions }: OnlineWaitingRoomProps) {
   const { roomCode, myPosition, isHost, players, error } = onlineState;
+  const { gameSettings } = useGameStore();
 
   // Build player slots (5 positions)
   const slots: (PlayerInfo | null)[] = [];
@@ -137,7 +139,7 @@ export function OnlineWaitingRoom({ onlineState, onlineActions }: OnlineWaitingR
         </section>
 
         {/* Player Count Summary */}
-        <section className="mb-6 sm:mb-8 bg-gray-800/50 rounded-xl p-3 sm:p-4">
+        <section className="mb-4 sm:mb-6 bg-gray-800/50 rounded-xl p-3 sm:p-4">
           <div className="flex justify-center gap-6 sm:gap-8 text-center">
             <div>
               <div className="text-2xl sm:text-3xl font-bold text-green-400">{humanCount}</div>
@@ -147,6 +149,28 @@ export function OnlineWaitingRoom({ onlineState, onlineActions }: OnlineWaitingR
             <div>
               <div className="text-2xl sm:text-3xl font-bold text-blue-400">{botCount}</div>
               <div className="text-xs sm:text-sm text-gray-400">Bot{botCount !== 1 ? 's' : ''}</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Game Rules */}
+        <section className="mb-6 sm:mb-8 bg-gray-800/50 rounded-xl p-3 sm:p-4">
+          <h3 className="text-sm sm:text-base font-semibold text-green-400 mb-2 sm:mb-3 flex items-center gap-2">
+            <span>🎯</span> Game Rules
+          </h3>
+          <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm">
+            <div className="bg-gray-700/50 px-3 py-1.5 rounded-lg">
+              <span className="text-gray-400">Partner: </span>
+              <span className="text-white font-medium">
+                {gameSettings.partnerVariant === 'calledAce' ? 'Called Ace' :
+                 gameSettings.partnerVariant === 'jackOfDiamonds' ? 'Jack of ♦' : 'Solo (No Partner)'}
+              </span>
+            </div>
+            <div className="bg-gray-700/50 px-3 py-1.5 rounded-lg">
+              <span className="text-gray-400">No-Pick: </span>
+              <span className="text-white font-medium">
+                {gameSettings.noPickRule === 'leaster' ? 'Leaster' : 'Forced Pick'}
+              </span>
             </div>
           </div>
         </section>

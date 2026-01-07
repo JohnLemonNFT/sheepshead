@@ -41,6 +41,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
     blind,
     currentTrick,
     currentPlayer,
+    dealerPosition,
     pickerPosition,
     calledAce,
     trickNumber,
@@ -154,25 +155,66 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
       )}
 
       <div className="p-2 sm:p-4 max-w-4xl mx-auto">
-        {/* Players strip */}
-        <div className="flex justify-center gap-1 sm:gap-2 mb-3 flex-wrap">
-          {players.map(p => (
-            <div
-              key={p.position}
-              className={`
-                px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-1
-                ${p.position === currentPlayer ? 'ring-2 ring-green-400' : ''}
-                ${p.position === myPosition ? 'bg-green-700' : 'bg-gray-800/80'}
-                ${p.isPicker ? 'ring-2 ring-yellow-400' : ''}
-              `}
-            >
-              {p.isPicker && <span>👑</span>}
-              <span className={p.position === myPosition ? 'font-bold' : ''}>
-                {p.position === myPosition ? 'You' : p.name}
-              </span>
-              <span className="text-gray-400">{p.cardCount}</span>
-            </div>
-          ))}
+        {/* Dealer/Lead info bar */}
+        <div className="flex justify-center items-center gap-2 mb-2 text-[10px] sm:text-xs text-green-300/70">
+          <span className="flex items-center gap-1">
+            <span className="w-3.5 h-3.5 bg-amber-600 rounded-full flex items-center justify-center text-[7px] font-bold text-white">D</span>
+            <span className="hidden sm:inline">Dealer:</span>
+            <span>{dealerPosition === myPosition ? 'You' : players.find(p => p.position === dealerPosition)?.name}</span>
+          </span>
+          <span className="text-gray-600">→</span>
+          <span className="flex items-center gap-1">
+            <span className="text-green-400">Lead:</span>
+            <span>{((dealerPosition + 1) % 5) === myPosition ? 'You' : players.find(p => p.position === ((dealerPosition + 1) % 5))?.name}</span>
+          </span>
+        </div>
+
+        {/* Players strip with position context */}
+        <div className="flex justify-center gap-1 sm:gap-1.5 mb-3 flex-wrap">
+          {players.map(p => {
+            const isMe = p.position === myPosition;
+            const isDealer = p.position === dealerPosition;
+            const isCurrent = p.position === currentPlayer;
+            // Direction from you
+            const relPos = (p.position - myPosition + 5) % 5;
+            const posLabel = ['', '←', '↖', '↗', '→'][relPos];
+
+            return (
+              <div
+                key={p.position}
+                className={`
+                  relative px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-1
+                  transition-all duration-200
+                  ${isCurrent ? 'ring-2 ring-green-400 bg-green-900/50' : ''}
+                  ${isMe ? 'bg-green-700' : 'bg-gray-800/80'}
+                  ${p.isPicker ? 'ring-2 ring-yellow-400' : ''}
+                  ${p.isPartner && calledAce?.revealed ? 'ring-2 ring-blue-400' : ''}
+                `}
+              >
+                {/* Position indicator */}
+                {!isMe && (
+                  <span className="text-gray-500 text-[10px] sm:text-xs">{posLabel}</span>
+                )}
+
+                {/* Dealer indicator */}
+                {isDealer && (
+                  <span className="w-4 h-4 bg-amber-600 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0">D</span>
+                )}
+
+                {p.isPicker && <span>👑</span>}
+                {p.isPartner && calledAce?.revealed && <span>🤝</span>}
+                <span className={isMe ? 'font-bold' : ''}>
+                  {isMe ? 'You' : p.name}
+                </span>
+                <span className="text-gray-400">{p.cardCount}</span>
+
+                {/* Current turn indicator */}
+                {isCurrent && (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-green-400 text-[8px]">▲</span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Role Banner - shows when picker is determined */}

@@ -1,6 +1,6 @@
 // Game Setup - Premium Configure players before starting a game
 
-import { useGameStore, DEFAULT_PLAYER_TYPES } from '../store/gameStore';
+import { useGameStore, DEFAULT_PLAYER_TYPES, NoPickRule, PartnerVariant } from '../store/gameStore';
 import { PlayerType } from '../game/types';
 import { getPlayerName, getPlayerEmoji } from './PlayerAvatar';
 import { getPersonality } from '../game/ai/personalities';
@@ -70,7 +70,7 @@ function PlayerRow({ position, type, onToggle, delay = 0 }: PlayerRowProps) {
 }
 
 export function GameSetup() {
-  const { playerTypes, setPlayerTypes, startGame, goToHome } = useGameStore();
+  const { playerTypes, setPlayerTypes, startGame, goToHome, gameSettings, updateSettings } = useGameStore();
 
   const humanCount = playerTypes.filter(t => t === 'human').length;
   const aiCount = playerTypes.filter(t => t === 'ai').length;
@@ -116,6 +116,66 @@ export function GameSetup() {
                 onToggle={() => handleToggle(i)}
               />
             ))}
+          </div>
+        </section>
+
+        {/* Game Rules */}
+        <section className="mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-bold text-emerald-300 mb-3 sm:mb-4 flex items-center gap-2">
+            <span>🎯</span> Game Rules
+          </h2>
+
+          <div className="glass rounded-xl p-4 space-y-4">
+            {/* Partner Variant */}
+            <div>
+              <label className="block text-sm font-medium text-emerald-200/80 mb-2">Partner Variant</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'calledAce' as PartnerVariant, label: 'Called Ace', desc: 'Pick an ace' },
+                  { value: 'jackOfDiamonds' as PartnerVariant, label: 'Jack of ♦', desc: 'J♦ is partner' },
+                  { value: 'none' as PartnerVariant, label: 'Solo', desc: 'No partner' },
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => updateSettings({ partnerVariant: option.value })}
+                    className={`
+                      px-2 sm:px-3 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[60px]
+                      ${gameSettings.partnerVariant === option.value
+                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-lg'
+                        : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60'}
+                    `}
+                  >
+                    <div className="font-semibold text-xs sm:text-sm">{option.label}</div>
+                    <div className="text-[10px] opacity-70 mt-0.5">{option.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* No-Pick Rule */}
+            <div>
+              <label className="block text-sm font-medium text-emerald-200/80 mb-2">When Everyone Passes</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'leaster' as NoPickRule, label: 'Leaster', desc: 'Lowest points wins' },
+                  { value: 'forcedPick' as NoPickRule, label: 'Forced Pick', desc: 'Dealer must pick' },
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => updateSettings({ noPickRule: option.value })}
+                    className={`
+                      px-3 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[60px]
+                      ${gameSettings.noPickRule === option.value
+                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-lg'
+                        : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60'}
+                    `}
+                  >
+                    <div className="font-semibold">{option.label}</div>
+                    <div className="text-[10px] opacity-70 mt-0.5">{option.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 

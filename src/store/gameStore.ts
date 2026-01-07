@@ -511,29 +511,68 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   pass: () => {
-    const { gameState, playerTypes, isHotseatMode } = get();
+    const { gameState, gameSettings, playerTypes, isHotseatMode } = get();
     if (gameState.phase !== 'picking') return;
 
     const newPassCount = gameState.passCount + 1;
+    const hotseat = isHotseatMode();
 
-    // Check if all players passed
+    // Check if all players passed (except dealer for forced pick)
     if (newPassCount >= 5) {
-      // Leaster - deal new hand or play leaster
-      // For MVP, just deal new hand
-      set({
-        gameState: {
-          ...gameState,
-          phase: 'scoring',
-          passCount: newPassCount,
-        },
-      });
+      if (gameSettings.noPickRule === 'forcedPick') {
+        // Forced pick - dealer must pick
+        // The dealer is at position dealerPosition, force them to pick
+        const dealerPosition = gameState.dealerPosition;
+        const dealer = gameState.players[dealerPosition];
+
+        // Add blind to dealer's hand
+        const newHand = sortHand([...dealer.hand, ...gameState.blind]);
+
+        // Update dealer as picker
+        const newPlayers = gameState.players.map((p, i) =>
+          i === dealerPosition ? { ...p, hand: newHand, isPicker: true } : p
+        );
+
+        set({
+          gameState: {
+            ...gameState,
+            phase: 'burying',
+            players: newPlayers,
+            blind: [],
+            pickerPosition: dealerPosition,
+            currentPlayer: dealerPosition,
+            passCount: newPassCount,
+          },
+          selectedCards: [],
+        });
+      } else {
+        // Leaster - play the hand with no picker, lowest points wins
+        const firstPlayer = ((gameState.dealerPosition + 1) % 5) as PlayerPosition;
+        const firstIsHuman = playerTypes[firstPlayer] === 'human';
+
+        set({
+          gameState: {
+            ...gameState,
+            phase: 'playing',
+            passCount: newPassCount,
+            currentPlayer: firstPlayer,
+            currentTrick: { cards: [], leadPlayer: firstPlayer },
+            // No picker in leaster
+            pickerPosition: null,
+          },
+          // Trigger handoff if first player is human in hotseat mode
+          ...(hotseat && firstIsHuman ? {
+            awaitingHandoff: true,
+            activeHumanPosition: null,
+          } : {}),
+        });
+      }
       return;
     }
 
     // Next player's turn to pick
     const nextPlayer = ((gameState.currentPlayer + 1) % 5) as PlayerPosition;
     const nextIsHuman = playerTypes[nextPlayer] === 'human';
-    const hotseat = isHotseatMode();
 
     set({
       gameState: {
