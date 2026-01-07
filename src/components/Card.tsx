@@ -126,10 +126,10 @@ export function Card({
         <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] sm:border-t-[16px] border-t-yellow-400 border-l-[12px] sm:border-l-[16px] border-l-transparent" />
       )}
 
-      {/* Point value badge */}
+      {/* Point value - bottom banner */}
       {points > 0 && !small && (
-        <div className="absolute -top-2.5 -right-2.5 sm:-top-3 sm:-right-3 bg-red-600 text-white text-sm sm:text-base font-bold rounded-full min-w-7 h-7 sm:min-w-8 sm:h-8 px-1 flex items-center justify-center shadow-lg border-2 border-white">
-          {points}
+        <div className="absolute bottom-0 left-0 right-0 bg-red-600 text-white text-[10px] sm:text-xs font-bold py-0.5 text-center">
+          {points} pts
         </div>
       )}
     </button>
