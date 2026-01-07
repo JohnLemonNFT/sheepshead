@@ -104,8 +104,8 @@ export function Card({
         </span>
       </div>
 
-      {/* Center suit - large */}
-      <div className={`absolute inset-0 flex items-center justify-center ${suitColor.text} ${suitColor.shadow}`}>
+      {/* Center suit - large, adjusted up when points banner shown */}
+      <div className={`absolute inset-0 ${points > 0 && !small ? 'pb-4 sm:pb-5' : ''} flex items-center justify-center ${suitColor.text} ${suitColor.shadow}`}>
         <span className={`${small ? 'text-xl sm:text-2xl' : 'text-3xl sm:text-4xl md:text-5xl'} opacity-90`}>
           {SUIT_SYMBOLS[card.suit]}
         </span>
