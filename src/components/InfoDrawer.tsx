@@ -1,4 +1,4 @@
-// InfoDrawer - Collapsible drawer for scores, tips, and game log on mobile
+// InfoDrawer - Side panel for scores, tips, and game log
 
 import { useState } from 'react';
 import { ScoreBoard } from './ScoreBoard';
@@ -60,36 +60,46 @@ export function InfoDrawer({
 
   return (
     <>
-      {/* Toggle Button - Fixed at bottom */}
+      {/* Toggle Tab - Fixed on left side */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          fixed bottom-0 left-0 right-0 z-40
-          bg-gray-900/95 backdrop-blur border-t border-gray-700
-          py-2 px-4 flex items-center justify-center gap-2
-          text-sm font-medium text-gray-300
-          transition-all
-          ${isOpen ? 'rounded-t-none' : ''}
+          fixed left-0 top-1/2 -translate-y-1/2 z-40
+          bg-gray-800/95 backdrop-blur-sm border-2 border-l-0 border-gray-600
+          py-4 px-1.5 flex flex-col items-center gap-2
+          text-xs font-medium text-white rounded-r-lg
+          transition-all active:bg-gray-700 hover:bg-gray-700
+          ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
         `}
       >
-        <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>▲</span>
-        <span>{isOpen ? 'Hide Info' : 'Scores & Tips'}</span>
-        {!isOpen && (
-          <span className="bg-emerald-600 text-white text-xs px-2 py-0.5 rounded-full ml-2">
-            {scores.reduce((a, b) => a + b, 0)} pts
-          </span>
-        )}
+        <span className="text-base">▶</span>
+        <span className="writing-vertical text-[10px] tracking-wider">SCORES</span>
+        <span className="bg-yellow-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+          {scores.reduce((a, b) => a + b, 0)}
+        </span>
       </button>
 
-      {/* Drawer Panel */}
+      {/* Side Panel */}
       <div
         className={`
-          fixed bottom-10 left-0 right-0 z-30
-          bg-gray-900/98 backdrop-blur-lg border-t border-gray-700
+          fixed top-0 left-0 bottom-0 z-50
+          bg-gray-900/98 backdrop-blur-lg border-r-2 border-gray-600
           transition-all duration-300 ease-out
-          ${isOpen ? 'max-h-[60vh] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}
+          flex flex-col
+          ${isOpen ? 'w-72 sm:w-80 translate-x-0' : 'w-72 sm:w-80 -translate-x-full'}
         `}
       >
+        {/* Header with close button */}
+        <div className="flex items-center justify-between p-3 border-b border-gray-700">
+          <span className="font-bold text-white">Game Info</span>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-gray-400 hover:text-white p-1 text-xl leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
         {/* Tabs */}
         <div className="flex border-b border-gray-700">
           {[
@@ -103,7 +113,7 @@ export function InfoDrawer({
               className={`
                 flex-1 py-2.5 text-sm font-medium transition-colors
                 ${activeTab === tab.id
-                  ? 'text-emerald-400 border-b-2 border-emerald-400 bg-emerald-900/20'
+                  ? 'text-yellow-400 border-b-2 border-yellow-400 bg-yellow-900/20'
                   : 'text-gray-400 hover:text-gray-300'}
               `}
             >
@@ -113,7 +123,7 @@ export function InfoDrawer({
         </div>
 
         {/* Tab Content */}
-        <div className="p-3 overflow-y-auto max-h-[calc(60vh-80px)]">
+        <div className="flex-1 p-3 overflow-y-auto">
           {activeTab === 'scores' && (
             <ScoreBoard
               scores={scores}
@@ -161,7 +171,7 @@ export function InfoDrawer({
       {/* Backdrop when open */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-20"
+          className="fixed inset-0 bg-black/40 z-40"
           onClick={() => setIsOpen(false)}
         />
       )}

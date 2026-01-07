@@ -4,7 +4,6 @@ import { useEffect, useCallback, useState } from 'react';
 import { useGameStore, SPEED_DELAYS } from './store/gameStore';
 import {
   Card,
-  Hand,
   ScoreBoard,
   GameControls,
   HandSummary,
@@ -12,8 +11,6 @@ import {
   GameLog,
   StrategyTips,
   Announcement,
-  PlayerAvatar,
-  TeamBanner,
   HomePage,
   GameSetup,
   PlayerHandoff,
@@ -24,7 +21,6 @@ import {
   OnlineWaitingRoom,
   OnlineGame,
   InfoDrawer,
-  TableView,
 } from './components';
 import { CoachingToast, HandSummaryModal } from './components/CoachingToast';
 import { Tutorial } from './tutorial';
@@ -483,166 +479,225 @@ function App() {
     diamonds: '♦',
   };
 
-  return (
-    <div className="min-h-screen text-white bg-gradient-to-b from-green-900 via-green-800 to-green-900">
-      {/* Minimal Header Bar */}
-      <div className="flex justify-between items-center p-2 bg-black/40">
-        <div className="flex items-center gap-2">
-          {/* Menu Button */}
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="bg-gray-800/80 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          {showMenu && (
-            <div className="absolute left-2 top-12 bg-gray-800 rounded-lg shadow-xl py-1 z-50 w-40">
-              <button onClick={() => { goToHome(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Home</button>
-              <button onClick={() => { newGame(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">New Game</button>
-              <hr className="border-gray-700 my-1" />
-              <button onClick={() => { openRules(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Rules</button>
-              <button onClick={() => { openStrategy(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Strategy</button>
-              <button onClick={() => { openSettings(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Settings</button>
+  // Helper to get relative player position (0=you, 1-4 clockwise)
+  const getRelativePosition = (pos: PlayerPosition): number => {
+    return (pos - (activeHumanPosition ?? 0) + 5) % 5;
+  };
+
+  // Get player by relative position
+  const getPlayerByRelPos = (relPos: number) => {
+    const absPos = ((activeHumanPosition ?? 0) + relPos) % 5;
+    return players[absPos];
+  };
+
+  // Render opponent avatar
+  const renderOpponent = (relPos: number, positionClass: string) => {
+    const player = getPlayerByRelPos(relPos);
+    if (!player) return null;
+
+    const isDealer = player.position === dealerPosition;
+    const isCurrent = player.position === currentPlayer;
+    const isPicker = player.isPicker;
+    const isPartnerRevealed = player.isPartner && calledAce?.revealed;
+    const displayInfo = getPlayerDisplayInfo(player.position);
+
+    return (
+      <div className={`absolute ${positionClass} flex flex-col items-center z-10`}>
+        <div className={`
+          relative w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3
+          flex items-center justify-center text-2xl sm:text-3xl
+          bg-gray-800 shadow-lg transition-all duration-300
+          ${isCurrent ? 'border-blue-400 animate-active-turn' : ''}
+          ${isPicker && !isCurrent ? 'border-yellow-400 animate-picker-glow' : ''}
+          ${isPartnerRevealed && !isCurrent ? 'border-green-400 shadow-green-400/50' : ''}
+          ${!isCurrent && !isPicker && !isPartnerRevealed ? 'border-gray-600' : ''}
+        `}>
+          {displayInfo.avatar}
+          {isDealer && (
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white border-2 border-gray-800 rounded-full flex items-center justify-center text-[10px] font-black text-gray-800">
+              D
             </div>
           )}
-          <span className="text-sm sm:text-base font-bold text-white">Sheepshead</span>
+          {isPicker && (
+            <div className="absolute -top-2 -right-2 text-lg">👑</div>
+          )}
+          {isPartnerRevealed && (
+            <div className="absolute -top-2 -right-2 text-sm">🤝</div>
+          )}
         </div>
-        <div className="text-[10px] sm:text-xs text-green-300/70">
-          Hand {handsPlayed + 1}
-        </div>
+        <span className={`mt-1 text-xs sm:text-sm font-medium ${
+          isPicker ? 'text-yellow-400' :
+          isPartnerRevealed ? 'text-green-400' :
+          isCurrent ? 'text-blue-400' : 'text-gray-300'
+        }`}>
+          {displayInfo.name}
+        </span>
       </div>
+    );
+  };
 
-      {/* Main Content - Single Column Mobile-First */}
-      <div className="p-2 sm:p-4 max-w-4xl mx-auto pb-16 lg:pb-4">
-        {/* Compact Role & Game Info */}
-        {pickerPosition !== null && phase === 'playing' && (
-          <div className="flex items-center justify-center gap-3 mb-2 text-xs sm:text-sm">
-            <div className={`
-              px-3 py-1 rounded-full font-medium flex items-center gap-1
-              ${activePlayerRole === 'picker' ? 'bg-yellow-600' :
-                activePlayerRole === 'partner' ? 'bg-blue-600' : 'bg-red-700'}
-            `}>
-              <span>
-                {activePlayerRole === 'picker' ? '👑' :
-                 activePlayerRole === 'partner' ? '🤝' : '⚔️'}
-              </span>
-              <span className="uppercase">{activePlayerRole || 'defender'}</span>
-            </div>
-            <span className="text-green-300/70">Trick {trickNumber}/6</span>
-            {calledAce && (
-              <span className="text-gray-300">{SUIT_SYMBOLS[calledAce.suit]} called</span>
-            )}
+  return (
+    <div className="min-h-screen text-white bg-felt-table relative overflow-hidden">
+      {/* Vignette overlay */}
+      <div className="absolute inset-0 felt-vignette pointer-events-none" />
+
+      {/* Header - minimal */}
+      <div className="relative z-20 flex justify-between items-center p-2">
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="bg-black/40 hover:bg-black/60 text-white p-2 rounded-lg transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        {showMenu && (
+          <div className="absolute left-2 top-12 bg-gray-900/95 rounded-lg shadow-xl py-1 z-50 w-40 border border-gray-700">
+            <button onClick={() => { goToHome(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Home</button>
+            <button onClick={() => { newGame(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">New Game</button>
+            <hr className="border-gray-700 my-1" />
+            <button onClick={() => { openRules(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Rules</button>
+            <button onClick={() => { openStrategy(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Strategy</button>
+            <button onClick={() => { openSettings(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Settings</button>
           </div>
         )}
 
-        {/* Table View with players around it */}
-        <TableView
-          players={players}
-          currentPlayer={currentPlayer}
-          dealerPosition={dealerPosition}
-          yourPosition={(activeHumanPosition ?? 0) as PlayerPosition}
-          pickerPosition={pickerPosition}
-          partnerRevealed={calledAce?.revealed || false}
-        >
-          {/* Blind - shown in center of table */}
-          {blind.length > 0 && (
-            <div className="text-center">
-              <p className="text-green-300/70 text-[10px] mb-1">Blind</p>
-              <div className="flex justify-center gap-1">
-                {blind.map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-11 sm:w-10 sm:h-14 bg-gradient-to-br from-blue-800 to-blue-900 rounded border border-blue-600 flex items-center justify-center shadow-lg"
-                  >
-                    <span className="text-blue-400 text-xs sm:text-sm">🐑</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Status badges */}
+        <div className="flex gap-2 flex-wrap justify-end">
+          {pickerPosition !== null && (
+            <span className={`px-2 py-1 rounded text-xs font-bold ${
+              activePlayerRole === 'picker' ? 'bg-yellow-600' :
+              activePlayerRole === 'partner' ? 'bg-blue-600' : 'bg-red-700'
+            }`}>
+              {activePlayerRole === 'picker' ? '👑 PICKER' :
+               activePlayerRole === 'partner' ? '🤝 PARTNER' : '⚔️ DEFENDER'}
+            </span>
           )}
-
-          {/* Current Trick - shown in center of table */}
           {phase === 'playing' && (
-            <div className="text-center">
-              {/* Running score - compact */}
-              <div className="mb-2">
-                <RunningScore
-                  completedTricks={completedTricks}
-                  currentTrick={currentTrick.cards}
-                  pickerPosition={pickerPosition}
-                  partnerPosition={actualPartnerPosition !== -1 ? actualPartnerPosition as PlayerPosition : null}
-                />
-              </div>
+            <span className="bg-black/40 px-2 py-1 rounded text-xs">
+              Trick {trickNumber}/6
+            </span>
+          )}
+          {calledAce && (
+            <span className="bg-purple-600/80 px-2 py-1 rounded text-xs">
+              {SUIT_SYMBOLS[calledAce.suit]} called
+            </span>
+          )}
+        </div>
+      </div>
 
-              {/* Trick cards - LARGER */}
-              <div className="flex justify-center gap-1 sm:gap-2 min-h-[70px] sm:min-h-[90px] items-center">
-                {currentTrick.cards.length === 0 ? (
-                  <span className="text-green-600/40 text-sm">Play a card</span>
-                ) : (
-                  currentTrick.cards.map((play, i) => {
-                    const isWinner = trickResult && play.playedBy === trickResult.winner;
-                    const isPickerCard = play.playedBy === pickerPosition;
-                    const isPartnerPlay = players[play.playedBy]?.isPartner && calledAce?.revealed;
+      {/* Main game area */}
+      <div className="relative z-10 h-[calc(100vh-52px)] flex flex-col">
 
-                    return (
-                      <div
-                        key={i}
-                        className={`
-                          text-center transition-all
-                          ${isWinner ? 'scale-110 z-10' : ''}
-                        `}
-                      >
-                        <Card card={play.card} size="medium" />
-                        <div className={`text-[9px] sm:text-xs mt-0.5 truncate max-w-[50px] ${
-                          isWinner ? 'text-green-300 font-bold' :
-                          isPickerCard ? 'text-yellow-300' :
-                          isPartnerPlay ? 'text-blue-300' :
-                          'text-white/70'
-                        }`}>
-                          {play.playedBy === (activeHumanPosition ?? 0) ? 'You' : getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+        {/* Top section - opponents and center */}
+        <div className="flex-1 relative min-h-0">
 
-              {/* Winner banner */}
-              {trickResult && (
-                <div className="mt-2">
-                  <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
-                    {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} +{trickResult.points}
+          {/* Opponent positions */}
+          {renderOpponent(1, 'left-4 sm:left-8 top-1/2 -translate-y-1/2')}
+          {renderOpponent(2, 'left-1/4 top-4 sm:top-8 -translate-x-1/2')}
+          {renderOpponent(3, 'right-1/4 top-4 sm:top-8 translate-x-1/2')}
+          {renderOpponent(4, 'right-4 sm:right-8 top-1/2 -translate-y-1/2')}
+
+          {/* Center game area */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 max-w-lg px-4">
+
+              {/* Running score during play - only show team breakdown after partner revealed */}
+              {phase === 'playing' && pickerPosition !== null && calledAce?.revealed && (
+                <div className="flex gap-2">
+                  <span className="bg-yellow-700/90 px-3 py-1 rounded-full text-sm font-bold">
+                    👑 {completedTricks.reduce((sum, t) => {
+                      const trickPoints = t.cards.reduce((pts, c) => pts + getCardPoints(c.card), 0);
+                      const winnerOnPickerTeam = t.winningPlayer === pickerPosition ||
+                        (actualPartnerPosition !== -1 && t.winningPlayer === actualPartnerPosition);
+                      return sum + (winnerOnPickerTeam ? trickPoints : 0);
+                    }, 0)}/61
+                  </span>
+                  <span className="bg-red-700/90 px-3 py-1 rounded-full text-sm font-bold">
+                    ⚔️ {completedTricks.reduce((sum, t) => {
+                      const trickPoints = t.cards.reduce((pts, c) => pts + getCardPoints(c.card), 0);
+                      const winnerOnPickerTeam = t.winningPlayer === pickerPosition ||
+                        (actualPartnerPosition !== -1 && t.winningPlayer === actualPartnerPosition);
+                      return sum + (winnerOnPickerTeam ? 0 : trickPoints);
+                    }, 0)}/60
                   </span>
                 </div>
               )}
 
-              {/* Points at stake */}
-              {currentTrick.cards.length > 0 && !trickResult && (
-                <div className="text-xs text-yellow-300/80 mt-1">
-                  {currentTrick.cards.reduce((sum, play) => sum + getCardPoints(play.card), 0)} pts
+              {/* Blind - picking phase */}
+              {phase === 'picking' && blind.length > 0 && (
+                <div className="text-center">
+                  <p className="text-white/80 text-lg mb-3 font-medium">
+                    {currentPlayer === (activeHumanPosition ?? 0) ? 'Pick up the blind?' : `${getPlayerDisplayInfo(currentPlayer).name} is deciding...`}
+                  </p>
+                  <div className="flex justify-center gap-2">
+                    {blind.map((_, i) => (
+                      <div key={i} className="w-14 h-20 sm:w-16 sm:h-24 bg-gradient-to-br from-blue-700 to-blue-900 rounded-lg border-2 border-blue-500 flex items-center justify-center shadow-xl animate-card-slide-in">
+                        <span className="text-blue-300 text-xl">🐑</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
-          )}
-        </TableView>
 
-        {/* Hand summary */}
-        {phase === 'scoring' && currentHandScore && (
-          <div className="mb-3">
-            <HandSummary
-              score={currentHandScore}
-              pickerPosition={pickerPosition}
-              partnerPosition={partnerPosition !== -1 ? partnerPosition as PlayerPosition : null}
-              calledSuit={calledAce?.suit || null}
-              onClose={() => {}}
-            />
+              {/* Calling phase */}
+              {phase === 'calling' && (
+                <div className="text-center">
+                  <p className="text-white/80 text-lg mb-2 font-medium">Call an Ace for your partner</p>
+                </div>
+              )}
+
+              {/* Current trick - playing phase */}
+              {phase === 'playing' && (
+                <div className="flex gap-2 sm:gap-3 items-end justify-center min-h-[100px] sm:min-h-[120px]">
+                  {currentTrick.cards.length === 0 ? (
+                    <span className="text-white/40 text-lg">
+                      {currentPlayer === (activeHumanPosition ?? 0) ? 'Lead a card' : 'Waiting...'}
+                    </span>
+                  ) : (
+                    currentTrick.cards.map((play, i) => {
+                      const isWinner = trickResult && play.playedBy === trickResult.winner;
+                      return (
+                        <div key={i} className={`flex flex-col items-center animate-card-slide-in ${isWinner ? 'scale-110' : ''}`}>
+                          <Card card={play.card} size="large" />
+                          <span className={`text-xs mt-1 ${isWinner ? 'text-green-400 font-bold' : 'text-white/70'}`}>
+                            {play.playedBy === (activeHumanPosition ?? 0) ? 'You' : getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Trick winner announcement */}
+              {trickResult && (
+                <div className="bg-gradient-to-r from-yellow-500 to-amber-600 px-6 py-3 rounded-xl shadow-2xl animate-trick-winner">
+                  <div className="text-center">
+                    <div className="text-white text-xl font-bold">
+                      {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name}
+                    </div>
+                    <div className="text-yellow-100">🏆 +{trickResult.points} points</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Hand summary */}
+              {phase === 'scoring' && currentHandScore && (
+                <HandSummary
+                  score={currentHandScore}
+                  pickerPosition={pickerPosition}
+                  partnerPosition={partnerPosition !== -1 ? partnerPosition as PlayerPosition : null}
+                  calledSuit={calledAce?.suit || null}
+                  onClose={() => {}}
+                />
+              )}
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Game Controls */}
-        <div className="mb-3">
+        <div className="relative z-20 px-4 py-2">
           <GameControls
             phase={phase}
             isHumanTurn={isHumanTurn}
@@ -660,24 +715,18 @@ function App() {
           />
         </div>
 
-        {/* Your Hand - THE MAIN FOCUS */}
+        {/* Your Hand - CURVED FAN at bottom */}
         {activePlayer && (
-          <div className="mt-4">
-            {/* Turn instruction */}
-            {isHumanTurn && phase === 'playing' && (
-              <div className="text-center mb-3 text-lg text-yellow-400 font-medium">
-                Your turn - tap a card to play
-              </div>
-            )}
+          <div className="relative z-20 pb-4">
             {isHumanTurn && phase === 'burying' && (
-              <div className="text-center mb-3 text-lg text-yellow-400 font-medium">
+              <div className="text-center mb-2 text-base sm:text-lg text-yellow-400 font-medium">
                 Select 2 cards to bury
               </div>
             )}
 
-            {/* Suit following hint */}
+            {/* Suit hint */}
             {phase === 'playing' && isHumanTurn && currentTrick.cards.length > 0 && (
-              <div className="mb-2">
+              <div className="mb-2 px-4">
                 <SuitHint
                   trickCards={currentTrick.cards}
                   legalPlays={legalPlays}
@@ -687,64 +736,49 @@ function App() {
               </div>
             )}
 
-            {/* Cards - EXTRA LARGE and prominent */}
-            <div className="bg-gray-900/50 rounded-2xl p-4 sm:p-6 border border-green-600/20">
-              <div className="flex flex-wrap gap-2 sm:gap-4 justify-center">
-                {activePlayer.hand.map(card => {
-                  const isLegal = legalPlays.some(c => c.id === card.id);
-                  const isSelected = selectedCards.some(c => c.id === card.id);
-                  return (
-                    <div
-                      key={card.id}
-                      onClick={() => handleCardClick(card)}
-                      className={`
-                        cursor-pointer transition-all duration-200
-                        ${phase === 'playing' && isHumanTurn && isLegal ? 'hover:-translate-y-4 hover:scale-105' : ''}
-                        ${phase === 'playing' && isHumanTurn && !isLegal ? 'opacity-40 cursor-not-allowed' : ''}
-                        ${phase === 'burying' ? 'hover:-translate-y-4 hover:scale-105' : ''}
-                        ${isSelected ? '-translate-y-5 scale-110 ring-2 ring-green-400 rounded-lg' : ''}
-                      `}
-                    >
-                      <Card
-                        card={card}
-                        size="xlarge"
-                        highlight={phase === 'playing' && isHumanTurn && isLegal}
-                        selected={isSelected}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+            {/* Curved card fan */}
+            <div className="flex justify-center items-end px-2">
+              {activePlayer.hand.map((card, index) => {
+                const totalCards = activePlayer.hand.length;
+                const middleIndex = (totalCards - 1) / 2;
+                const offset = index - middleIndex;
+                const rotation = offset * 4; // degrees
+                const translateY = Math.abs(offset) * 8; // pixels
+                const isLegal = legalPlays.some(c => c.id === card.id);
+                const isSelected = selectedCards.some(c => c.id === card.id);
+
+                return (
+                  <div
+                    key={card.id}
+                    onClick={() => handleCardClick(card)}
+                    className={`
+                      transition-all duration-300 ease-out cursor-pointer
+                      hover:-translate-y-6 hover:scale-110 hover:z-50
+                      ${phase === 'playing' && isHumanTurn && !isLegal ? 'opacity-40 cursor-not-allowed hover:translate-y-0 hover:scale-100' : ''}
+                      ${isSelected ? '-translate-y-8 scale-110 z-40' : ''}
+                    `}
+                    style={{
+                      transform: `translateY(${isSelected ? -32 : translateY}px) rotate(${rotation}deg)`,
+                      marginLeft: index === 0 ? 0 : '-12px',
+                      zIndex: isSelected ? 40 : index,
+                    }}
+                  >
+                    <Card
+                      card={card}
+                      size="xlarge"
+                      highlight={phase === 'playing' && isHumanTurn && isLegal}
+                      selected={isSelected}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
-
-        {/* Desktop: Sidebar info */}
-        <div className="hidden lg:grid lg:grid-cols-3 gap-4 mt-4">
-          <ScoreBoard
-            scores={playerScores}
-            pickerPosition={pickerPosition}
-            partnerPosition={partnerPosition !== -1 ? partnerPosition as PlayerPosition : null}
-            currentPlayer={currentPlayer}
-            handsPlayed={handsPlayed}
-          />
-          {gameSettings.showStrategyTips && isHumanTurn && activePlayer && (
-            <StrategyTips
-              phase={phase}
-              hand={activePlayer.hand}
-              isPicker={activePlayer.isPicker}
-              isPartner={activePlayer.isPartner}
-              currentTrick={currentTrick}
-              calledAce={calledAce}
-              pickerPosition={pickerPosition}
-            />
-          )}
-          <GameLog entries={gameLog} onClear={clearLog} />
-        </div>
       </div>
 
-      {/* Mobile: Info Drawer */}
-      <div className="lg:hidden">
+      {/* Info Drawer - collapsible scores & log */}
+      <div>
         <InfoDrawer
           scores={playerScores}
           pickerPosition={pickerPosition}
