@@ -9,7 +9,7 @@ interface CardProps {
   disabled?: boolean;
   faceDown?: boolean;
   highlight?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'xlarge';
   small?: boolean; // deprecated - use size='small' instead
   animate?: 'deal' | 'play' | 'collect' | null;
   animationDelay?: number;
@@ -52,11 +52,13 @@ export function Card({
 
   const sizeClasses =
     actualSize === 'small' ? 'w-8 h-11 sm:w-10 sm:h-14 md:w-12 md:h-[4.25rem]' :
+    actualSize === 'xlarge' ? 'w-16 h-[5.5rem] sm:w-20 sm:h-[7rem] md:w-24 md:h-[8.5rem]' :
     actualSize === 'large' ? 'w-14 h-[5rem] sm:w-16 sm:h-[5.75rem] md:w-20 md:h-[7rem]' :
     'w-12 h-[4.25rem] sm:w-14 sm:h-[5rem] md:w-[4.5rem] md:h-[6.25rem]';
 
   const isSmall = actualSize === 'small';
-  const isLarge = actualSize === 'large';
+  const isLarge = actualSize === 'large' || actualSize === 'xlarge';
+  const isXLarge = actualSize === 'xlarge';
 
   const animationClass = animate === 'deal' ? 'animate-cardDeal' :
                          animate === 'play' ? 'animate-cardPlay' :
@@ -107,6 +109,7 @@ export function Card({
       <div className={`absolute top-0.5 left-1 sm:top-1 sm:left-1.5 flex flex-col items-center ${suitColor.text}`}>
         <span className={`font-bold leading-none ${
           isSmall ? 'text-[9px] sm:text-[11px]' :
+          isXLarge ? 'text-base sm:text-lg md:text-xl' :
           isLarge ? 'text-sm sm:text-base md:text-lg' :
           'text-xs sm:text-sm md:text-base'
         }`}>
@@ -114,6 +117,7 @@ export function Card({
         </span>
         <span className={`leading-none ${suitColor.shadow} ${
           isSmall ? 'text-[8px] sm:text-[10px]' :
+          isXLarge ? 'text-sm sm:text-base md:text-lg' :
           isLarge ? 'text-xs sm:text-sm md:text-base' :
           'text-[10px] sm:text-xs md:text-sm'
         }`}>
@@ -125,6 +129,7 @@ export function Card({
       <div className={`absolute inset-0 ${points > 0 && !isSmall ? 'pb-4 sm:pb-5' : ''} flex items-center justify-center ${suitColor.text} ${suitColor.shadow}`}>
         <span className={`${
           isSmall ? 'text-xl sm:text-2xl' :
+          isXLarge ? 'text-5xl sm:text-6xl md:text-7xl' :
           isLarge ? 'text-4xl sm:text-5xl md:text-6xl' :
           'text-3xl sm:text-4xl md:text-5xl'
         } opacity-90`}>
@@ -136,6 +141,7 @@ export function Card({
       <div className={`absolute bottom-0.5 right-1 sm:bottom-1 sm:right-1.5 flex flex-col items-center rotate-180 ${suitColor.text}`}>
         <span className={`font-bold leading-none ${
           isSmall ? 'text-[9px] sm:text-[11px]' :
+          isXLarge ? 'text-base sm:text-lg md:text-xl' :
           isLarge ? 'text-sm sm:text-base md:text-lg' :
           'text-xs sm:text-sm md:text-base'
         }`}>
@@ -143,6 +149,7 @@ export function Card({
         </span>
         <span className={`leading-none ${suitColor.shadow} ${
           isSmall ? 'text-[8px] sm:text-[10px]' :
+          isXLarge ? 'text-sm sm:text-base md:text-lg' :
           isLarge ? 'text-xs sm:text-sm md:text-base' :
           'text-[10px] sm:text-xs md:text-sm'
         }`}>

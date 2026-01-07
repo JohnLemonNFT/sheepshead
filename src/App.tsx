@@ -567,7 +567,7 @@ function App() {
           {phase === 'playing' && (
             <div className="text-center">
               {/* Running score - compact */}
-              <div className="mb-1">
+              <div className="mb-2">
                 <RunningScore
                   completedTricks={completedTricks}
                   currentTrick={currentTrick.cards}
@@ -576,10 +576,10 @@ function App() {
                 />
               </div>
 
-              {/* Trick cards */}
-              <div className="flex justify-center gap-1 sm:gap-2 min-h-[60px] sm:min-h-[70px] items-center">
+              {/* Trick cards - LARGER */}
+              <div className="flex justify-center gap-1 sm:gap-2 min-h-[70px] sm:min-h-[90px] items-center">
                 {currentTrick.cards.length === 0 ? (
-                  <span className="text-green-600/50 text-xs">Waiting...</span>
+                  <span className="text-green-600/40 text-sm">Play a card</span>
                 ) : (
                   currentTrick.cards.map((play, i) => {
                     const isWinner = trickResult && play.playedBy === trickResult.winner;
@@ -594,8 +594,8 @@ function App() {
                           ${isWinner ? 'scale-110 z-10' : ''}
                         `}
                       >
-                        <Card card={play.card} small />
-                        <div className={`text-[8px] sm:text-[10px] mt-0.5 truncate max-w-[40px] ${
+                        <Card card={play.card} size="medium" />
+                        <div className={`text-[9px] sm:text-xs mt-0.5 truncate max-w-[50px] ${
                           isWinner ? 'text-green-300 font-bold' :
                           isPickerCard ? 'text-yellow-300' :
                           isPartnerPlay ? 'text-blue-300' :
@@ -611,8 +611,8 @@ function App() {
 
               {/* Winner banner */}
               {trickResult && (
-                <div className="mt-1">
-                  <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold">
+                <div className="mt-2">
+                  <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
                     {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} +{trickResult.points}
                   </span>
                 </div>
@@ -620,7 +620,7 @@ function App() {
 
               {/* Points at stake */}
               {currentTrick.cards.length > 0 && !trickResult && (
-                <div className="text-[10px] text-yellow-300/80 mt-1">
+                <div className="text-xs text-yellow-300/80 mt-1">
                   {currentTrick.cards.reduce((sum, play) => sum + getCardPoints(play.card), 0)} pts
                 </div>
               )}
@@ -660,45 +660,61 @@ function App() {
           />
         </div>
 
-        {/* Your Hand - Full width, larger cards */}
+        {/* Your Hand - THE MAIN FOCUS */}
         {activePlayer && (
-          <div className="bg-gray-900/70 rounded-xl p-3 sm:p-4 border border-green-600/20">
-            {/* Suit following hint */}
-            {phase === 'playing' && isHumanTurn && currentTrick.cards.length > 0 && (
-              <SuitHint
-                trickCards={currentTrick.cards}
-                legalPlays={legalPlays}
-                hand={activePlayer.hand}
-                isYourTurn={isHumanTurn}
-              />
+          <div className="mt-4">
+            {/* Turn instruction */}
+            {isHumanTurn && phase === 'playing' && (
+              <div className="text-center mb-3 text-lg text-yellow-400 font-medium">
+                Your turn - tap a card to play
+              </div>
+            )}
+            {isHumanTurn && phase === 'burying' && (
+              <div className="text-center mb-3 text-lg text-yellow-400 font-medium">
+                Select 2 cards to bury
+              </div>
             )}
 
-            {/* Cards - large and prominent */}
-            <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
-              {activePlayer.hand.map(card => {
-                const isLegal = legalPlays.some(c => c.id === card.id);
-                const isSelected = selectedCards.some(c => c.id === card.id);
-                return (
-                  <div
-                    key={card.id}
-                    onClick={() => handleCardClick(card)}
-                    className={`
-                      cursor-pointer transition-all duration-200
-                      ${phase === 'playing' && isHumanTurn && isLegal ? 'hover:-translate-y-3 hover:scale-105' : ''}
-                      ${phase === 'playing' && isHumanTurn && !isLegal ? 'opacity-50 cursor-not-allowed' : ''}
-                      ${phase === 'burying' ? 'hover:-translate-y-3 hover:scale-105' : ''}
-                      ${isSelected ? '-translate-y-4 scale-105 ring-2 ring-green-400' : ''}
-                    `}
-                  >
-                    <Card
-                      card={card}
-                      size="large"
-                      highlight={phase === 'playing' && isHumanTurn && isLegal}
-                      selected={isSelected}
-                    />
-                  </div>
-                );
-              })}
+            {/* Suit following hint */}
+            {phase === 'playing' && isHumanTurn && currentTrick.cards.length > 0 && (
+              <div className="mb-2">
+                <SuitHint
+                  trickCards={currentTrick.cards}
+                  legalPlays={legalPlays}
+                  hand={activePlayer.hand}
+                  isYourTurn={isHumanTurn}
+                />
+              </div>
+            )}
+
+            {/* Cards - EXTRA LARGE and prominent */}
+            <div className="bg-gray-900/50 rounded-2xl p-4 sm:p-6 border border-green-600/20">
+              <div className="flex flex-wrap gap-2 sm:gap-4 justify-center">
+                {activePlayer.hand.map(card => {
+                  const isLegal = legalPlays.some(c => c.id === card.id);
+                  const isSelected = selectedCards.some(c => c.id === card.id);
+                  return (
+                    <div
+                      key={card.id}
+                      onClick={() => handleCardClick(card)}
+                      className={`
+                        cursor-pointer transition-all duration-200
+                        ${phase === 'playing' && isHumanTurn && isLegal ? 'hover:-translate-y-4 hover:scale-105' : ''}
+                        ${phase === 'playing' && isHumanTurn && !isLegal ? 'opacity-40 cursor-not-allowed' : ''}
+                        ${phase === 'burying' ? 'hover:-translate-y-4 hover:scale-105' : ''}
+                        ${isSelected ? '-translate-y-5 scale-110 ring-2 ring-green-400 rounded-lg' : ''}
+                      `}
+                    >
+                      <Card
+                        card={card}
+                        size="xlarge"
+                        highlight={phase === 'playing' && isHumanTurn && isLegal}
+                        selected={isSelected}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
