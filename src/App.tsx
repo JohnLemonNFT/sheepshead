@@ -201,12 +201,12 @@ function App() {
   const isCurrentPlayerHuman = playerTypes[currentPlayer] === 'human';
   const isHumanTurn = isCurrentPlayerHuman && activeHumanPosition === currentPlayer;
 
-  // Reset play lock when turn changes back to human
+  // Reset play lock when turn changes back to human or new trick starts
   useEffect(() => {
     if (isHumanTurn) {
       setIsPlayingCard(false);
     }
-  }, [currentPlayer, isHumanTurn]);
+  }, [currentPlayer, isHumanTurn, trickNumber]);
 
   // The active human player (whose hand is shown)
   const activePlayer = activeHumanPosition !== null ? players[activeHumanPosition] : null;
