@@ -9,7 +9,8 @@ interface CardProps {
   disabled?: boolean;
   faceDown?: boolean;
   highlight?: boolean;
-  small?: boolean;
+  size?: 'small' | 'medium' | 'large';
+  small?: boolean; // deprecated - use size='small' instead
   animate?: 'deal' | 'play' | 'collect' | null;
   animationDelay?: number;
 }
@@ -36,7 +37,8 @@ export function Card({
   disabled = false,
   faceDown = false,
   highlight = false,
-  small = false,
+  size,
+  small = false, // deprecated
   animate = null,
   animationDelay = 0,
 }: CardProps) {
@@ -45,9 +47,16 @@ export function Card({
   const points = getCardPoints(card);
   const suitColor = SUIT_COLORS[card.suit];
 
-  const sizeClasses = small
-    ? 'w-8 h-11 sm:w-10 sm:h-14 md:w-12 md:h-[4.25rem]'
-    : 'w-12 h-[4.25rem] sm:w-14 sm:h-[5rem] md:w-[4.5rem] md:h-[6.25rem]';
+  // Determine actual size (handle deprecated small prop)
+  const actualSize = size || (small ? 'small' : 'medium');
+
+  const sizeClasses =
+    actualSize === 'small' ? 'w-8 h-11 sm:w-10 sm:h-14 md:w-12 md:h-[4.25rem]' :
+    actualSize === 'large' ? 'w-14 h-[5rem] sm:w-16 sm:h-[5.75rem] md:w-20 md:h-[7rem]' :
+    'w-12 h-[4.25rem] sm:w-14 sm:h-[5rem] md:w-[4.5rem] md:h-[6.25rem]';
+
+  const isSmall = actualSize === 'small';
+  const isLarge = actualSize === 'large';
 
   const animationClass = animate === 'deal' ? 'animate-cardDeal' :
                          animate === 'play' ? 'animate-cardPlay' :
@@ -96,39 +105,64 @@ export function Card({
 
       {/* Top left corner */}
       <div className={`absolute top-0.5 left-1 sm:top-1 sm:left-1.5 flex flex-col items-center ${suitColor.text}`}>
-        <span className={`font-bold leading-none ${small ? 'text-[9px] sm:text-[11px]' : 'text-xs sm:text-sm md:text-base'}`}>
+        <span className={`font-bold leading-none ${
+          isSmall ? 'text-[9px] sm:text-[11px]' :
+          isLarge ? 'text-sm sm:text-base md:text-lg' :
+          'text-xs sm:text-sm md:text-base'
+        }`}>
           {card.rank}
         </span>
-        <span className={`leading-none ${suitColor.shadow} ${small ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-xs md:text-sm'}`}>
+        <span className={`leading-none ${suitColor.shadow} ${
+          isSmall ? 'text-[8px] sm:text-[10px]' :
+          isLarge ? 'text-xs sm:text-sm md:text-base' :
+          'text-[10px] sm:text-xs md:text-sm'
+        }`}>
           {SUIT_SYMBOLS[card.suit]}
         </span>
       </div>
 
       {/* Center suit - large, adjusted up when points banner shown */}
-      <div className={`absolute inset-0 ${points > 0 && !small ? 'pb-4 sm:pb-5' : ''} flex items-center justify-center ${suitColor.text} ${suitColor.shadow}`}>
-        <span className={`${small ? 'text-xl sm:text-2xl' : 'text-3xl sm:text-4xl md:text-5xl'} opacity-90`}>
+      <div className={`absolute inset-0 ${points > 0 && !isSmall ? 'pb-4 sm:pb-5' : ''} flex items-center justify-center ${suitColor.text} ${suitColor.shadow}`}>
+        <span className={`${
+          isSmall ? 'text-xl sm:text-2xl' :
+          isLarge ? 'text-4xl sm:text-5xl md:text-6xl' :
+          'text-3xl sm:text-4xl md:text-5xl'
+        } opacity-90`}>
           {SUIT_SYMBOLS[card.suit]}
         </span>
       </div>
 
       {/* Bottom right corner (rotated) */}
       <div className={`absolute bottom-0.5 right-1 sm:bottom-1 sm:right-1.5 flex flex-col items-center rotate-180 ${suitColor.text}`}>
-        <span className={`font-bold leading-none ${small ? 'text-[9px] sm:text-[11px]' : 'text-xs sm:text-sm md:text-base'}`}>
+        <span className={`font-bold leading-none ${
+          isSmall ? 'text-[9px] sm:text-[11px]' :
+          isLarge ? 'text-sm sm:text-base md:text-lg' :
+          'text-xs sm:text-sm md:text-base'
+        }`}>
           {card.rank}
         </span>
-        <span className={`leading-none ${suitColor.shadow} ${small ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-xs md:text-sm'}`}>
+        <span className={`leading-none ${suitColor.shadow} ${
+          isSmall ? 'text-[8px] sm:text-[10px]' :
+          isLarge ? 'text-xs sm:text-sm md:text-base' :
+          'text-[10px] sm:text-xs md:text-sm'
+        }`}>
           {SUIT_SYMBOLS[card.suit]}
         </span>
       </div>
 
       {/* Trump indicator */}
       {cardIsTrump && (
-        <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] sm:border-t-[16px] border-t-yellow-400 border-l-[12px] sm:border-l-[16px] border-l-transparent" />
+        <div className={`absolute top-0 right-0 w-0 h-0 ${
+          isLarge ? 'border-t-[16px] sm:border-t-[20px] border-l-[16px] sm:border-l-[20px]' :
+          'border-t-[12px] sm:border-t-[16px] border-l-[12px] sm:border-l-[16px]'
+        } border-t-yellow-400 border-l-transparent`} />
       )}
 
       {/* Point value - bottom banner */}
-      {points > 0 && !small && (
-        <div className="absolute bottom-0 left-0 right-0 bg-red-600 text-white text-[10px] sm:text-xs font-bold py-0.5 text-center">
+      {points > 0 && !isSmall && (
+        <div className={`absolute bottom-0 left-0 right-0 bg-red-600 text-white font-bold text-center ${
+          isLarge ? 'text-xs sm:text-sm py-0.5 sm:py-1' : 'text-[10px] sm:text-xs py-0.5'
+        }`}>
           {points} pts
         </div>
       )}

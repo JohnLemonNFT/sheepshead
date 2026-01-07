@@ -33,7 +33,6 @@ import { useCoaching } from './hooks/useCoaching';
 import { useSounds, playSoundEffect } from './hooks/useSounds';
 import { Card as CardType, PlayerPosition, Suit, getCardPoints } from './game/types';
 import { RunningScore } from './components/RunningScore';
-import { TrumpReference } from './components/TrumpReference';
 import { SuitHint } from './components/SuitHint';
 import type { CoachingFeedback } from './game/ai/coaching';
 import { getPlayerDisplayInfo } from './game/ai/personalities';
@@ -486,95 +485,55 @@ function App() {
 
   return (
     <div className="min-h-screen text-white bg-gradient-to-b from-green-900 via-green-800 to-green-900">
-      {/* Compact Header Bar */}
-      <div className="flex justify-between items-center p-2 sm:p-3 bg-black/30">
+      {/* Minimal Header Bar */}
+      <div className="flex justify-between items-center p-2 bg-black/40">
         <div className="flex items-center gap-2">
           {/* Menu Button */}
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="bg-gray-800/80 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+            className="bg-gray-800/80 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
           {showMenu && (
-            <div className="absolute left-2 top-14 bg-gray-800 rounded-lg shadow-xl py-2 z-50 w-48">
-              <button
-                onClick={() => { goToHome(); setShowMenu(false); }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
-              >
-                Home
-              </button>
-              <button
-                onClick={() => { newGame(); setShowMenu(false); }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
-              >
-                New Game
-              </button>
+            <div className="absolute left-2 top-12 bg-gray-800 rounded-lg shadow-xl py-1 z-50 w-40">
+              <button onClick={() => { goToHome(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Home</button>
+              <button onClick={() => { newGame(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">New Game</button>
               <hr className="border-gray-700 my-1" />
-              <button
-                onClick={() => { openRules(); setShowMenu(false); }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
-              >
-                Rules
-              </button>
-              <button
-                onClick={() => { openStrategy(); setShowMenu(false); }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
-              >
-                Strategy
-              </button>
-              <button
-                onClick={() => { openSettings(); setShowMenu(false); }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-700 text-white min-h-[44px]"
-              >
-                Settings
-              </button>
+              <button onClick={() => { openRules(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Rules</button>
+              <button onClick={() => { openStrategy(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Strategy</button>
+              <button onClick={() => { openSettings(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Settings</button>
             </div>
           )}
-          <span className="text-base sm:text-lg font-bold text-white">Sheepshead</span>
-          <span className="text-[10px] sm:text-xs text-green-300 bg-green-900/50 px-2 py-0.5 rounded hidden sm:inline">
-            Hand #{handsPlayed + 1}
-          </span>
+          <span className="text-sm sm:text-base font-bold text-white">Sheepshead</span>
         </div>
-        <div className="text-xs sm:text-sm text-green-300/80">
-          Dealer: P{dealerPosition + 1}
+        <div className="text-[10px] sm:text-xs text-green-300/70">
+          Hand {handsPlayed + 1}
         </div>
       </div>
 
       {/* Main Content - Single Column Mobile-First */}
       <div className="p-2 sm:p-4 max-w-4xl mx-auto pb-16 lg:pb-4">
-        {/* Role Banner - Shows your role prominently */}
+        {/* Compact Role & Game Info */}
         {pickerPosition !== null && phase === 'playing' && (
-          <div className={`
-            rounded-lg p-2 mb-2 text-center
-            ${activePlayerRole === 'picker' ? 'bg-yellow-600' :
-              activePlayerRole === 'partner' ? 'bg-blue-600' : 'bg-red-700'}
-          `}>
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-base sm:text-lg">
+          <div className="flex items-center justify-center gap-3 mb-2 text-xs sm:text-sm">
+            <div className={`
+              px-3 py-1 rounded-full font-medium flex items-center gap-1
+              ${activePlayerRole === 'picker' ? 'bg-yellow-600' :
+                activePlayerRole === 'partner' ? 'bg-blue-600' : 'bg-red-700'}
+            `}>
+              <span>
                 {activePlayerRole === 'picker' ? '👑' :
                  activePlayerRole === 'partner' ? '🤝' : '⚔️'}
               </span>
-              <span className="font-bold text-xs sm:text-sm uppercase">
-                {activePlayerRole || 'defender'}
-              </span>
-              {calledAce && (
-                <span className="text-[10px] sm:text-xs opacity-80">
-                  • {SUIT_SYMBOLS[calledAce.suit]} called
-                  {calledAce.revealed && ' ✓'}
-                </span>
-              )}
+              <span className="uppercase">{activePlayerRole || 'defender'}</span>
             </div>
-          </div>
-        )}
-
-        {/* Game Info Bar */}
-        {phase === 'playing' && (
-          <div className="flex justify-center items-center gap-2 sm:gap-4 mb-1 text-xs sm:text-sm">
-            <span className="text-green-300/80">Trick {trickNumber}/6</span>
-            <TrumpReference />
+            <span className="text-green-300/70">Trick {trickNumber}/6</span>
+            {calledAce && (
+              <span className="text-gray-300">{SUIT_SYMBOLS[calledAce.suit]} called</span>
+            )}
           </div>
         )}
 
@@ -703,7 +662,7 @@ function App() {
 
         {/* Your Hand - Full width, larger cards */}
         {activePlayer && (
-          <div className="bg-gray-900/80 rounded-xl p-3 sm:p-4 border border-green-600/30">
+          <div className="bg-gray-900/70 rounded-xl p-3 sm:p-4 border border-green-600/20">
             {/* Suit following hint */}
             {phase === 'playing' && isHumanTurn && currentTrick.cards.length > 0 && (
               <SuitHint
@@ -714,23 +673,8 @@ function App() {
               />
             )}
 
-            {/* Hand label with role */}
-            <div className="text-center mb-2">
-              <span className={`text-sm sm:text-base font-medium ${
-                activePlayer.isPicker ? 'text-yellow-400' :
-                activePlayer.isPartner && calledAce?.revealed ? 'text-blue-400' :
-                activePlayerRole === 'defender' ? 'text-red-400' :
-                'text-green-300'
-              }`}>
-                Your Hand
-                {activePlayer.isPicker && <span className="ml-2">👑 Picker</span>}
-                {activePlayer.isPartner && calledAce?.revealed && <span className="ml-2">🤝 Partner</span>}
-                {activePlayerRole === 'defender' && calledAce?.revealed && <span className="ml-2">⚔️ Defender</span>}
-              </span>
-            </div>
-
-            {/* Cards - larger on mobile */}
-            <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+            {/* Cards - large and prominent */}
+            <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
               {activePlayer.hand.map(card => {
                 const isLegal = legalPlays.some(c => c.id === card.id);
                 const isSelected = selectedCards.some(c => c.id === card.id);
@@ -740,14 +684,15 @@ function App() {
                     onClick={() => handleCardClick(card)}
                     className={`
                       cursor-pointer transition-all duration-200
-                      ${phase === 'playing' && isHumanTurn && isLegal ? 'hover:-translate-y-2 hover:scale-105' : ''}
+                      ${phase === 'playing' && isHumanTurn && isLegal ? 'hover:-translate-y-3 hover:scale-105' : ''}
                       ${phase === 'playing' && isHumanTurn && !isLegal ? 'opacity-50 cursor-not-allowed' : ''}
-                      ${phase === 'burying' ? 'hover:-translate-y-2 hover:scale-105' : ''}
-                      ${isSelected ? '-translate-y-3 scale-105 ring-2 ring-green-400' : ''}
+                      ${phase === 'burying' ? 'hover:-translate-y-3 hover:scale-105' : ''}
+                      ${isSelected ? '-translate-y-4 scale-105 ring-2 ring-green-400' : ''}
                     `}
                   >
                     <Card
                       card={card}
+                      size="large"
                       highlight={phase === 'playing' && isHumanTurn && isLegal}
                       selected={isSelected}
                     />
