@@ -44,14 +44,15 @@ export function getLegalPlays(
   // Get cards that can follow suit
   const followCards = hand.filter(card => getEffectiveSuit(card) === leadSuit);
   
-  // Special rule: if called suit is led, partner MUST play the called ace
+  // Special rule: if called suit is led, whoever has the called ace MUST play it
+  // This forces the partner to reveal themselves
   if (calledAce && !calledAce.revealed && leadSuit !== 'trump') {
     const calledSuit = calledAce.suit;
-    if (leadCard.suit === calledSuit) {
+    if (leadCard.suit === calledSuit && !isTrump(leadCard)) {
       // Find the called ace in hand
       const calledAceCard = hand.find(c => c.suit === calledSuit && c.rank === 'A');
-      if (calledAceCard && isPartner) {
-        // Partner MUST play the called ace when called suit is led
+      if (calledAceCard) {
+        // Player with the called ace MUST play it when called suit is led
         return [calledAceCard];
       }
     }
