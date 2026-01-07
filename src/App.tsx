@@ -24,7 +24,7 @@ import {
   OnlineWaitingRoom,
   OnlineGame,
   InfoDrawer,
-  TableLayoutCompact,
+  TableView,
 } from './components';
 import { CoachingToast, HandSummaryModal } from './components/CoachingToast';
 import { Tutorial } from './tutorial';
@@ -539,139 +539,129 @@ function App() {
 
       {/* Main Content - Single Column Mobile-First */}
       <div className="p-2 sm:p-4 max-w-4xl mx-auto pb-16 lg:pb-4">
-        {/* Table Layout - Shows player positions, dealer, and turn order */}
-        <TableLayoutCompact
-          players={players}
-          currentPlayer={currentPlayer}
-          dealerPosition={dealerPosition}
-          activeHumanPosition={(activeHumanPosition ?? 0) as PlayerPosition}
-          pickerPosition={pickerPosition}
-          partnerRevealed={calledAce?.revealed || false}
-        />
-
-        {/* Role Banner - Bold and colorful like online version */}
+        {/* Role Banner - Shows your role prominently */}
         {pickerPosition !== null && phase === 'playing' && (
           <div className={`
-            rounded-lg p-2 sm:p-3 mb-3 text-center
+            rounded-lg p-2 mb-2 text-center
             ${activePlayerRole === 'picker' ? 'bg-yellow-600' :
               activePlayerRole === 'partner' ? 'bg-blue-600' : 'bg-red-700'}
           `}>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-lg sm:text-xl">
+              <span className="text-base sm:text-lg">
                 {activePlayerRole === 'picker' ? '👑' :
                  activePlayerRole === 'partner' ? '🤝' : '⚔️'}
               </span>
-              <span className="font-bold text-sm sm:text-base uppercase">
+              <span className="font-bold text-xs sm:text-sm uppercase">
                 {activePlayerRole || 'defender'}
               </span>
-              {pickerPosition !== (activeHumanPosition ?? 0) && (
-                <span className="text-xs sm:text-sm opacity-80">
-                  vs {getPlayerDisplayInfo(pickerPosition).name}
+              {calledAce && (
+                <span className="text-[10px] sm:text-xs opacity-80">
+                  • {SUIT_SYMBOLS[calledAce.suit]} called
+                  {calledAce.revealed && ' ✓'}
                 </span>
               )}
             </div>
-            {/* Called Ace info */}
-            {calledAce && (
-              <div className="text-xs sm:text-sm mt-1 opacity-90">
-                Called: <span className={calledAce.suit === 'hearts' ? 'text-red-300' : ''}>
-                  {SUIT_SYMBOLS[calledAce.suit]} {calledAce.suit}
-                </span>
-                {calledAce.revealed && <span className="ml-1 text-green-300">✓ revealed</span>}
-              </div>
-            )}
           </div>
         )}
 
         {/* Game Info Bar */}
         {phase === 'playing' && (
-          <div className="flex justify-center items-center gap-2 sm:gap-4 mb-2 text-xs sm:text-sm">
+          <div className="flex justify-center items-center gap-2 sm:gap-4 mb-1 text-xs sm:text-sm">
             <span className="text-green-300/80">Trick {trickNumber}/6</span>
             <TrumpReference />
           </div>
         )}
 
-        {/* Blind */}
-        {blind.length > 0 && (
-          <div className="text-center mb-3 sm:mb-4">
-            <p className="text-green-300 text-xs sm:text-sm mb-2">Blind</p>
-            <div className="flex justify-center gap-2">
-              {blind.map((_, i) => (
-                <div
-                  key={i}
-                  className="w-12 h-[4.5rem] sm:w-14 sm:h-20 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center border-2 border-blue-700"
-                >
-                  <span className="text-blue-400 text-lg sm:text-xl">🐑</span>
-                </div>
-              ))}
+        {/* Table View with players around it */}
+        <TableView
+          players={players}
+          currentPlayer={currentPlayer}
+          dealerPosition={dealerPosition}
+          yourPosition={(activeHumanPosition ?? 0) as PlayerPosition}
+          pickerPosition={pickerPosition}
+          partnerRevealed={calledAce?.revealed || false}
+        >
+          {/* Blind - shown in center of table */}
+          {blind.length > 0 && (
+            <div className="text-center">
+              <p className="text-green-300/70 text-[10px] mb-1">Blind</p>
+              <div className="flex justify-center gap-1">
+                {blind.map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-8 h-11 sm:w-10 sm:h-14 bg-gradient-to-br from-blue-800 to-blue-900 rounded border border-blue-600 flex items-center justify-center shadow-lg"
+                  >
+                    <span className="text-blue-400 text-xs sm:text-sm">🐑</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Current Trick Area */}
-        {phase === 'playing' && (
-          <div className="bg-green-800/50 rounded-xl p-3 sm:p-4 mb-3 border border-green-600/30">
-            {/* Running score - compact */}
-            <RunningScore
-              completedTricks={completedTricks}
-              currentTrick={currentTrick.cards}
-              pickerPosition={pickerPosition}
-              partnerPosition={actualPartnerPosition !== -1 ? actualPartnerPosition as PlayerPosition : null}
-            />
+          {/* Current Trick - shown in center of table */}
+          {phase === 'playing' && (
+            <div className="text-center">
+              {/* Running score - compact */}
+              <div className="mb-1">
+                <RunningScore
+                  completedTricks={completedTricks}
+                  currentTrick={currentTrick.cards}
+                  pickerPosition={pickerPosition}
+                  partnerPosition={actualPartnerPosition !== -1 ? actualPartnerPosition as PlayerPosition : null}
+                />
+              </div>
 
-            {/* Trick cards */}
-            <div className="flex justify-center gap-2 sm:gap-3 min-h-[90px] sm:min-h-[110px] items-center">
-              {currentTrick.cards.length === 0 ? (
-                <span className="text-gray-400 text-sm">Waiting for lead...</span>
-              ) : (
-                currentTrick.cards.map((play, i) => {
-                  const playerOnPickerTeam = isPickerTeam(play.playedBy);
-                  const isPickerCard = play.playedBy === pickerPosition;
-                  const isPartnerPlay = players[play.playedBy]?.isPartner && calledAce?.revealed;
-                  const isWinner = trickResult && play.playedBy === trickResult.winner;
-                  const showTeamColor = isPickerCard || isPartnerPlay || calledAce?.revealed;
+              {/* Trick cards */}
+              <div className="flex justify-center gap-1 sm:gap-2 min-h-[60px] sm:min-h-[70px] items-center">
+                {currentTrick.cards.length === 0 ? (
+                  <span className="text-green-600/50 text-xs">Waiting...</span>
+                ) : (
+                  currentTrick.cards.map((play, i) => {
+                    const isWinner = trickResult && play.playedBy === trickResult.winner;
+                    const isPickerCard = play.playedBy === pickerPosition;
+                    const isPartnerPlay = players[play.playedBy]?.isPartner && calledAce?.revealed;
 
-                  return (
-                    <div
-                      key={i}
-                      className={`
-                        text-center p-1 rounded-lg transition-all
-                        ${showTeamColor && playerOnPickerTeam ? 'bg-yellow-900/40 ring-2 ring-yellow-400/60' : ''}
-                        ${showTeamColor && !playerOnPickerTeam ? 'bg-red-900/40 ring-2 ring-red-400/60' : ''}
-                        ${isWinner ? 'ring-4 ring-green-400 bg-green-900/50 scale-110 z-10' : ''}
-                      `}
-                    >
-                      <Card card={play.card} />
-                      <div className={`text-[10px] sm:text-xs mt-1 truncate max-w-[60px] ${
-                        isWinner ? 'text-green-300 font-bold' :
-                        isPickerCard ? 'text-yellow-300' :
-                        isPartnerPlay ? 'text-blue-300' :
-                        'text-green-200'
-                      }`}>
-                        {play.playedBy === (activeHumanPosition ?? 0) ? 'You' : getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
+                    return (
+                      <div
+                        key={i}
+                        className={`
+                          text-center transition-all
+                          ${isWinner ? 'scale-110 z-10' : ''}
+                        `}
+                      >
+                        <Card card={play.card} small />
+                        <div className={`text-[8px] sm:text-[10px] mt-0.5 truncate max-w-[40px] ${
+                          isWinner ? 'text-green-300 font-bold' :
+                          isPickerCard ? 'text-yellow-300' :
+                          isPartnerPlay ? 'text-blue-300' :
+                          'text-white/70'
+                        }`}>
+                          {play.playedBy === (activeHumanPosition ?? 0) ? 'You' : getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Winner banner */}
+              {trickResult && (
+                <div className="mt-1">
+                  <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold">
+                    {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} +{trickResult.points}
+                  </span>
+                </div>
+              )}
+
+              {/* Points at stake */}
+              {currentTrick.cards.length > 0 && !trickResult && (
+                <div className="text-[10px] text-yellow-300/80 mt-1">
+                  {currentTrick.cards.reduce((sum, play) => sum + getCardPoints(play.card), 0)} pts
+                </div>
               )}
             </div>
-
-            {/* Winner banner */}
-            {trickResult && (
-              <div className="text-center mt-2">
-                <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                  {getPlayerDisplayInfo(trickResult.winner as PlayerPosition).name} wins +{trickResult.points}
-                </span>
-              </div>
-            )}
-
-            {/* Points at stake */}
-            {currentTrick.cards.length > 0 && !trickResult && (
-              <div className="text-center text-xs text-yellow-300 mt-2">
-                🎯 {currentTrick.cards.reduce((sum, play) => sum + getCardPoints(play.card), 0)} points at stake
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </TableView>
 
         {/* Hand summary */}
         {phase === 'scoring' && currentHandScore && (

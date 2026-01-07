@@ -22,3 +22,4 @@ export { OnlineWaitingRoom } from './OnlineWaitingRoom';
 export { OnlineGame } from './OnlineGame';
 export { InfoDrawer } from './InfoDrawer';
 export { TableLayout, TableLayoutCompact } from './TableLayout';
+export { TableView } from './TableView';
