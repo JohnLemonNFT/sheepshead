@@ -1,6 +1,7 @@
 // GameControls component - action buttons for game phases
 
 import { Suit, GamePhase } from '../game/types';
+import { PhaseHelp, FirstTimeHelp } from './PhaseHelp';
 
 interface GameControlsProps {
   phase: GamePhase;
@@ -44,7 +45,12 @@ export function GameControls({
   if (phase === 'picking' && isHumanTurn) {
     return (
       <div className="flex flex-col items-center gap-2 sm:gap-3">
-        <p className="text-sm sm:text-base md:text-lg">Pick up the blind?</p>
+        <FirstTimeHelp phase="picking" />
+        <div className="flex items-center gap-2">
+          <p className="text-sm sm:text-base md:text-lg">Pick up the blind?</p>
+          <PhaseHelp phase={phase} isHumanTurn={isHumanTurn} />
+        </div>
+        <p className="text-xs text-gray-400">Take 2 bonus cards and become the picker</p>
         <div className="flex gap-2 sm:gap-3 md:gap-4">
           <button
             onClick={onPick}
@@ -67,7 +73,12 @@ export function GameControls({
   if (phase === 'burying' && isHumanTurn) {
     return (
       <div className="flex flex-col items-center gap-2 sm:gap-3">
-        <p className="text-sm sm:text-base md:text-lg">Select 2 cards to bury ({selectedCount}/2)</p>
+        <FirstTimeHelp phase="burying" />
+        <div className="flex items-center gap-2">
+          <p className="text-sm sm:text-base md:text-lg">Select 2 cards to bury ({selectedCount}/2)</p>
+          <PhaseHelp phase={phase} isHumanTurn={isHumanTurn} />
+        </div>
+        <p className="text-xs text-gray-400">These points count for your team</p>
         {buryReason && (
           <p className="text-red-400 text-xs sm:text-sm">{buryReason}</p>
         )}
@@ -92,7 +103,12 @@ export function GameControls({
   if (phase === 'calling' && isHumanTurn) {
     return (
       <div className="flex flex-col items-center gap-2 sm:gap-3">
-        <p className="text-sm sm:text-base md:text-lg">Call an ace for your partner</p>
+        <FirstTimeHelp phase="calling" />
+        <div className="flex items-center gap-2">
+          <p className="text-sm sm:text-base md:text-lg">Call an ace for your partner</p>
+          <PhaseHelp phase={phase} isHumanTurn={isHumanTurn} />
+        </div>
+        <p className="text-xs text-gray-400">Whoever has this ace is your secret teammate</p>
         <div className="flex gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-center">
           {callableSuits.map(suit => (
             <button
@@ -111,7 +127,7 @@ export function GameControls({
           onClick={onGoAlone}
           className="bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-bold py-2.5 px-4 sm:px-6 rounded-lg text-xs sm:text-sm md:text-base transition-colors min-h-[44px]"
         >
-          Go Alone
+          Go Alone (No Partner)
         </button>
       </div>
     );
