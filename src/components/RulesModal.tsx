@@ -416,22 +416,24 @@ export function RulesModal() {
         </div>
 
         {/* Tabs - horizontal scroll on mobile */}
-        <div className="flex border-b border-gray-700 overflow-x-auto scrollbar-hide ml-3 sm:ml-4 gap-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 rounded-t
-                ${activeTab === tab.id
-                  ? 'text-green-400 border-b-2 border-green-400 bg-green-900/20'
-                  : 'text-gray-400 hover:text-white active:bg-gray-800'
-                }
-              `}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="border-b border-gray-700 px-3 sm:px-4">
+          <div className="flex overflow-x-auto scrollbar-hide gap-1 -mb-px">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 rounded-t
+                  ${activeTab === tab.id
+                    ? 'text-green-400 border-b-2 border-green-400 bg-green-900/20'
+                    : 'text-gray-400 hover:text-white active:bg-gray-800'
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Content */}
