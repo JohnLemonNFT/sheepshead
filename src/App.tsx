@@ -152,11 +152,17 @@ function App() {
     }
   }, [trickResult, clearTrickResult]);
 
+  // Track if we've shown summary for current hand to prevent re-showing
+  const [summaryShownForHand, setSummaryShownForHand] = useState(-1);
+
   // Show coaching summary at end of hand
   useEffect(() => {
-    if (phase === 'scoring' && gameSettings.showStrategyTips) {
+    // Only show once per hand - check if we already showed for this hand
+    if (phase === 'scoring' && gameSettings.showStrategyTips && summaryShownForHand !== handsPlayed) {
       const summary = coachingActions.getHandSummary();
       if (summary.goodPlays.length > 0 || summary.mistakes.length > 0) {
+        // Mark this hand as having shown the summary
+        setSummaryShownForHand(handsPlayed);
         // Delay slightly so hand result shows first
         const timer = setTimeout(() => {
           setShowCoachingSummary(true);
@@ -164,7 +170,7 @@ function App() {
         return () => clearTimeout(timer);
       }
     }
-  }, [phase, gameSettings.showStrategyTips, coachingActions]);
+  }, [phase, gameSettings.showStrategyTips, handsPlayed, summaryShownForHand]);
 
   // Clear coaching feedback when starting new hand
   useEffect(() => {
