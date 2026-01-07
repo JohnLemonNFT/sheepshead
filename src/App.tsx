@@ -29,7 +29,10 @@ import { Tutorial } from './tutorial';
 import { useOnlineGame } from './hooks/useOnlineGame';
 import { useCoaching } from './hooks/useCoaching';
 import { useSounds, playSoundEffect } from './hooks/useSounds';
-import { Card as CardType, PlayerPosition, Suit } from './game/types';
+import { Card as CardType, PlayerPosition, Suit, getCardPoints } from './game/types';
+import { RunningScore } from './components/RunningScore';
+import { TrumpReference } from './components/TrumpReference';
+import { SuitHint } from './components/SuitHint';
 import type { CoachingFeedback } from './game/ai/coaching';
 import { getPlayerDisplayInfo } from './game/ai/personalities';
 
@@ -623,14 +626,25 @@ function App() {
               {/* Current trick */}
               {phase === 'playing' && (
                 <div className="text-center mb-2 sm:mb-3 relative z-10">
-                  <p className="text-green-300/80 text-[10px] sm:text-xs mb-1">
-                    Trick {trickNumber}/6
-                    {calledAce && (
-                      <span className="ml-1">
-                        • {calledAce.suit} {calledAce.revealed ? '✓' : ''}
-                      </span>
-                    )}
-                  </p>
+                  {/* Running score display */}
+                  <RunningScore
+                    completedTricks={completedTricks}
+                    currentTrick={currentTrick.cards}
+                    pickerPosition={pickerPosition}
+                    partnerPosition={actualPartnerPosition !== -1 ? actualPartnerPosition as PlayerPosition : null}
+                  />
+
+                  <div className="flex justify-center items-center gap-2 mb-1">
+                    <p className="text-green-300/80 text-[10px] sm:text-xs">
+                      Trick {trickNumber}/6
+                      {calledAce && (
+                        <span className="ml-1">
+                          • {calledAce.suit} {calledAce.revealed ? '✓' : ''}
+                        </span>
+                      )}
+                    </p>
+                    <TrumpReference />
+                  </div>
 
                   {/* Winner banner when trick is complete */}
                   {trickResult && (
@@ -733,6 +747,15 @@ function App() {
             {/* Active human player's hand */}
             {activePlayer && (
               <div className="bg-black/30 rounded-lg p-1.5 sm:p-2 md:p-3">
+                {/* Suit following hint */}
+                {phase === 'playing' && isHumanTurn && currentTrick.cards.length > 0 && (
+                  <SuitHint
+                    trickCards={currentTrick.cards}
+                    legalPlays={legalPlays}
+                    hand={activePlayer.hand}
+                    isYourTurn={isHumanTurn}
+                  />
+                )}
                 <Hand
                   cards={activePlayer.hand}
                   onCardClick={handleCardClick}
