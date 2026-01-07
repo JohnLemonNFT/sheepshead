@@ -171,7 +171,10 @@ function VolumeSlider({ volume, muted, onVolumeChange, onMutedChange }: VolumeSl
 }
 
 export function SettingsModal() {
-  const { gameSettings, updateSettings, closeSettings } = useGameStore();
+  const { gameSettings, updateSettings, closeSettings, gameState } = useGameStore();
+
+  // Check if game is actively in progress (not in setup/home state)
+  const isGameActive = gameState.phase !== 'dealing' && gameState.players[0].hand.length > 0;
 
   const handleSpeedChange = (speed: GameSpeed) => {
     updateSettings({ gameSpeed: speed });
@@ -242,7 +245,13 @@ export function SettingsModal() {
 
           {/* Partner Variant */}
           <SettingsSection title="Partner Variant">
-            <div className="space-y-1.5 sm:space-y-2">
+            {isGameActive && (
+              <div className="text-xs text-amber-400 bg-amber-900/30 border border-amber-700/50 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
+                <span>🔒</span>
+                <span>Can only change between games</span>
+              </div>
+            )}
+            <div className={`space-y-1.5 sm:space-y-2 ${isGameActive ? 'opacity-50 pointer-events-none' : ''}`}>
               <OptionButton
                 value="calledAce"
                 current={gameSettings.partnerVariant}
@@ -269,7 +278,13 @@ export function SettingsModal() {
 
           {/* No-Pick Rule */}
           <SettingsSection title="When Nobody Picks">
-            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+            {isGameActive && (
+              <div className="text-xs text-amber-400 bg-amber-900/30 border border-amber-700/50 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
+                <span>🔒</span>
+                <span>Can only change between games</span>
+              </div>
+            )}
+            <div className={`grid grid-cols-2 gap-1.5 sm:gap-2 ${isGameActive ? 'opacity-50 pointer-events-none' : ''}`}>
               <OptionButton
                 value="leaster"
                 current={gameSettings.noPickRule}
