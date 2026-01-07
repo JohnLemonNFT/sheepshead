@@ -1,7 +1,7 @@
 # Sheepshead App
 
 ## Current Status
-Last worked on: [New player features - RunningScore, TrumpReference, SuitHint helpers]
+Last worked on: [Added settings toggle to disable beginner help, shortened AI name "Steady Eddie" to "Eddie"]
 
 ## Project Overview
 A web/mobile app for playing Sheepshead, the classic Wisconsin trick-taking card game. Our goal is to become the definitive resource for learning and playing Sheepshead online.

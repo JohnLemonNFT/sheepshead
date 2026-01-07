@@ -305,9 +305,9 @@ export const WILD_BILL: AIPersonality = {
 };
 
 export const STEADY_EDDIE: AIPersonality = {
-  name: 'Steady Eddie',
+  name: 'Eddie',
   avatar: '👨',
-  description: 'The fundamentals guy',
+  description: 'Steady & reliable',
   color: 'blue',
 
   pickThresholdModifier: 0, // Standard thresholds

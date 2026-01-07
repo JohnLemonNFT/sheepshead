@@ -77,6 +77,7 @@ export interface GameSettings {
   noPickRule: NoPickRule;
   showStrategyTips: boolean;
   showAIExplanations: boolean;
+  showBeginnerHelp: boolean;
   soundVolume: number; // 0-100
   soundMuted: boolean;
 }
@@ -87,6 +88,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   noPickRule: 'leaster',
   showStrategyTips: true,
   showAIExplanations: true,
+  showBeginnerHelp: true,
   soundVolume: 70,
   soundMuted: false,
 };

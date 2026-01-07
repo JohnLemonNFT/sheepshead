@@ -291,6 +291,12 @@ export function SettingsModal() {
           <SettingsSection title="Display Options">
             <div className="space-y-2 sm:space-y-3">
               <ToggleSwitch
+                enabled={gameSettings.showBeginnerHelp}
+                onChange={(enabled) => updateSettings({ showBeginnerHelp: enabled })}
+                label="Show Beginner Help"
+                description="Display tooltips and tips for new players"
+              />
+              <ToggleSwitch
                 enabled={gameSettings.showStrategyTips}
                 onChange={(enabled) => updateSettings({ showStrategyTips: enabled })}
                 label="Show Strategy Tips"

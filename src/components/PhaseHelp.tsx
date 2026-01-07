@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { GamePhase } from '../game/types';
+import { useGameStore } from '../store/gameStore';
 
 interface PhaseHelpProps {
   phase: GamePhase;
@@ -53,6 +54,7 @@ const PHASE_HELP: Record<string, { title: string; tips: string[] }> = {
 
 export function PhaseHelp({ phase, isHumanTurn, isPicker }: PhaseHelpProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const showBeginnerHelp = useGameStore(state => state.gameSettings.showBeginnerHelp);
 
   // Only show help during relevant phases when it's human's turn
   const helpKey = phase === 'picking' ? 'picking' :
@@ -60,7 +62,7 @@ export function PhaseHelp({ phase, isHumanTurn, isPicker }: PhaseHelpProps) {
                   phase === 'calling' ? 'calling' :
                   phase === 'playing' ? 'playing' : null;
 
-  if (!helpKey || !isHumanTurn) return null;
+  if (!helpKey || !isHumanTurn || !showBeginnerHelp) return null;
 
   const help = PHASE_HELP[helpKey];
   if (!help) return null;
@@ -121,6 +123,7 @@ export function PhaseHelp({ phase, isHumanTurn, isPicker }: PhaseHelpProps) {
 // Inline tip that shows automatically for first-time players
 export function FirstTimeHelp({ phase }: { phase: GamePhase }) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const showBeginnerHelp = useGameStore(state => state.gameSettings.showBeginnerHelp);
 
   const tips: Record<string, string> = {
     picking: '💡 First time? The "blind" is 2 bonus cards. Pick if you have 4+ trump!',
@@ -129,7 +132,7 @@ export function FirstTimeHelp({ phase }: { phase: GamePhase }) {
   };
 
   const tip = tips[phase];
-  if (!tip || dismissed.has(phase)) return null;
+  if (!tip || dismissed.has(phase) || !showBeginnerHelp) return null;
 
   return (
     <div className="bg-blue-900/40 border border-blue-500/30 rounded-lg px-3 py-2 mb-2 flex items-center justify-between gap-2">
