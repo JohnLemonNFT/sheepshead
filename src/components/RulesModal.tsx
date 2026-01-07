@@ -416,7 +416,7 @@ export function RulesModal() {
         </div>
 
         {/* Tabs - horizontal scroll on mobile */}
-        <div className="flex border-b border-gray-700 overflow-x-auto scrollbar-hide px-2 sm:px-3">
+        <div className="flex border-b border-gray-700 overflow-x-auto scrollbar-hide px-3 sm:px-4">
           {TABS.map((tab) => (
             <button
               key={tab.id}
