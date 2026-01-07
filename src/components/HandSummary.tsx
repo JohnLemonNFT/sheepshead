@@ -8,6 +8,8 @@ interface HandSummaryProps {
   partnerPosition: PlayerPosition | null;
   calledSuit: string | null;
   onClose: () => void;
+  playerNames?: string[]; // Names for positions 0-4
+  activeHumanPosition?: PlayerPosition; // Which position is "You"
 }
 
 export function HandSummary({
@@ -16,8 +18,14 @@ export function HandSummary({
   partnerPosition,
   calledSuit,
   onClose,
+  playerNames,
+  activeHumanPosition = 0,
 }: HandSummaryProps) {
-  const getPlayerName = (pos: number) => (pos === 0 ? 'You' : `P${pos + 1}`);
+  const getPlayerName = (pos: number) => {
+    if (pos === activeHumanPosition) return 'You';
+    if (playerNames && playerNames[pos]) return playerNames[pos];
+    return `P${pos + 1}`;
+  };
 
   // Leaster
   if (pickerPosition === null) {

@@ -690,6 +690,8 @@ function App() {
                   partnerPosition={partnerPosition !== -1 ? partnerPosition as PlayerPosition : null}
                   calledSuit={calledAce?.suit || null}
                   onClose={() => {}}
+                  playerNames={[0, 1, 2, 3, 4].map(pos => getPlayerDisplayInfo(pos as PlayerPosition).name)}
+                  activeHumanPosition={activeHumanPosition ?? 0}
                 />
               )}
             </div>

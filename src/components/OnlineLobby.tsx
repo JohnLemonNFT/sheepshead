@@ -131,12 +131,13 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
               <input
                 type="text"
                 value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                onChange={(e) => setPlayerName(e.target.value.slice(0, 12))}
                 placeholder="Enter your name"
-                maxLength={20}
+                maxLength={12}
                 autoFocus
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 text-sm sm:text-base min-h-[44px]"
               />
+              <p className="text-xs text-gray-500 mt-1 text-right">{playerName.length}/12</p>
             </div>
 
             {/* Create/Join Buttons */}
