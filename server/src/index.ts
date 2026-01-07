@@ -12,6 +12,7 @@ import {
   getRoom,
   getRoomInfo,
   getPlayerInfoList,
+  getPublicRooms,
   broadcast,
   sendTo,
   convertToAI,
@@ -93,14 +94,28 @@ wss.on('connection', (ws: WebSocket) => {
 function handleMessage(ws: WebSocket, message: ClientMessage): void {
   switch (message.type) {
     case 'create_room': {
-      const room = createRoom(ws, message.playerName);
+      const room = createRoom(
+        ws,
+        message.playerName,
+        message.isPublic ?? false,
+        message.settings
+      );
       const response: ServerMessage = {
         type: 'room_created',
         roomCode: room.code,
         position: 0,
       };
       sendTo(ws, response);
-      console.log(`Room ${room.code} created by ${message.playerName}`);
+      console.log(`Room ${room.code} created by ${message.playerName} (${room.isPublic ? 'public' : 'private'})`);
+      break;
+    }
+
+    case 'list_public_rooms': {
+      const publicRooms = getPublicRooms();
+      sendTo(ws, {
+        type: 'public_rooms_list',
+        rooms: publicRooms,
+      });
       break;
     }
 
@@ -119,6 +134,7 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
         roomCode: room.code,
         position,
         players: getPlayerInfoList(room),
+        settings: room.settings,
       };
       sendTo(ws, joinResponse);
 
@@ -152,6 +168,7 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
         position,
         players: getPlayerInfoList(room),
         gameStarted: room.gameStarted,
+        settings: room.settings,
       };
       sendTo(ws, rejoinResponse);
 

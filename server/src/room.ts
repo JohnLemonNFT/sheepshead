@@ -3,7 +3,7 @@
 // ============================================
 
 import type { WebSocket } from 'ws';
-import type { PlayerPosition, PlayerInfo, GameState } from './types.js';
+import type { PlayerPosition, PlayerInfo, GameState, RoomSettings, PublicRoomInfo } from './types.js';
 
 export interface RoomPlayer {
   ws: WebSocket;
@@ -19,6 +19,10 @@ export interface Room {
   hostPosition: PlayerPosition;
   gameState: GameState | null;
   gameStarted: boolean;
+  // Room visibility and settings
+  isPublic: boolean;
+  settings: RoomSettings;
+  createdAt: number;
   // Score tracking
   playerScores: number[];
   handsPlayed: number;
@@ -48,8 +52,19 @@ function generateRoomCode(): string {
   return code;
 }
 
+// Default room settings
+const DEFAULT_ROOM_SETTINGS: RoomSettings = {
+  partnerVariant: 'calledAce',
+  noPickRule: 'leaster',
+};
+
 // Create a new room
-export function createRoom(ws: WebSocket, playerName: string): Room {
+export function createRoom(
+  ws: WebSocket,
+  playerName: string,
+  isPublic: boolean = false,
+  settings: RoomSettings = DEFAULT_ROOM_SETTINGS
+): Room {
   const code = generateRoomCode();
   const position: PlayerPosition = 0;
 
@@ -60,6 +75,9 @@ export function createRoom(ws: WebSocket, playerName: string): Room {
     hostPosition: position,
     gameState: null,
     gameStarted: false,
+    isPublic,
+    settings,
+    createdAt: Date.now(),
     playerScores: [0, 0, 0, 0, 0],
     handsPlayed: 0,
     turnStartTime: null,
@@ -251,6 +269,31 @@ export function getPlayerInfoList(room: Room): PlayerInfo[] {
   }
 
   return players;
+}
+
+// Get list of public rooms that are waiting for players
+export function getPublicRooms(): PublicRoomInfo[] {
+  const publicRooms: PublicRoomInfo[] = [];
+
+  for (const room of rooms.values()) {
+    // Only show public rooms that haven't started and have space
+    if (room.isPublic && !room.gameStarted) {
+      const humanCount = room.players.size;
+      const hostPlayer = room.players.get(room.hostPosition);
+
+      publicRooms.push({
+        code: room.code,
+        hostName: hostPlayer?.name || 'Unknown',
+        playerCount: humanCount,
+        maxPlayers: 5,
+        settings: room.settings,
+        createdAt: room.createdAt,
+      });
+    }
+  }
+
+  // Sort by creation time (newest first)
+  return publicRooms.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 // Convert a player to AI (due to timeout)

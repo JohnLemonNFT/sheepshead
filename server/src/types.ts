@@ -91,11 +91,28 @@ export interface PlayerInfo {
   connected: boolean;
 }
 
+// Room settings for display
+export interface RoomSettings {
+  partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
+  noPickRule: 'leaster' | 'forcedPick';
+}
+
+// Public room info for lobby browser
+export interface PublicRoomInfo {
+  code: string;
+  hostName: string;
+  playerCount: number;
+  maxPlayers: number;
+  settings: RoomSettings;
+  createdAt: number;
+}
+
 // Client → Server messages
 export type ClientMessage =
-  | { type: 'create_room'; playerName: string }
+  | { type: 'create_room'; playerName: string; isPublic: boolean; settings: RoomSettings }
   | { type: 'join_room'; roomCode: string; playerName: string }
   | { type: 'rejoin_room'; roomCode: string; playerName: string; position: PlayerPosition }
+  | { type: 'list_public_rooms' }
   | { type: 'start_game' }
   | { type: 'action'; action: GameAction }
   | { type: 'leave_room' }
@@ -104,13 +121,14 @@ export type ClientMessage =
 // Server → Client messages
 export type ServerMessage =
   | { type: 'room_created'; roomCode: string; position: PlayerPosition }
-  | { type: 'room_joined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[] }
-  | { type: 'room_rejoined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; gameStarted: boolean }
+  | { type: 'room_joined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; settings: RoomSettings }
+  | { type: 'room_rejoined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; gameStarted: boolean; settings: RoomSettings }
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
   | { type: 'player_reconnected'; position: PlayerPosition; name: string }
   | { type: 'player_timeout'; position: PlayerPosition; playerName: string }
   | { type: 'room_update'; players: PlayerInfo[] }
+  | { type: 'public_rooms_list'; rooms: PublicRoomInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }
   | { type: 'error'; message: string };

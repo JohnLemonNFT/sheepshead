@@ -37,6 +37,22 @@ export interface CalledAce {
   revealed: boolean;
 }
 
+// Room settings for display
+export interface RoomSettings {
+  partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
+  noPickRule: 'leaster' | 'forcedPick';
+}
+
+// Public room info for lobby browser
+export interface PublicRoomInfo {
+  code: string;
+  hostName: string;
+  playerCount: number;
+  maxPlayers: number;
+  settings: RoomSettings;
+  createdAt: number;
+}
+
 export interface ClientGameState {
   phase: GamePhase;
   players: ClientPlayer[];
@@ -56,13 +72,14 @@ export interface ClientGameState {
 // Server message types
 type ServerMessage =
   | { type: 'room_created'; roomCode: string; position: PlayerPosition }
-  | { type: 'room_joined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[] }
-  | { type: 'room_rejoined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; gameStarted: boolean }
+  | { type: 'room_joined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; settings: RoomSettings }
+  | { type: 'room_rejoined'; roomCode: string; position: PlayerPosition; players: PlayerInfo[]; gameStarted: boolean; settings: RoomSettings }
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
   | { type: 'player_reconnected'; position: PlayerPosition; name: string }
   | { type: 'player_timeout'; position: PlayerPosition; playerName: string }
   | { type: 'room_update'; players: PlayerInfo[] }
+  | { type: 'public_rooms_list'; rooms: PublicRoomInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }
   | { type: 'error'; message: string };
@@ -105,17 +122,20 @@ export interface OnlineGameState {
   gameStarted: boolean;
   gameState: ClientGameState | null;
   error: string | null;
+  publicRooms: PublicRoomInfo[];
+  roomSettings: RoomSettings | null;
 }
 
 export interface OnlineGameActions {
   connect: (serverUrl: string) => void;
   disconnect: () => void;
-  createRoom: (playerName: string) => void;
+  createRoom: (playerName: string, isPublic?: boolean, settings?: RoomSettings) => void;
   joinRoom: (roomCode: string, playerName: string) => void;
   startGame: () => void;
   sendAction: (action: GameAction) => void;
   leaveRoom: () => void;
   clearError: () => void;
+  listPublicRooms: () => void;
 }
 
 export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
@@ -129,6 +149,8 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     gameStarted: false,
     gameState: null,
     error: null,
+    publicRooms: [],
+    roomSettings: null,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -179,6 +201,7 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
             myPosition: message.position,
             isHost: false,
             players: message.players,
+            roomSettings: message.settings,
           }));
           break;
 
@@ -192,6 +215,7 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
             isHost: message.position === 0,
             players: message.players,
             gameStarted: message.gameStarted,
+            roomSettings: message.settings,
           }));
           break;
 
@@ -238,6 +262,13 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
           setState(prev => ({
             ...prev,
             players: message.players,
+          }));
+          break;
+
+        case 'public_rooms_list':
+          setState(prev => ({
+            ...prev,
+            publicRooms: message.rooms,
           }));
           break;
 
@@ -335,6 +366,8 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
         gameStarted: false,
         gameState: null,
         error: reconnectAttempts.current >= maxReconnectAttempts ? 'Connection lost. Please reconnect.' : null,
+        publicRooms: [],
+        roomSettings: null,
       });
     };
 
@@ -361,14 +394,26 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     }
   }, []);
 
+  // Default room settings
+  const DEFAULT_SETTINGS: RoomSettings = {
+    partnerVariant: 'calledAce',
+    noPickRule: 'leaster',
+  };
+
   // Create a new room
-  const createRoom = useCallback((playerName: string) => {
+  const createRoom = useCallback((playerName: string, isPublic: boolean = false, settings: RoomSettings = DEFAULT_SETTINGS) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       setState(prev => ({ ...prev, error: 'Not connected to server' }));
       return;
     }
     pendingName.current = playerName;
-    wsRef.current.send(JSON.stringify({ type: 'create_room', playerName }));
+    wsRef.current.send(JSON.stringify({
+      type: 'create_room',
+      playerName,
+      isPublic,
+      settings,
+    }));
+    setState(prev => ({ ...prev, roomSettings: settings }));
   }, []);
 
   // Join an existing room
@@ -422,6 +467,14 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
+  // List public rooms
+  const listPublicRooms = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ type: 'list_public_rooms' }));
+  }, []);
+
   // Auto-reconnect on mount if we have a saved session
   useEffect(() => {
     const session = loadSession();
@@ -449,6 +502,7 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     sendAction,
     leaveRoom,
     clearError,
+    listPublicRooms,
   };
 
   return [state, actions];

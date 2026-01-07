@@ -1,7 +1,7 @@
 // Online Lobby - Create or join rooms for online play
 
 import { useState, useEffect } from 'react';
-import type { OnlineGameState, OnlineGameActions } from '../hooks/useOnlineGame';
+import type { OnlineGameState, OnlineGameActions, RoomSettings, PublicRoomInfo } from '../hooks/useOnlineGame';
 import { useGameStore, NoPickRule, PartnerVariant } from '../store/gameStore';
 
 // Use production server if deployed, otherwise localhost
@@ -25,10 +25,11 @@ interface OnlineLobbyProps {
 export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyProps) {
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
-  const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose');
+  const [mode, setMode] = useState<'choose' | 'create' | 'join' | 'browse'>('choose');
+  const [isPublic, setIsPublic] = useState(false);
   const { gameSettings, updateSettings } = useGameStore();
 
-  const { connected, connecting, error } = onlineState;
+  const { connected, connecting, error, publicRooms } = onlineState;
 
   // Auto-connect on mount
   useEffect(() => {
@@ -39,8 +40,27 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
 
   const handleCreateRoom = () => {
     if (playerName.trim() && connected) {
-      onlineActions.createRoom(playerName.trim());
+      const settings: RoomSettings = {
+        partnerVariant: gameSettings.partnerVariant,
+        noPickRule: gameSettings.noPickRule,
+      };
+      onlineActions.createRoom(playerName.trim(), isPublic, settings);
     }
+  };
+
+  const handleBrowseRooms = () => {
+    setMode('browse');
+    onlineActions.listPublicRooms();
+  };
+
+  const handleJoinPublicRoom = (room: PublicRoomInfo) => {
+    if (playerName.trim() && connected) {
+      onlineActions.joinRoom(room.code, playerName.trim());
+    }
+  };
+
+  const refreshPublicRooms = () => {
+    onlineActions.listPublicRooms();
   };
 
   const handleJoinRoom = () => {
@@ -129,11 +149,18 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                 Create Room
               </button>
               <button
+                onClick={handleBrowseRooms}
+                disabled={!playerName.trim()}
+                className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-xl transition-colors text-base sm:text-lg min-h-[48px]"
+              >
+                Browse Public Games
+              </button>
+              <button
                 onClick={() => setMode('join')}
                 disabled={!playerName.trim()}
                 className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-xl transition-colors text-base sm:text-lg min-h-[48px]"
               >
-                Join Room
+                Join with Code
               </button>
             </div>
 
@@ -152,6 +179,43 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
               <p className="text-gray-400 mb-4 text-center text-sm sm:text-base">
                 Creating room as <span className="text-white font-medium">{playerName}</span>
               </p>
+
+              {/* Public/Private Toggle */}
+              <div className="mb-4">
+                <label className="block text-xs sm:text-sm text-gray-400 mb-2">Room Visibility</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setIsPublic(false)}
+                    className={`
+                      px-3 py-3 rounded-lg text-sm font-medium transition-all min-h-[50px]
+                      ${!isPublic
+                        ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+                    `}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span>🔒</span>
+                      <span>Private</span>
+                    </div>
+                    <div className="text-[9px] sm:text-[10px] opacity-70 mt-1">Code required</div>
+                  </button>
+                  <button
+                    onClick={() => setIsPublic(true)}
+                    className={`
+                      px-3 py-3 rounded-lg text-sm font-medium transition-all min-h-[50px]
+                      ${isPublic
+                        ? 'bg-purple-600 text-white ring-2 ring-purple-400'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+                    `}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span>🌐</span>
+                      <span>Public</span>
+                    </div>
+                    <div className="text-[9px] sm:text-[10px] opacity-70 mt-1">Anyone can join</div>
+                  </button>
+                </div>
+              </div>
 
               {/* Game Rules */}
               <div className="space-y-4">
@@ -248,6 +312,67 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                 Join Room
               </button>
             </div>
+          </section>
+        )}
+
+        {/* Browse Public Rooms */}
+        {connected && mode === 'browse' && (
+          <section className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg sm:text-xl font-semibold text-purple-400">
+                Public Games
+              </h2>
+              <button
+                onClick={refreshPublicRooms}
+                className="text-sm text-gray-400 hover:text-white flex items-center gap-1 px-3 py-1 rounded hover:bg-gray-800"
+              >
+                <span>↻</span> Refresh
+              </button>
+            </div>
+
+            {publicRooms.length === 0 ? (
+              <div className="bg-gray-800 rounded-xl p-6 text-center">
+                <p className="text-gray-400 mb-2">No public games available</p>
+                <p className="text-gray-500 text-sm">Be the first to create one!</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {publicRooms.map((room) => (
+                  <div
+                    key={room.code}
+                    className="bg-gray-800 rounded-xl p-4 hover:bg-gray-750 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className="text-white font-medium">{room.hostName}'s Game</span>
+                        <span className="text-gray-500 text-xs ml-2">#{room.code}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-sm font-medium ${room.playerCount >= room.maxPlayers ? 'text-red-400' : 'text-green-400'}`}>
+                          {room.playerCount}/{room.maxPlayers} players
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
+                        {room.settings.partnerVariant === 'calledAce' ? 'Called Ace' :
+                         room.settings.partnerVariant === 'jackOfDiamonds' ? 'Jack ♦' : 'Solo'}
+                      </span>
+                      <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
+                        {room.settings.noPickRule === 'leaster' ? 'Leaster' : 'Forced Pick'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleJoinPublicRoom(room)}
+                      disabled={room.playerCount >= room.maxPlayers}
+                      className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm min-h-[40px]"
+                    >
+                      {room.playerCount >= room.maxPlayers ? 'Room Full' : 'Join Game'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
