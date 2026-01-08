@@ -1,6 +1,6 @@
 // Settings Modal - Game configuration options
 
-import { useGameStore, GameSpeed, PartnerVariant, NoPickRule } from '../store/gameStore';
+import { useGameStore, GameSpeed } from '../store/gameStore';
 import { setVolume, setMuted, playSound } from '../utils/sounds';
 
 interface SettingsSectionProps {
@@ -180,14 +180,6 @@ export function SettingsModal() {
     updateSettings({ gameSpeed: speed });
   };
 
-  const handlePartnerVariantChange = (variant: PartnerVariant) => {
-    updateSettings({ partnerVariant: variant });
-  };
-
-  const handleNoPickRuleChange = (rule: NoPickRule) => {
-    updateSettings({ noPickRule: rule });
-  };
-
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
@@ -243,88 +235,50 @@ export function SettingsModal() {
             </div>
           </SettingsSection>
 
-          {/* Partner Variant */}
-          <SettingsSection title="Partner Variant">
-            {isGameActive && (
-              <div className="text-xs text-amber-400 bg-amber-900/30 border border-amber-700/50 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
-                <span>🔒</span>
-                <span>Can only change between games</span>
+          {/* Game Rules Info */}
+          {isGameActive && (
+            <SettingsSection title="Game Rules">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">🎯</span>
+                  <div>
+                    <div className="font-medium text-white">Current Game Settings</div>
+                    <div className="text-xs text-slate-400">These were set when the game started</div>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Partner:</span>
+                    <span className="text-white font-medium">
+                      {gameSettings.partnerVariant === 'calledAce' ? 'Called Ace' :
+                       gameSettings.partnerVariant === 'jackOfDiamonds' ? 'Jack of Diamonds' : 'Solo'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">No-Pick Rule:</span>
+                    <span className="text-white font-medium">
+                      {gameSettings.noPickRule === 'leaster' ? 'Leaster' : 'Forced Pick'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Cracking:</span>
+                    <span className={`font-medium ${gameSettings.crackingEnabled ? 'text-green-400' : 'text-slate-500'}`}>
+                      {gameSettings.crackingEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Blitz:</span>
+                    <span className={`font-medium ${gameSettings.blitzEnabled ? 'text-green-400' : 'text-slate-500'}`}>
+                      {gameSettings.blitzEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-700 text-xs text-slate-500 text-center">
+                  Start a New Game to change rules
+                </div>
               </div>
-            )}
-            <div className={`space-y-1.5 sm:space-y-2 ${isGameActive ? 'opacity-50 pointer-events-none' : ''}`}>
-              <OptionButton
-                value="calledAce"
-                current={gameSettings.partnerVariant}
-                onChange={handlePartnerVariantChange}
-                label="Called Ace (Standard)"
-                description="Picker calls a fail ace suit - holder of that ace is their secret partner"
-              />
-              <OptionButton
-                value="jackOfDiamonds"
-                current={gameSettings.partnerVariant}
-                onChange={handlePartnerVariantChange}
-                label="Jack of Diamonds"
-                description="Player holding the Jack of Diamonds is automatically the partner"
-              />
-              <OptionButton
-                value="none"
-                current={gameSettings.partnerVariant}
-                onChange={handlePartnerVariantChange}
-                label="No Partner (Solo)"
-                description="Picker always plays alone against all defenders"
-              />
-            </div>
-          </SettingsSection>
-
-          {/* No-Pick Rule */}
-          <SettingsSection title="When Nobody Picks">
-            {isGameActive && (
-              <div className="text-xs text-amber-400 bg-amber-900/30 border border-amber-700/50 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
-                <span>🔒</span>
-                <span>Can only change between games</span>
-              </div>
-            )}
-            <div className={`grid grid-cols-2 gap-1.5 sm:gap-2 ${isGameActive ? 'opacity-50 pointer-events-none' : ''}`}>
-              <OptionButton
-                value="leaster"
-                current={gameSettings.noPickRule}
-                onChange={handleNoPickRuleChange}
-                label="Leaster"
-                description="Fewest points wins"
-              />
-              <OptionButton
-                value="forcedPick"
-                current={gameSettings.noPickRule}
-                onChange={handleNoPickRuleChange}
-                label="Forced Pick"
-                description="Dealer must pick"
-              />
-            </div>
-          </SettingsSection>
-
-          {/* Game Variants */}
-          <SettingsSection title="Game Variants">
-            {isGameActive && (
-              <div className="text-xs text-amber-400 bg-amber-900/30 border border-amber-700/50 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
-                <span>🔒</span>
-                <span>Can only change between games</span>
-              </div>
-            )}
-            <div className={`space-y-2 sm:space-y-3 ${isGameActive ? 'opacity-50 pointer-events-none' : ''}`}>
-              <ToggleSwitch
-                enabled={gameSettings.crackingEnabled}
-                onChange={(enabled) => updateSettings({ crackingEnabled: enabled })}
-                label="Cracking / Recracking"
-                description="Defenders can double the stakes after someone picks. Picker can re-double."
-              />
-              <ToggleSwitch
-                enabled={gameSettings.blitzEnabled}
-                onChange={(enabled) => updateSettings({ blitzEnabled: enabled })}
-                label="Blitz (Black Queens)"
-                description="Picker with both black queens can reveal them to double stakes before burying."
-              />
-            </div>
-          </SettingsSection>
+            </SettingsSection>
+          )}
 
           {/* Learning & Coaching */}
           <SettingsSection title="Learning & Coaching">

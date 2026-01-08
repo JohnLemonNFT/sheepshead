@@ -88,6 +88,7 @@ function App() {
     openRules,
     openStrategy,
     isHotseatMode,
+    updateSettings,
   } = useGameStore();
 
   // Online game state
@@ -561,14 +562,32 @@ function App() {
 
       {/* Header - minimal */}
       <div className="relative z-20 flex justify-between items-center p-2">
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className="bg-black/40 hover:bg-black/60 text-white p-2 rounded-lg transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="bg-black/40 hover:bg-black/60 text-white p-2 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          {/* Coaching toggle */}
+          <button
+            onClick={() => updateSettings({ coachingEnabled: !gameSettings.coachingEnabled })}
+            className={`
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all
+              ${gameSettings.coachingEnabled
+                ? 'bg-green-600/80 text-white'
+                : 'bg-black/40 text-gray-400 hover:bg-black/60'}
+            `}
+            title={gameSettings.coachingEnabled ? 'Coaching ON - Click to disable' : 'Coaching OFF - Click to enable'}
+          >
+            <span>🎓</span>
+            <span className="hidden sm:inline">{gameSettings.coachingEnabled ? 'Coach ON' : 'Coach OFF'}</span>
+          </button>
+        </div>
+
         {showMenu && (
           <div className="absolute left-2 top-12 bg-gray-900/95 rounded-lg shadow-xl py-1 z-50 w-40 border border-gray-700">
             <button onClick={() => { goToHome(); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm">Home</button>
