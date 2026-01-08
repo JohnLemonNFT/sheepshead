@@ -1,3 +1,5 @@
+'use client';
+
 // Settings Modal - Game configuration options
 
 import { useGameStore, GameSpeed } from '../store/gameStore';

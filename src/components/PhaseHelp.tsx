@@ -1,3 +1,5 @@
+'use client';
+
 // PhaseHelp - contextual help tooltips for each game phase
 
 import { useState } from 'react';

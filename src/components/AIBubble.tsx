@@ -1,3 +1,5 @@
+'use client';
+
 // AI Chat Bubble - Shows AI personality voice lines with style
 
 import { useState, useEffect } from 'react';

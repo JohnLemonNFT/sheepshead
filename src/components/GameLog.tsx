@@ -1,3 +1,5 @@
+'use client';
+
 // GameLog component - collapsible history panel
 
 import { useEffect, useRef, useState } from 'react';

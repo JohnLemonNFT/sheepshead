@@ -254,8 +254,11 @@ function createPlayers(): Player[] {
 // STORE IMPLEMENTATION
 // ============================================
 
-// Load settings from localStorage
+// Load settings from localStorage (client-side only)
 function loadSettings(): GameSettings {
+  if (typeof window === 'undefined') {
+    return DEFAULT_SETTINGS;
+  }
   try {
     const saved = localStorage.getItem('sheepshead-settings');
     if (saved) {
@@ -267,8 +270,11 @@ function loadSettings(): GameSettings {
   return DEFAULT_SETTINGS;
 }
 
-// Save settings to localStorage
+// Save settings to localStorage (client-side only)
 function saveSettings(settings: GameSettings) {
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     localStorage.setItem('sheepshead-settings', JSON.stringify(settings));
   } catch (e) {

@@ -1,3 +1,5 @@
+'use client';
+
 // Home Page - Premium Landing page with navigation to game and guides
 
 import { useGameStore } from '../store/gameStore';

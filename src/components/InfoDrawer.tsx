@@ -1,3 +1,5 @@
+'use client';
+
 // InfoDrawer - Side panel for scores, tips, and game log
 
 import { useState } from 'react';

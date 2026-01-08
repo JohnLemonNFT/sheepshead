@@ -1,3 +1,5 @@
+'use client';
+
 // Online Game - Game view for online multiplayer (matches single-player UI)
 
 import { useState, useCallback } from 'react';

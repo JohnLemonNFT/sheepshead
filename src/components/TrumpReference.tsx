@@ -1,3 +1,5 @@
+'use client';
+
 // Trump Reference - collapsible trump order reference
 
 import { useState } from 'react';

@@ -1,3 +1,5 @@
+'use client';
+
 // Game Setup - Premium Configure players before starting a game
 
 import { useGameStore, DEFAULT_PLAYER_TYPES, NoPickRule, PartnerVariant } from '../store/gameStore';

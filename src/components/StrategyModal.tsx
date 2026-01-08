@@ -1,3 +1,5 @@
+'use client';
+
 // Strategy Modal - Tips and strategy guide
 
 import { useState } from 'react';

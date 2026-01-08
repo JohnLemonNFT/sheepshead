@@ -1,3 +1,5 @@
+'use client';
+
 // PlayFeedback - brief contextual feedback on plays
 
 import { useEffect, useState } from 'react';

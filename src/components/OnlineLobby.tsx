@@ -1,3 +1,5 @@
+'use client';
+
 // Online Lobby - Create or join rooms for online play
 
 import { useState, useEffect } from 'react';
@@ -6,15 +8,17 @@ import { useGameStore, NoPickRule, PartnerVariant } from '../store/gameStore';
 
 // Use production server if deployed, otherwise localhost
 const getDefaultServerUrl = () => {
-  if (import.meta.env.VITE_WS_SERVER_URL) {
-    return import.meta.env.VITE_WS_SERVER_URL;
+  // Check Next.js public env var first
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_WS_SERVER_URL) {
+    return process.env.NEXT_PUBLIC_WS_SERVER_URL;
   }
+  // Production check
   if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
     return 'wss://sheepshead.onrender.com';
   }
   return 'ws://localhost:3001';
 };
-const SERVER_URL = getDefaultServerUrl();
+const SERVER_URL = typeof window !== 'undefined' ? getDefaultServerUrl() : 'ws://localhost:3001';
 
 interface OnlineLobbyProps {
   onlineState: OnlineGameState;

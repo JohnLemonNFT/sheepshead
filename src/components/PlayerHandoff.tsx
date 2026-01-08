@@ -1,3 +1,5 @@
+'use client';
+
 // Player Handoff - Pass the device screen for hotseat multiplayer
 
 import { useGameStore } from '../store/gameStore';

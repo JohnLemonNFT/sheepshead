@@ -1,3 +1,5 @@
+'use client';
+
 // ============================================
 // TUTORIAL COMPONENT - Interactive lesson viewer
 // ============================================

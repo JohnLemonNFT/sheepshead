@@ -1,3 +1,5 @@
+'use client';
+
 // Main App component - Sheepshead game
 
 import { useEffect, useCallback, useState } from 'react';
@@ -929,3 +931,4 @@ function App() {
 }
 
 export default App;
+export { App as SheepsheadGame };

@@ -1,3 +1,5 @@
+'use client';
+
 // Rules Modal - Complete rules reference
 
 import { useState } from 'react';
