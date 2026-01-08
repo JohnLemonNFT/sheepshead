@@ -19,8 +19,14 @@ function createMockRoom(): Room {
     hostPosition: 0,
     gameState: null,
     gameStarted: true,
+    isPublic: false,
+    settings: { partnerVariant: 'calledAce', noPickRule: 'leaster' },
+    createdAt: Date.now(),
     playerScores: [0, 0, 0, 0, 0],
     handsPlayed: 0,
+    turnStartTime: null,
+    turnTimer: null,
+    timedOutPlayers: new Set(),
   };
 }
 
@@ -38,6 +44,17 @@ function isTrump(card: Card): boolean {
 function getCardPoints(card: Card): number {
   const pts: Record<string, number> = { 'A': 11, '10': 10, 'K': 4, 'Q': 3, 'J': 2 };
   return pts[card.rank] || 0;
+}
+
+// Get the suit of a card for following purposes (trump is its own "suit")
+function getEffectiveSuit(card: Card): string {
+  if (isTrump(card)) return 'trump';
+  return card.suit;
+}
+
+// Check if a player has any cards of a given effective suit
+function hasEffectiveSuit(hand: Card[], suit: string): boolean {
+  return hand.some(c => getEffectiveSuit(c) === suit);
 }
 
 // Statistics tracking
@@ -60,6 +77,11 @@ const stats = {
   picksWithUnder2HighTrump: 0,
   passesWithOver4Trump: 0,
   passesWithOver3Queens: 0,
+
+  // Rule violations
+  followSuitViolations: 0,
+  calledAceViolations: 0,
+  illegalPlayAttempts: 0,
 
   // Issues found
   issues: [] as string[],
@@ -137,7 +159,53 @@ function analyzeHand(room: Room, handNum: number): void {
       }
     }
 
-    applyAction(state, position, action);
+    // Check for following suit violations during play
+    if (state.phase === 'playing' && action.type === 'playCard') {
+      const hand = player.hand;
+      const playedCard = action.card;
+      const currentTrick = state.currentTrick;
+
+      // If not leading, check following suit
+      if (currentTrick.cards.length > 0) {
+        const leadCard = currentTrick.cards[0].card;
+        const leadSuit = getEffectiveSuit(leadCard);
+        const playedSuit = getEffectiveSuit(playedCard);
+
+        // If player has the lead suit but played something else, it's a violation
+        if (playedSuit !== leadSuit && hasEffectiveSuit(hand, leadSuit)) {
+          stats.followSuitViolations++;
+          stats.issues.push(
+            `Hand ${handNum}: FOLLOW SUIT VIOLATION! P${position+1} played ${cardToString(playedCard)} ` +
+            `when ${leadSuit} was led and they have ${leadSuit} in hand!`
+          );
+        }
+      }
+
+      // Check called ace rule - must play ace if called suit is led
+      if (state.calledAce && !state.calledAce.revealed && currentTrick.cards.length > 0) {
+        const leadCard = currentTrick.cards[0].card;
+        const calledSuit = state.calledAce.suit;
+
+        // If called suit was led (non-trump)
+        if (leadCard.suit === calledSuit && !isTrump(leadCard)) {
+          // Check if player has the called ace
+          const hasCalledAce = hand.some(c => c.suit === calledSuit && c.rank === 'A');
+          if (hasCalledAce && !(playedCard.suit === calledSuit && playedCard.rank === 'A')) {
+            stats.calledAceViolations++;
+            stats.issues.push(
+              `Hand ${handNum}: CALLED ACE VIOLATION! P${position+1} has A${calledSuit[0].toUpperCase()} ` +
+              `but played ${cardToString(playedCard)} when ${calledSuit} was led!`
+            );
+          }
+        }
+      }
+    }
+
+    const success = applyAction(state, position, action);
+    if (!success) {
+      stats.illegalPlayAttempts++;
+      stats.issues.push(`Hand ${handNum}: ILLEGAL ACTION by P${position+1}: ${JSON.stringify(action)}`);
+    }
   }
 
   // Analyze results
@@ -192,13 +260,14 @@ function analyzeHand(room: Room, handNum: number): void {
 }
 
 // Main
-console.log('SHEEPSHEAD AI ANALYSIS - 50 Hands\n');
+const NUM_HANDS = 100;
+console.log(`SHEEPSHEAD AI ANALYSIS - ${NUM_HANDS} Hands\n`);
 console.log('Running simulations...\n');
 
 const room = createMockRoom();
 
-for (let hand = 1; hand <= 50; hand++) {
-  process.stdout.write(`Hand ${hand}... `);
+for (let hand = 1; hand <= NUM_HANDS; hand++) {
+  process.stdout.write(`Hand ${hand}/${NUM_HANDS}... `);
   analyzeHand(room, hand);
   console.log('done');
 }
@@ -225,6 +294,11 @@ console.log(`   Picked with <3 trump:     ${stats.picksWithUnder3Trump} ${stats.
 console.log(`   Picked with <2 high trump: ${stats.picksWithUnder2HighTrump} ${stats.picksWithUnder2HighTrump > 3 ? '⚠️' : '✅'}`);
 console.log(`   Passed with 5+ trump:     ${stats.passesWithOver4Trump} ${stats.passesWithOver4Trump > 0 ? '❌ BAD!' : '✅'}`);
 console.log(`   Passed with 3+ queens:    ${stats.passesWithOver3Queens} ${stats.passesWithOver3Queens > 0 ? '❌ BAD!' : '✅'}`);
+
+console.log(`\n⚖️ RULE VIOLATIONS:`);
+console.log(`   Follow suit violations:   ${stats.followSuitViolations} ${stats.followSuitViolations > 0 ? '❌ CRITICAL!' : '✅'}`);
+console.log(`   Called ace violations:    ${stats.calledAceViolations} ${stats.calledAceViolations > 0 ? '❌ CRITICAL!' : '✅'}`);
+console.log(`   Illegal play attempts:    ${stats.illegalPlayAttempts} ${stats.illegalPlayAttempts > 0 ? '❌ CRITICAL!' : '✅'}`);
 
 // Historical picker win rate is about 65-70%
 const expectedPickerWinRate = 0.65;
@@ -262,6 +336,19 @@ console.log('='.repeat(60));
 let grade = 'A';
 let feedback = [];
 
+// Critical rule violations = automatic F
+if (stats.followSuitViolations > 0) {
+  grade = 'F';
+  feedback.push(`AI violated follow suit rules ${stats.followSuitViolations} times - CRITICAL BUG!`);
+}
+if (stats.calledAceViolations > 0) {
+  grade = 'F';
+  feedback.push(`AI violated called ace rules ${stats.calledAceViolations} times - CRITICAL BUG!`);
+}
+if (stats.illegalPlayAttempts > 0) {
+  grade = 'F';
+  feedback.push(`AI made ${stats.illegalPlayAttempts} illegal play attempts - CRITICAL BUG!`);
+}
 if (stats.buriedQueens > 0 || stats.buriedJacks > 0) {
   grade = 'F';
   feedback.push('AI is burying Queens/Jacks - critical bug!');
