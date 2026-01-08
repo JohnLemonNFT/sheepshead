@@ -149,36 +149,36 @@ export function HomePage() {
         <nav className="glass rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8">
           <h2 className="text-sm font-medium text-emerald-300/80 mb-3 text-center">Learn More</h2>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-            <a
-              href="/rules"
+            <button
+              onClick={() => window.location.href = '/rules'}
               className="px-4 py-2 bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 rounded-lg text-amber-200 text-sm font-medium transition-colors"
             >
               📖 Full Rules
-            </a>
-            <a
-              href="/strategy"
+            </button>
+            <button
+              onClick={() => window.location.href = '/strategy'}
               className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/30 rounded-lg text-rose-200 text-sm font-medium transition-colors"
             >
               🧠 Strategy Guide
-            </a>
-            <a
-              href="/learn"
+            </button>
+            <button
+              onClick={() => window.location.href = '/learn'}
               className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 rounded-lg text-blue-200 text-sm font-medium transition-colors"
             >
               🎓 Beginner's Guide
-            </a>
-            <a
-              href="/glossary"
+            </button>
+            <button
+              onClick={() => window.location.href = '/glossary'}
               className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 rounded-lg text-purple-200 text-sm font-medium transition-colors"
             >
               📚 Glossary
-            </a>
-            <a
-              href="/faq"
+            </button>
+            <button
+              onClick={() => window.location.href = '/faq'}
               className="px-4 py-2 bg-gray-600/20 hover:bg-gray-600/40 border border-gray-500/30 rounded-lg text-gray-200 text-sm font-medium transition-colors"
             >
               ❓ FAQ
-            </a>
+            </button>
           </div>
         </nav>
 
