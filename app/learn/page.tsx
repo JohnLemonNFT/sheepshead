@@ -12,20 +12,21 @@ export const metadata: Metadata = {
   },
 };
 
-function LessonCard({ number, title, description, time }: { number: number; title: string; description: string; time: string }) {
+function LessonCard({ number, title, description, time, href }: { number: number; title: string; description: string; time: string; href: string }) {
   return (
-    <div className="bg-gray-800/50 rounded-lg p-4 hover:bg-gray-800 transition-colors">
+    <Link href={href} className="block bg-gray-800/50 rounded-lg p-4 hover:bg-gray-800 transition-colors group">
       <div className="flex items-start gap-4">
-        <span className="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0">
+        <span className="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0 group-hover:bg-green-500 transition-colors">
           {number}
         </span>
         <div className="flex-1">
-          <h3 className="font-bold text-white text-lg mb-1">{title}</h3>
+          <h3 className="font-bold text-white text-lg mb-1 group-hover:text-green-300 transition-colors">{title}</h3>
           <p className="text-gray-400 text-sm mb-2">{description}</p>
           <span className="text-xs text-green-400">{time}</span>
         </div>
+        <span className="text-gray-500 group-hover:text-green-400 transition-colors">→</span>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -168,36 +169,42 @@ export default function LearnPage() {
               title="Learn the Card Rankings"
               description="Understand which cards are trump and their order. This is the foundation!"
               time="5 minutes"
+              href="/rules/card-hierarchy"
             />
             <LessonCard
               number={2}
               title="Learn Point Values"
               description="Know how much each card is worth. This affects every decision you make."
               time="3 minutes"
+              href="/rules/point-values"
             />
             <LessonCard
               number={3}
               title="Understand the Game Flow"
               description="Deal, pick, bury, call, play - learn the sequence of a hand."
               time="5 minutes"
+              href="/rules"
             />
             <LessonCard
               number={4}
               title="Practice Following Suit"
               description="The rules for what you can play. This trips up beginners most often!"
               time="5 minutes"
+              href="/rules/following-suit"
             />
             <LessonCard
               number={5}
               title="Play Your First Game"
               description="Jump in with AI opponents. Don't worry about strategy yet - just get the feel."
               time="15 minutes"
+              href="/"
             />
             <LessonCard
               number={6}
               title="Learn Basic Strategy"
               description="Now that you know how to play, learn when to pick and how to play your role."
               time="10 minutes"
+              href="/strategy"
             />
           </div>
         </section>
