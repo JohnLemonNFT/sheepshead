@@ -64,6 +64,25 @@ export default function StrategyPage() {
           Tips and tactics to improve your game
         </p>
 
+        {/* Detailed Strategy Guides */}
+        <section className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-600/50 rounded-xl p-6 mb-8">
+          <h2 className="text-lg font-bold text-purple-400 mb-4">🧠 In-Depth Strategy Guides</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <Link href="/strategy/when-to-pick" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">When to Pick</h3>
+              <p className="text-xs text-gray-400">Complete picking decision guide</p>
+            </Link>
+            <Link href="/strategy/what-to-bury" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">What to Bury</h3>
+              <p className="text-xs text-gray-400">Maximize your bury points</p>
+            </Link>
+            <Link href="/faq" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">FAQ</h3>
+              <p className="text-xs text-gray-400">Common strategy questions</p>
+            </Link>
+          </div>
+        </section>
+
         {/* Quick Navigation */}
         <nav className="bg-black/30 rounded-lg p-4 mb-8">
           <h2 className="text-sm font-medium text-gray-400 mb-2">Jump to section:</h2>

@@ -173,6 +173,12 @@ export function HomePage() {
             >
               📚 Glossary
             </a>
+            <a
+              href="/faq"
+              className="px-4 py-2 bg-gray-600/20 hover:bg-gray-600/40 border border-gray-500/30 rounded-lg text-gray-200 text-sm font-medium transition-colors"
+            >
+              ❓ FAQ
+            </a>
           </div>
         </nav>
 

@@ -55,6 +55,37 @@ export default function RulesPage() {
           The complete guide to Wisconsin's favorite card game
         </p>
 
+        {/* Detailed Guides */}
+        <section className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-600/50 rounded-xl p-6 mb-8">
+          <h2 className="text-lg font-bold text-yellow-400 mb-4">📚 Detailed Rule Guides</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <Link href="/rules/card-hierarchy" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Card Hierarchy</h3>
+              <p className="text-xs text-gray-400">Complete trump order explained</p>
+            </Link>
+            <Link href="/rules/point-values" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Point Values</h3>
+              <p className="text-xs text-gray-400">How much each card is worth</p>
+            </Link>
+            <Link href="/rules/leaster" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Leaster</h3>
+              <p className="text-xs text-gray-400">When everyone passes</p>
+            </Link>
+            <Link href="/rules/blitz" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Blitz</h3>
+              <p className="text-xs text-gray-400">Both black Queens variant</p>
+            </Link>
+            <Link href="/rules/cracking" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Cracking</h3>
+              <p className="text-xs text-gray-400">Doubling the stakes</p>
+            </Link>
+            <Link href="/faq" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">FAQ</h3>
+              <p className="text-xs text-gray-400">Common questions answered</p>
+            </Link>
+          </div>
+        </section>
+
         {/* Quick Navigation */}
         <nav className="bg-black/30 rounded-lg p-4 mb-8">
           <h2 className="text-sm font-medium text-gray-400 mb-2">Jump to section:</h2>
