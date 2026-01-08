@@ -75,9 +75,14 @@ export interface GameSettings {
   gameSpeed: GameSpeed;
   partnerVariant: PartnerVariant;
   noPickRule: NoPickRule;
+  // Game Variants
+  crackingEnabled: boolean; // Allow doubling stakes after pick
+  blitzEnabled: boolean; // Black queens can blitz for double stakes
+  // Learning & Coaching
   showStrategyTips: boolean;
   showAIExplanations: boolean;
   showBeginnerHelp: boolean;
+  coachingEnabled: boolean; // Real-time coaching tips and warnings
   soundVolume: number; // 0-100
   soundMuted: boolean;
 }
@@ -86,9 +91,14 @@ export const DEFAULT_SETTINGS: GameSettings = {
   gameSpeed: 'normal',
   partnerVariant: 'calledAce',
   noPickRule: 'leaster',
+  // Game variants - off by default for standard play
+  crackingEnabled: false,
+  blitzEnabled: false,
+  // Learning
   showStrategyTips: true,
   showAIExplanations: true,
   showBeginnerHelp: true,
+  coachingEnabled: true, // On by default for new players
   soundVolume: 70,
   soundMuted: false,
 };
@@ -176,6 +186,10 @@ interface GameStore {
   newHand: () => void;
   pick: () => void;
   pass: () => void;
+  crack: () => void;
+  recrack: () => void;
+  noCrack: () => void;
+  blitz: () => void;
   bury: (cards: [Card, Card]) => void;
   callAce: (suit: Suit) => void;
   goAlone: () => void;
@@ -196,6 +210,8 @@ interface GameStore {
   getLegalPlaysForHuman: () => Card[];
   getCallableSuitsForPicker: () => Suit[];
   canBurySelection: () => { valid: boolean; reason?: string };
+  canBlitz: () => boolean;
+  getMultiplier: () => number;
 }
 
 // ============================================
@@ -392,7 +408,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   newHand: () => {
-    const { handsPlayed, playerTypes, isHotseatMode } = get();
+    const { handsPlayed, playerTypes, isHotseatMode, gameSettings } = get();
 
     // Create fresh deck and shuffle
     const deck = createDeck();
@@ -428,8 +444,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
+    // Build game config from settings
+    const gameConfig: GameConfig = {
+      ...DEFAULT_CONFIG,
+      partnerVariant: gameSettings.partnerVariant,
+      noPickVariant: gameSettings.noPickRule,
+      cracking: gameSettings.crackingEnabled,
+      blitzes: gameSettings.blitzEnabled,
+    };
+
     const gameState: GameState = {
-      config: DEFAULT_CONFIG,
+      config: gameConfig,
       phase: 'picking',
       players,
       deck: [],
@@ -471,7 +496,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   pick: () => {
-    const { gameState } = get();
+    const { gameState, gameSettings } = get();
     if (gameState.phase !== 'picking') return;
 
     const currentPlayer = gameState.currentPlayer;
@@ -488,23 +513,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Check if must go alone (has all fail aces after getting blind)
     const mustAlone = mustGoAlone(newHand);
 
+    // Initialize crack state if cracking is enabled
+    const crackState = gameSettings.crackingEnabled ? {
+      cracked: false,
+      crackedBy: null,
+      recracked: false,
+      blitzed: false,
+      multiplier: 1,
+    } : undefined;
+
+    // Determine next phase:
+    // 1. If must go alone -> playing
+    // 2. If cracking enabled -> cracking phase
+    // 3. Otherwise -> burying
+    let nextPhase: GamePhase = 'burying';
+    let nextPlayer = currentPlayer;
+
+    if (mustAlone) {
+      nextPhase = 'playing';
+      nextPlayer = ((gameState.dealerPosition + 1) % 5) as PlayerPosition;
+    } else if (gameSettings.crackingEnabled) {
+      // Cracking phase - start with player after picker
+      nextPhase = 'cracking';
+      nextPlayer = ((currentPlayer + 1) % 5) as PlayerPosition;
+    }
+
     set({
       gameState: {
         ...gameState,
-        phase: mustAlone ? 'playing' : 'burying',
+        phase: nextPhase,
         players: newPlayers,
         blind: [],
         pickerPosition: currentPlayer,
-        // If must go alone, skip to playing
-        currentPlayer: mustAlone
-          ? (((gameState.dealerPosition + 1) % 5) as PlayerPosition)
-          : currentPlayer,
+        currentPlayer: nextPlayer,
         currentTrick: mustAlone
           ? {
               cards: [],
               leadPlayer: ((gameState.dealerPosition + 1) % 5) as PlayerPosition,
             }
           : gameState.currentTrick,
+        crackState,
       },
       selectedCards: [],
     });
@@ -590,7 +638,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   bury: (cards: [Card, Card]) => {
-    const { gameState } = get();
+    const { gameState, gameSettings, playerTypes, isHotseatMode } = get();
     if (gameState.phase !== 'burying') return;
     if (gameState.pickerPosition === null) return;
 
@@ -601,19 +649,230 @@ export const useGameStore = create<GameStore>((set, get) => ({
       c => !cards.some(bc => bc.id === c.id)
     );
 
-    // Update picker's hand
-    const newPlayers = gameState.players.map((p, i) =>
-      i === gameState.pickerPosition ? { ...p, hand: sortHand(newHand) } : p
-    );
+    // Handle different partner variants
+    const partnerVariant = gameSettings.partnerVariant;
+    const hotseat = isHotseatMode();
+    const firstPlayer = ((gameState.dealerPosition + 1) % 5) as PlayerPosition;
+    const firstIsHuman = playerTypes[firstPlayer] === 'human';
+
+    if (partnerVariant === 'jackOfDiamonds') {
+      // Jack of Diamonds variant - partner is whoever has J♦
+      // Check if picker has J♦ (they go alone)
+      const pickerHasJackDiamonds = newHand.some(c => c.id === 'J-diamonds');
+
+      // Find partner (only if picker doesn't have J♦)
+      let partnerPosition = -1;
+      if (!pickerHasJackDiamonds) {
+        partnerPosition = gameState.players.findIndex(
+          p => p.hand.some(c => c.id === 'J-diamonds') && p.position !== gameState.pickerPosition
+        );
+      }
+
+      const newPlayers = gameState.players.map((p, i) => ({
+        ...p,
+        hand: i === gameState.pickerPosition ? sortHand(newHand) : p.hand,
+        isPartner: partnerPosition >= 0 && i === partnerPosition,
+      }));
+
+      set({
+        gameState: {
+          ...gameState,
+          phase: 'playing',
+          players: newPlayers,
+          buried: cards,
+          currentPlayer: firstPlayer,
+          currentTrick: { cards: [], leadPlayer: firstPlayer },
+        },
+        selectedCards: [],
+        ...(hotseat && firstIsHuman ? {
+          awaitingHandoff: true,
+          activeHumanPosition: null,
+        } : {}),
+      });
+    } else if (partnerVariant === 'none') {
+      // Solo variant - picker plays alone
+      const newPlayers = gameState.players.map((p, i) => ({
+        ...p,
+        hand: i === gameState.pickerPosition ? sortHand(newHand) : p.hand,
+        isPartner: false,
+      }));
+
+      set({
+        gameState: {
+          ...gameState,
+          phase: 'playing',
+          players: newPlayers,
+          buried: cards,
+          currentPlayer: firstPlayer,
+          currentTrick: { cards: [], leadPlayer: firstPlayer },
+        },
+        selectedCards: [],
+        ...(hotseat && firstIsHuman ? {
+          awaitingHandoff: true,
+          activeHumanPosition: null,
+        } : {}),
+      });
+    } else {
+      // Called Ace variant (default) - go to calling phase
+      const newPlayers = gameState.players.map((p, i) =>
+        i === gameState.pickerPosition ? { ...p, hand: sortHand(newHand) } : p
+      );
+
+      set({
+        gameState: {
+          ...gameState,
+          phase: 'calling',
+          players: newPlayers,
+          buried: cards,
+        },
+        selectedCards: [],
+      });
+    }
+  },
+
+  // ============================================
+  // CRACKING ACTIONS
+  // ============================================
+
+  crack: () => {
+    const { gameState, playerTypes, isHotseatMode } = get();
+    if (gameState.phase !== 'cracking') return;
+    if (!gameState.crackState) return;
+
+    const currentPlayer = gameState.currentPlayer;
+    const hotseat = isHotseatMode();
+
+    // Update crack state
+    const newCrackState = {
+      ...gameState.crackState,
+      cracked: true,
+      crackedBy: currentPlayer,
+      multiplier: gameState.crackState.multiplier * 2,
+    };
+
+    // Move to picker for potential recrack
+    const pickerPosition = gameState.pickerPosition!;
+    const pickerIsHuman = playerTypes[pickerPosition] === 'human';
 
     set({
       gameState: {
         ...gameState,
-        phase: 'calling',
-        players: newPlayers,
-        buried: cards,
+        crackState: newCrackState,
+        currentPlayer: pickerPosition,
+        // Stay in cracking phase for recrack decision
       },
-      selectedCards: [],
+      ...(hotseat && pickerIsHuman ? {
+        awaitingHandoff: true,
+        activeHumanPosition: null,
+      } : {}),
+    });
+  },
+
+  recrack: () => {
+    const { gameState } = get();
+    if (gameState.phase !== 'cracking') return;
+    if (!gameState.crackState || !gameState.crackState.cracked) return;
+
+    // Only the picker can recrack
+    if (gameState.currentPlayer !== gameState.pickerPosition) return;
+
+    // Picker re-cracks (doubles again) and moves to burying
+    const newCrackState = {
+      ...gameState.crackState,
+      recracked: true,
+      multiplier: gameState.crackState.multiplier * 2,
+    };
+
+    set({
+      gameState: {
+        ...gameState,
+        phase: 'burying',
+        crackState: newCrackState,
+        currentPlayer: gameState.pickerPosition!,
+      },
+    });
+  },
+
+  noCrack: () => {
+    const { gameState, playerTypes, isHotseatMode } = get();
+    if (gameState.phase !== 'cracking') return;
+    if (!gameState.crackState) return;
+
+    const currentPlayer = gameState.currentPlayer;
+    const pickerPosition = gameState.pickerPosition!;
+    const hotseat = isHotseatMode();
+
+    // If current player is picker (deciding on recrack), move to burying
+    if (currentPlayer === pickerPosition) {
+      set({
+        gameState: {
+          ...gameState,
+          phase: 'burying',
+          currentPlayer: pickerPosition,
+        },
+      });
+      return;
+    }
+
+    // Otherwise, check if all non-picker players have passed on cracking
+    const nextPlayer = ((currentPlayer + 1) % 5) as PlayerPosition;
+
+    // If we've gone around back to picker without anyone cracking, move to burying
+    if (nextPlayer === pickerPosition) {
+      set({
+        gameState: {
+          ...gameState,
+          phase: 'burying',
+          currentPlayer: pickerPosition,
+        },
+      });
+      return;
+    }
+
+    // Continue to next player for crack decision
+    const nextIsHuman = playerTypes[nextPlayer] === 'human';
+
+    set({
+      gameState: {
+        ...gameState,
+        currentPlayer: nextPlayer,
+      },
+      ...(hotseat && nextIsHuman ? {
+        awaitingHandoff: true,
+        activeHumanPosition: null,
+      } : {}),
+    });
+  },
+
+  blitz: () => {
+    const { gameState } = get();
+    if (gameState.phase !== 'burying') return;
+    if (!gameState.crackState) return;
+    if (gameState.pickerPosition === null) return;
+
+    const picker = gameState.players[gameState.pickerPosition];
+
+    // Verify picker has both black queens
+    const hasQueenClubs = picker.hand.some(c => c.id === 'Q-clubs');
+    const hasQueenSpades = picker.hand.some(c => c.id === 'Q-spades');
+
+    if (!hasQueenClubs || !hasQueenSpades) {
+      console.error('Cannot blitz without both black queens');
+      return;
+    }
+
+    // Double the stakes via blitz
+    const newCrackState = {
+      ...gameState.crackState,
+      blitzed: true,
+      multiplier: gameState.crackState.multiplier * 2,
+    };
+
+    set({
+      gameState: {
+        ...gameState,
+        crackState: newCrackState,
+      },
     });
   },
 
@@ -1002,6 +1261,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 'pass':
         get().pass();
         break;
+      case 'crack':
+        get().crack();
+        break;
+      case 'recrack':
+        get().recrack();
+        break;
+      case 'noCrack':
+        get().noCrack();
+        break;
+      case 'blitz':
+        get().blitz();
+        break;
       case 'bury':
         get().bury(decision.action.cards);
         break;
@@ -1067,5 +1338,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const picker = gameState.players[gameState.pickerPosition];
     return isValidBury(selectedCards, picker.hand, null, 2);
+  },
+
+  canBlitz: () => {
+    const { gameState, gameSettings } = get();
+
+    // Must be in burying phase with blitz enabled
+    if (gameState.phase !== 'burying') return false;
+    if (!gameSettings.blitzEnabled) return false;
+    if (gameState.pickerPosition === null) return false;
+
+    // Cracking must be enabled (crackState exists) for blitz to work
+    if (!gameState.crackState) return false;
+
+    // Must not have already blitzed
+    if (gameState.crackState.blitzed) return false;
+
+    // Picker must have both black queens
+    const picker = gameState.players[gameState.pickerPosition];
+    const hasQueenClubs = picker.hand.some(c => c.id === 'Q-clubs');
+    const hasQueenSpades = picker.hand.some(c => c.id === 'Q-spades');
+
+    return hasQueenClubs && hasQueenSpades;
+  },
+
+  getMultiplier: () => {
+    const { gameState } = get();
+    return gameState.crackState?.multiplier ?? 1;
   },
 }));

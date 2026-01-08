@@ -21,6 +21,16 @@ const PHASE_HELP: Record<string, { title: string; tips: string[] }> = {
       'PASS if your hand is weak - let someone else take the risk',
     ],
   },
+  cracking: {
+    title: 'Crack or Pass?',
+    tips: [
+      'Someone picked - now you can CRACK to double the stakes!',
+      'CRACK if you have a strong defensive hand (3+ trump, or 2+ fail aces)',
+      'Cracking means you think the picker will LOSE',
+      'If you crack, the picker can RE-CRACK to double again (4x stakes)',
+      'PASS if your hand is weak or you\'re unsure',
+    ],
+  },
   burying: {
     title: 'Burying Cards',
     tips: [
@@ -58,6 +68,7 @@ export function PhaseHelp({ phase, isHumanTurn, isPicker }: PhaseHelpProps) {
 
   // Only show help during relevant phases when it's human's turn
   const helpKey = phase === 'picking' ? 'picking' :
+                  phase === 'cracking' ? 'cracking' :
                   phase === 'burying' ? 'burying' :
                   phase === 'calling' ? 'calling' :
                   phase === 'playing' ? 'playing' : null;
@@ -127,6 +138,7 @@ export function FirstTimeHelp({ phase }: { phase: GamePhase }) {
 
   const tips: Record<string, string> = {
     picking: '💡 First time? The "blind" is 2 bonus cards. Pick if you have 4+ trump!',
+    cracking: '💡 CRACK to double stakes if you think the picker will lose! 3+ trump = crack!',
     burying: '💡 Bury high-point cards (A, 10) from fail suits to secure points',
     calling: '💡 Call an ace suit where you have the 10 - your secret partner has the ace!',
   };

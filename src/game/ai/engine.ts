@@ -62,8 +62,11 @@ export function getAIDecision(
     case 'picking':
       return getPickDecision(player, aiState, dealerPosition, passCount);
 
+    case 'cracking':
+      return getCrackDecision(state, player, aiState);
+
     case 'burying':
-      return getBuryDecision(player, aiState, calledAce?.suit || null);
+      return getBuryDecision(state, player, aiState, calledAce?.suit || null);
 
     case 'calling':
       return getCallDecision(player, aiState);
@@ -104,13 +107,84 @@ function getPickDecision(
 }
 
 /**
- * Get bury decision
+ * Get crack/recrack/noCrack decision
+ */
+function getCrackDecision(
+  state: GameState,
+  player: Player,
+  aiState: AIPlayerState
+): AIDecision {
+  const { crackState, pickerPosition } = state;
+  const isPicker = player.position === pickerPosition;
+
+  // If picker is deciding on recrack
+  if (isPicker && crackState?.cracked) {
+    // Recrack with strong hands (4+ trump with queens)
+    const trumpCount = player.hand.filter(c =>
+      c.rank === 'Q' || c.rank === 'J' || c.suit === 'diamonds'
+    ).length;
+    const hasQueens = player.hand.filter(c => c.rank === 'Q').length >= 2;
+
+    if (trumpCount >= 5 || (trumpCount >= 4 && hasQueens)) {
+      return {
+        action: { type: 'recrack' },
+        reason: 'Strong hand - re-doubling the stakes!',
+      };
+    }
+
+    return {
+      action: { type: 'noCrack' },
+      reason: 'Accepting the crack, not strong enough to re-crack',
+    };
+  }
+
+  // Defender deciding whether to crack
+  // Crack when you have a strong defensive hand
+  const trumpCount = player.hand.filter(c =>
+    c.rank === 'Q' || c.rank === 'J' || c.suit === 'diamonds'
+  ).length;
+  const failAces = player.hand.filter(c =>
+    c.rank === 'A' && c.suit !== 'diamonds'
+  ).length;
+
+  // Crack with 3+ trump or 2 trump + 2 fail aces
+  if (trumpCount >= 3 || (trumpCount >= 2 && failAces >= 2)) {
+    return {
+      action: { type: 'crack' },
+      reason: 'Strong defensive hand - doubling the stakes!',
+    };
+  }
+
+  return {
+    action: { type: 'noCrack' },
+    reason: 'Passing on crack - not strong enough',
+  };
+}
+
+/**
+ * Get bury decision (may include blitz)
  */
 function getBuryDecision(
+  state: GameState,
   player: Player,
   aiState: AIPlayerState,
   calledSuit: Suit | null
 ): AIDecision {
+  // Check if AI should blitz (has both black queens)
+  // Requires: crackState exists, blitzes enabled in config, not already blitzed
+  if (state.crackState && state.config.blitzes && !state.crackState.blitzed) {
+    const hasQueenClubs = player.hand.some(c => c.id === 'Q-clubs');
+    const hasQueenSpades = player.hand.some(c => c.id === 'Q-spades');
+
+    if (hasQueenClubs && hasQueenSpades) {
+      // AI always blitzes with black queens - it's usually a good hand!
+      return {
+        action: { type: 'blitz' },
+        reason: 'Blitzing with black queens! (The Ma\'s)',
+      };
+    }
+  }
+
   const decision = decideBury(player.hand, calledSuit);
 
   return {

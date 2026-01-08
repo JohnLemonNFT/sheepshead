@@ -137,6 +137,17 @@ export function updateKnowledgeAfterPlay(
         newKnowledge.partnerProbability.set(pos, pos === playedBy ? 1 : 0);
       }
     }
+    // BEST PRACTICE: Trumping in with A♦ is a classic "partner move" (80%+ probability)
+    else if (isTrump(card) && card.rank === 'A' && card.suit === 'diamonds') {
+      // Only if they trumped in (didn't follow suit)
+      if (trick.cards.length > 0) {
+        const leadCard = trick.cards[0].card;
+        if (!isTrump(leadCard)) {
+          // They trumped in with A♦ - strong partner signal!
+          newKnowledge.partnerProbability.set(playedBy, Math.min(1, currentProb + 0.5));
+        }
+      }
+    }
     // Schmearing to picker increases partner probability
     else if (trick.cards.length > 0 && getCardPoints(card) >= 10) {
       const trickLeader = trick.cards[0].playedBy;
@@ -213,18 +224,20 @@ export function evaluateHandStrength(hand: Card[]): {
   }
 
   // Overall strength evaluation
+  // BEST PRACTICE: Pick when you have 7+ trump and aces combined
+  const trumpAndAces = trumpCount + failAces;
   let strength: 'weak' | 'marginal' | 'good' | 'strong';
 
-  // Strong: 4+ trump with queens, or 5+ trump
-  if ((trumpCount >= 4 && hasHighTrump) || trumpCount >= 5) {
+  // Strong: 7+ trump+aces, or 5+ trump, or 4+ trump with queens
+  if (trumpAndAces >= 7 || trumpCount >= 5 || (trumpCount >= 4 && hasHighTrump)) {
     strength = 'strong';
   }
-  // Good: 3-4 trump with decent power
-  else if (trumpCount >= 3 && trumpPower >= 20) {
+  // Good: 6 trump+aces, or 3-4 trump with decent power
+  else if (trumpAndAces >= 6 || (trumpCount >= 3 && trumpPower >= 20)) {
     strength = 'good';
   }
-  // Marginal: 3 trump or 2 with high power
-  else if (trumpCount >= 3 || (trumpCount >= 2 && hasHighTrump)) {
+  // Marginal: 5 trump+aces, or 3 trump, or 2 with high power
+  else if (trumpAndAces >= 5 || trumpCount >= 3 || (trumpCount >= 2 && hasHighTrump)) {
     strength = 'marginal';
   }
   // Weak

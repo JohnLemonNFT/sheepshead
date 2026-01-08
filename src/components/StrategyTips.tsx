@@ -78,9 +78,16 @@ function getTips(
   }
 
   if (phase === 'burying') {
-    const pointCards = hand.filter(c => getCardPoints(c) >= 10 && !isTrump(c));
-    if (pointCards.length > 0) {
-      tips.push('Bury high-point fail cards (Aces, 10s) to secure points');
+    // Check for 10s to bury (good)
+    const tensInHand = hand.filter(c => c.rank === '10' && !isTrump(c));
+    if (tensInHand.length > 0) {
+      tips.push('Bury 10s - same points as aces but 10s can\'t win tricks');
+    }
+
+    // Warn about aces (should NOT bury)
+    const acesInHand = hand.filter(c => c.rank === 'A' && !isTrump(c));
+    if (acesInHand.length > 0) {
+      tips.push('Keep fail aces - they WIN tricks! Bury 10s/Kings instead');
     }
 
     // Check for potential voids
@@ -111,32 +118,61 @@ function getTips(
 
     if (isPicker) {
       if (isLeading) {
-        tips.push('As picker, lead trump to pull out defenders\' trump');
-        const highTrump = legalPlays.filter(c => isTrump(c) && getTrumpPower(c) < 4);
-        if (highTrump.length > 0) {
-          tips.push('Lead high trump (Queens) to establish control');
+        // Check for Q specifically
+        const queenOfClubs = legalPlays.find(c => c.rank === 'Q' && c.suit === 'clubs');
+        if (queenOfClubs) {
+          tips.push('Lead Q first! Guaranteed winner, bleeds trump from opponents');
+        } else {
+          tips.push('As picker, lead trump to pull out defenders\' trump');
+          const highTrump = legalPlays.filter(c => isTrump(c) && getTrumpPower(c) < 4);
+          if (highTrump.length > 0) {
+            tips.push('Lead high trump (Queens) to establish control');
+          }
         }
       } else {
         tips.push('Try to win tricks with points');
       }
     } else if (isPartner) {
       if (isLeading) {
-        tips.push('As partner, lead trump to help the picker');
+        const queenOfClubs = legalPlays.find(c => c.rank === 'Q' && c.suit === 'clubs');
+        if (queenOfClubs) {
+          tips.push('Lead Q! Shows you\'re partner and bleeds trump');
+        } else {
+          tips.push('As partner, lead trump to help the picker');
+        }
       } else {
         tips.push('Schmear points to picker when they\'re winning');
       }
     } else {
       // Defender
       if (isLeading) {
-        tips.push('As defender, lead short suits to create trumping opportunities');
-        tips.push('Avoid leading trump (helps the picker)');
+        // Check if we can lead called suit
+        if (calledAce && !calledAce.revealed) {
+          const calledSuitCards = legalPlays.filter(c => c.suit === calledAce.suit && !isTrump(c));
+          if (calledSuitCards.length > 0) {
+            tips.push(`Lead ${calledAce.suit} to smoke out the partner!`);
+          }
+        }
+        tips.push('Defenders: lead fail suits, not trump');
+        // Long thru / Short to tip
+        if (pickerPosition !== null) {
+          tips.push('Long thru, short to - lead based on picker position');
+        }
       } else {
-        // Check if picker is winning
+        // Following as defender
         if (currentTrick.cards.length > 0) {
           const highPointCards = legalPlays.filter(c => getCardPoints(c) >= 10);
           tips.push('Don\'t schmear points to the picker team');
           if (highPointCards.length > 0) {
             tips.push('Play low cards when opponents are winning');
+          }
+        }
+        // 2nd/3rd player low trump tip
+        const trickPosition = currentTrick.cards.length;
+        if (trickPosition <= 2) {
+          const trumpInHand = legalPlays.filter(c => isTrump(c));
+          if (trumpInHand.length > 1) {
+            tips.push('2nd/3rd player: play LOW trump, save high for later');
           }
         }
       }

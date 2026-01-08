@@ -27,6 +27,13 @@ export function decideWhetherToPick(
   // Position relative to dealer (0 = first to pick, 4 = dealer/last)
   const pickPosition = passCount;
   const isLastChance = pickPosition === 4; // Dealer forced pick in some variants
+  const isPosition2 = pickPosition === 1; // Most dangerous - 3 players can go over you!
+  const isOnEnd = pickPosition === 4; // Safest - you act last
+  const hasLead = pickPosition === 0; // First to pick, will lead first trick
+
+  // Check for the "Ma's" (black queens) - strongest trump combo
+  const hasBlackQueens = hand.some(c => c.rank === 'Q' && c.suit === 'clubs') &&
+                         hand.some(c => c.rank === 'Q' && c.suit === 'spades');
 
   // Adjust thresholds based on difficulty
   const thresholds = getPickThresholds(difficulty);
@@ -66,11 +73,30 @@ export function decideWhetherToPick(
     reasons.push(`void in ${eval_.voidSuits.length} suit${eval_.voidSuits.length > 1 ? 's' : ''}`);
   }
 
+  // Black queens bonus - the "Ma's" are the best trump combo
+  if (hasBlackQueens) {
+    score += 25;
+    reasons.push('have the Ma\'s (black queens)');
+  }
+
+  // POSITION 2 IS DANGEROUS - 3 players can go over you!
+  // Need a stronger hand here - be more conservative
+  if (isPosition2) {
+    score -= 15; // Penalty for dangerous position
+    reasons.push('risky position 2');
+  }
+
   // Position adjustment - later position can be more aggressive
   // Blind might have good cards, and if others passed, hand may be marginal
-  if (pickPosition >= 3) {
+  if (isOnEnd || pickPosition >= 3) {
     score += 10;
     reasons.push('late position');
+  }
+
+  // Having the lead is valuable with good trump
+  if (hasLead && eval_.hasHighTrump) {
+    score += 8;
+    reasons.push('can lead trump');
   }
 
   // Last chance adjustment - don't want leaster with bad hand

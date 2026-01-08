@@ -61,6 +61,10 @@ function App() {
     newHand,
     pick,
     pass,
+    crack,
+    recrack,
+    noCrack,
+    blitz,
     bury,
     callAce,
     goAlone,
@@ -77,6 +81,8 @@ function App() {
     getLegalPlaysForHuman,
     getCallableSuitsForPicker,
     canBurySelection,
+    canBlitz,
+    getMultiplier,
     openSettings,
     openRules,
     openStrategy,
@@ -91,6 +97,11 @@ function App() {
   const [pendingBury, setPendingBury] = useState<[CardType, CardType] | null>(null);
   const [pendingPlay, setPendingPlay] = useState<CardType | null>(null);
   const [showCoachingSummary, setShowCoachingSummary] = useState(false);
+
+  // Sync coaching enabled state with settings
+  useEffect(() => {
+    coachingActions.setEnabled(gameSettings.coachingEnabled);
+  }, [gameSettings.coachingEnabled, coachingActions]);
 
   // Sound system
   useSounds();
@@ -153,7 +164,7 @@ function App() {
   // Show coaching summary at end of hand
   useEffect(() => {
     // Only show once per hand - check if we already showed for this hand
-    if (phase === 'scoring' && gameSettings.showStrategyTips && summaryShownForHand !== handsPlayed) {
+    if (phase === 'scoring' && gameSettings.coachingEnabled && summaryShownForHand !== handsPlayed) {
       const summary = coachingActions.getHandSummary();
       if (summary.goodPlays.length > 0 || summary.mistakes.length > 0) {
         // Mark this hand as having shown the summary
@@ -233,7 +244,7 @@ function App() {
           setIsPlayingCard(true);
 
           // Record play for coaching feedback
-          if (gameSettings.showStrategyTips && activePlayer) {
+          if (gameSettings.coachingEnabled && activePlayer) {
             coachingActions.recordPlay(
               activePlayer.hand,
               card,
@@ -266,7 +277,7 @@ function App() {
       const cardsToBury = selectedCards as [CardType, CardType];
 
       // Check for coaching warnings before burying
-      if (gameSettings.showStrategyTips && activePlayer) {
+      if (gameSettings.coachingEnabled && activePlayer) {
         // Determine intended call suit (first fail suit we have cards in that we're not burying)
         const failSuits: Suit[] = ['clubs', 'spades', 'hearts'];
         const intendedCallSuit = failSuits.find(suit => {
@@ -640,6 +651,22 @@ function App() {
                 </div>
               )}
 
+              {/* Cracking phase */}
+              {phase === 'cracking' && (
+                <div className="text-center">
+                  <div className="bg-red-900/60 border border-red-500 rounded-lg px-4 py-3 inline-block">
+                    <p className="text-red-300 text-lg font-bold mb-1">
+                      {gameState.crackState?.cracked ? 'Cracked!' : 'Cracking Round'}
+                    </p>
+                    <p className="text-white/80 text-sm">
+                      {gameState.crackState?.cracked
+                        ? `Stakes doubled! (${getMultiplier()}x)`
+                        : 'Defenders can double the stakes'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Calling phase */}
               {phase === 'calling' && (
                 <div className="text-center">
@@ -705,6 +732,10 @@ function App() {
             isHumanTurn={isHumanTurn}
             onPick={handlePick}
             onPass={handlePass}
+            onCrack={crack}
+            onRecrack={recrack}
+            onNoCrack={noCrack}
+            onBlitz={blitz}
             onBury={handleBury}
             onCallAce={handleCallAce}
             onGoAlone={handleGoAlone}
@@ -714,6 +745,10 @@ function App() {
             canBury={buryValidation.valid && selectedCards.length === 2}
             buryReason={buryValidation.reason}
             selectedCount={selectedCards.length}
+            canBlitz={canBlitz()}
+            isCracked={gameState.crackState?.cracked ?? false}
+            isPicker={activePlayer?.isPicker ?? false}
+            multiplier={getMultiplier()}
           />
         </div>
 

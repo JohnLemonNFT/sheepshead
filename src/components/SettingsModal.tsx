@@ -264,7 +264,7 @@ export function SettingsModal() {
                 current={gameSettings.partnerVariant}
                 onChange={handlePartnerVariantChange}
                 label="Jack of Diamonds"
-                description="Player holding the Jack of Diamonds is automatically the partner (coming soon)"
+                description="Player holding the Jack of Diamonds is automatically the partner"
               />
               <OptionButton
                 value="none"
@@ -302,26 +302,56 @@ export function SettingsModal() {
             </div>
           </SettingsSection>
 
-          {/* Display Options */}
-          <SettingsSection title="Display Options">
+          {/* Game Variants */}
+          <SettingsSection title="Game Variants">
+            {isGameActive && (
+              <div className="text-xs text-amber-400 bg-amber-900/30 border border-amber-700/50 rounded-lg px-3 py-2 mb-2 flex items-center gap-2">
+                <span>🔒</span>
+                <span>Can only change between games</span>
+              </div>
+            )}
+            <div className={`space-y-2 sm:space-y-3 ${isGameActive ? 'opacity-50 pointer-events-none' : ''}`}>
+              <ToggleSwitch
+                enabled={gameSettings.crackingEnabled}
+                onChange={(enabled) => updateSettings({ crackingEnabled: enabled })}
+                label="Cracking / Recracking"
+                description="Defenders can double the stakes after someone picks. Picker can re-double."
+              />
+              <ToggleSwitch
+                enabled={gameSettings.blitzEnabled}
+                onChange={(enabled) => updateSettings({ blitzEnabled: enabled })}
+                label="Blitz (Black Queens)"
+                description="Picker with both black queens can reveal them to double stakes before burying."
+              />
+            </div>
+          </SettingsSection>
+
+          {/* Learning & Coaching */}
+          <SettingsSection title="Learning & Coaching">
             <div className="space-y-2 sm:space-y-3">
+              <ToggleSwitch
+                enabled={gameSettings.coachingEnabled}
+                onChange={(enabled) => updateSettings({ coachingEnabled: enabled })}
+                label="Coaching Mode"
+                description="Get real-time tips, warnings before mistakes, and end-of-hand feedback"
+              />
               <ToggleSwitch
                 enabled={gameSettings.showBeginnerHelp}
                 onChange={(enabled) => updateSettings({ showBeginnerHelp: enabled })}
                 label="Show Beginner Help"
-                description="Display tooltips and tips for new players"
+                description="Display tooltips and UI hints for new players"
               />
               <ToggleSwitch
                 enabled={gameSettings.showStrategyTips}
                 onChange={(enabled) => updateSettings({ showStrategyTips: enabled })}
                 label="Show Strategy Tips"
-                description="Display helpful hints during your turn"
+                description="Display strategy hints in the info drawer"
               />
               <ToggleSwitch
                 enabled={gameSettings.showAIExplanations}
                 onChange={(enabled) => updateSettings({ showAIExplanations: enabled })}
                 label="Show Opponent Explanations"
-                description="See why opponents made their decisions"
+                description="See why AI opponents made their decisions"
               />
             </div>
           </SettingsSection>

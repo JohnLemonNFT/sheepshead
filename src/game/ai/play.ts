@@ -67,7 +67,8 @@ export function decidePlay(
       calledAce,
       knowledge,
       difficulty,
-      myPosition
+      myPosition,
+      pickerPosition
     );
   } else {
     return decideFollowCard(
@@ -97,14 +98,26 @@ function decideLeadCard(
   calledAce: CalledAce | null,
   knowledge: AIGameKnowledge,
   difficulty: AIDifficulty,
-  position: PlayerPosition
+  position: PlayerPosition,
+  pickerPosition: PlayerPosition | null
 ): PlayDecision {
   const trumpInHand = legalPlays.filter(c => isTrump(c));
   const failInHand = legalPlays.filter(c => !isTrump(c));
 
   // PICKER STRATEGY: Lead trump to pull out defenders' trump
+  // BEST PRACTICE: Lead Q♣ first! It's guaranteed to win and bleeds 5 trump from opponents
   if (isPicker) {
     if (trumpInHand.length > 0) {
+      // PRIORITY 1: Lead Queen of Clubs if we have it - it ALWAYS wins
+      const queenOfClubs = trumpInHand.find(c => c.rank === 'Q' && c.suit === 'clubs');
+      if (queenOfClubs) {
+        return {
+          card: queenOfClubs,
+          reason: getPersonalityMessage(position, 'leadTrump') || 'Leading Q♣ - guaranteed winner, bleeds trump!',
+          confidence: 0.95,
+        };
+      }
+
       // Lead highest trump to establish control
       const sortedTrump = [...trumpInHand].sort(
         (a, b) => getTrumpPower(a) - getTrumpPower(b)
@@ -187,7 +200,9 @@ function decideLeadCard(
   }
 
   // DEFENDER STRATEGY: Lead fail suits, avoid helping picker
-  // Lead short suits to potentially trump later
+  // BEST PRACTICE: "Long thru, short to"
+  // - Lead LONG suit if picker is in the middle (they have to follow before last player)
+  // - Lead SHORT suit if picker is on the end (get void, trump their later leads)
   if (!isPicker && !isPartner) {
     // Lead called suit to smoke out partner (great defender play!)
     if (calledAce && !calledAce.revealed) {
@@ -206,7 +221,7 @@ function decideLeadCard(
 
     // Don't lead trump unless necessary (helps picker)
     if (failInHand.length > 0) {
-      // Find shortest suit
+      // Count cards per suit
       const suitCounts = new Map<Suit, number>();
       for (const suit of FAIL_SUITS) {
         const count = failInHand.filter(c => c.suit === suit).length;
@@ -216,19 +231,36 @@ function decideLeadCard(
       }
 
       if (suitCounts.size > 0) {
-        // Lead from shortest suit
-        const shortestSuit = [...suitCounts.entries()].sort(
-          (a, b) => a[1] - b[1]
-        )[0][0];
-        const suitCards = failInHand.filter(c => c.suit === shortestSuit);
+        // LONG THRU, SHORT TO strategy
+        // Check if picker is "on the end" (last to play after us)
+        const isPickerOnEnd = pickerPosition !== null &&
+          ((position + 4) % 5) === pickerPosition;
 
+        let targetSuit: Suit;
+        let reason: string;
+
+        if (isPickerOnEnd) {
+          // Picker plays last - lead SHORT suit to create void for trumping
+          targetSuit = [...suitCounts.entries()].sort(
+            (a, b) => a[1] - b[1]
+          )[0][0];
+          reason = `Short to - picker on end, creating void`;
+        } else {
+          // Picker in middle - lead LONG suit through them
+          targetSuit = [...suitCounts.entries()].sort(
+            (a, b) => b[1] - a[1]
+          )[0][0];
+          reason = `Long thru - forcing picker to follow`;
+        }
+
+        const suitCards = failInHand.filter(c => c.suit === targetSuit);
         // Lead highest of that suit (might win, or pull out ace)
         const sorted = [...suitCards].sort(
           (a, b) => getCardPoints(b) - getCardPoints(a)
         );
         return {
           card: sorted[0],
-          reason: getPersonalityMessage(position, 'leadFail') || `Leading ${shortestSuit}`,
+          reason: getPersonalityMessage(position, 'leadFail') || reason,
           confidence: 0.7,
         };
       }
@@ -300,17 +332,61 @@ function decideFollowCard(
     0
   );
 
+  // Position in trick (1 = second to play, 2 = third, etc.)
+  const trickPosition = trick.cards.length;
+  const isEarlyInTrick = trickPosition <= 2; // 2nd or 3rd player
+
   // Check if we can beat current winner
   const winningPlays = legalPlays.filter(c =>
     canBeatCard(c, currentWinnerCard, leadSuit)
   );
   const canWin = winningPlays.length > 0;
 
+  // BEST PRACTICE: 2nd/3rd player plays LOW trump on trump leads
+  // Save your high trump for later - let teammates behind you handle it
+  const trumpWasLed = leadSuit === 'trump';
+  const trumpInLegal = legalPlays.filter(c => isTrump(c));
+
+  if (trumpWasLed && isEarlyInTrick && trumpInLegal.length > 0 && !teammateWinning) {
+    // Sort by trump power descending (higher index = weaker trump)
+    const sortedByPower = [...trumpInLegal].sort(
+      (a, b) => getTrumpPower(b) - getTrumpPower(a)
+    );
+
+    // If trick isn't worth much yet, play lowest trump
+    if (trickPoints < 15) {
+      return {
+        card: sortedByPower[0], // Lowest trump
+        reason: getPersonalityMessage(myPosition, 'cantWin') || 'Playing low trump - saving high trump for later',
+        confidence: 0.75,
+      };
+    }
+  }
+
   // TEAMMATE IS WINNING - schmear or throw off
   if (teammateWinning) {
     // Schmear points to teammate
     const highPointCards = legalPlays.filter(c => getCardPoints(c) >= 10);
     if (highPointCards.length > 0 && trickPoints >= 10) {
+      // BEST PRACTICE: "Don't risk your only schmear"
+      // If we only have ONE high-point card, only schmear if trick is SURE
+      // (teammate winning with high trump, or we're last to play)
+      const isLastToPlay = trick.cards.length === 4;
+      const winnerCard = trick.cards.find(c => c.playedBy === currentWinner)!.card;
+      const winnerIsSafe = isTrump(winnerCard) && getTrumpPower(winnerCard) < 6; // Queen or high Jack
+
+      if (highPointCards.length === 1 && !isLastToPlay && !winnerIsSafe) {
+        // Only schmear - save it for a sure trick
+        const sorted = [...legalPlays].sort(
+          (a, b) => getCardPoints(a) - getCardPoints(b)
+        );
+        return {
+          card: sorted[0],
+          reason: getPersonalityMessage(myPosition, 'cantWin') || 'Saving only schmear for sure trick',
+          confidence: 0.75,
+        };
+      }
+
       // Sort by points, play highest
       const sorted = [...highPointCards].sort(
         (a, b) => getCardPoints(b) - getCardPoints(a)
@@ -366,6 +442,27 @@ function decideFollowCard(
   }
 
   // CAN'T WIN - minimize points given
+  // BEST PRACTICE: "Points before Power"
+  // If forced to lose points, sacrifice an ace/10 to save a queen for later
+  // A queen can win a bigger trick later; the ace is lost either way
+  const mustFollowTrump = leadSuit === 'trump' && trumpInLegal.length > 0;
+  if (mustFollowTrump && !canWin) {
+    const queens = trumpInLegal.filter(c => c.rank === 'Q');
+    const nonQueens = trumpInLegal.filter(c => c.rank !== 'Q');
+    // If we have both queens and non-queens (like A♦), sacrifice non-queen
+    if (queens.length > 0 && nonQueens.length > 0) {
+      // Play A♦ or other low trump instead of queen
+      const sortedNonQueens = [...nonQueens].sort(
+        (a, b) => getTrumpPower(b) - getTrumpPower(a)
+      );
+      return {
+        card: sortedNonQueens[0],
+        reason: getPersonalityMessage(myPosition, 'cantWin') || 'Points before power - saving queen for later',
+        confidence: 0.7,
+      };
+    }
+  }
+
   const sorted = [...legalPlays].sort(
     (a, b) => getCardPoints(a) - getCardPoints(b)
   );

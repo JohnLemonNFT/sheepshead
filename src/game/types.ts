@@ -61,9 +61,10 @@ export interface Player {
 }
 
 // Game phases
-export type GamePhase = 
+export type GamePhase =
   | 'dealing'
   | 'picking'      // Players decide to pick or pass
+  | 'cracking'     // Defenders can crack (double stakes)
   | 'burying'      // Picker buries 2 cards
   | 'calling'      // Picker calls partner (called ace variant)
   | 'playing'      // Trick-taking phase
@@ -110,6 +111,15 @@ export interface CalledAce {
   revealed: boolean; // Has the ace been played?
 }
 
+// Cracking/Blitz state
+export interface CrackState {
+  cracked: boolean; // Has anyone cracked?
+  crackedBy: PlayerPosition | null; // Who cracked
+  recracked: boolean; // Did picker recrack?
+  blitzed: boolean; // Did picker blitz with black queens?
+  multiplier: number; // Total stake multiplier (1, 2, 4, etc.)
+}
+
 // Complete game state
 export interface GameState {
   config: GameConfig;
@@ -128,6 +138,9 @@ export interface GameState {
   trickNumber: number; // 1-6 for 5-handed
   lastAction?: GameAction;
   seed?: string; // For provably fair shuffling
+  // Variant state
+  crackState?: CrackState; // Cracking/recracking state
+  isLeaster?: boolean; // True when playing leaster (no picker)
 }
 
 // Actions that can be taken
@@ -135,6 +148,10 @@ export type GameAction =
   | { type: 'deal' }
   | { type: 'pick' }
   | { type: 'pass' }
+  | { type: 'crack' }       // Defender doubles stakes
+  | { type: 'recrack' }     // Picker re-doubles
+  | { type: 'noCrack' }     // Pass on cracking
+  | { type: 'blitz' }       // Picker reveals black queens to double
   | { type: 'bury'; cards: [Card, Card] }
   | { type: 'callAce'; suit: Suit }
   | { type: 'goAlone' }

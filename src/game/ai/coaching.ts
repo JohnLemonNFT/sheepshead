@@ -143,6 +143,98 @@ export const COACHING_RULES: CoachingRule[] = [
     memorableRule: 'As defender, lead the called suit to find the partner.',
     consequence: 'Smart play! Leading the called suit forces the partner to reveal themselves.',
   },
+
+  // ========== NEW RULES FROM RESEARCH ==========
+
+  {
+    id: 'bury_fail_ace',
+    name: 'Burying a fail ace',
+    severity: 'critical',
+    phase: 'burying',
+    memorableRule: 'Never bury fail aces - they WIN tricks!',
+    consequence: 'Aces are control cards that win tricks. Bury 10s instead - same points but 10s can\'t beat aces.',
+  },
+
+  {
+    id: 'good_void_creation',
+    name: 'Created a void',
+    severity: 'positive',
+    phase: 'burying',
+    memorableRule: 'Creating voids lets you trump in on that suit later.',
+    consequence: 'Nice! You created a void. Now you can trump when that suit is led.',
+  },
+
+  {
+    id: 'picker_leads_queen_clubs',
+    name: 'Picker leads Q♣',
+    severity: 'positive',
+    phase: 'playing',
+    memorableRule: 'Lead the Queen of Clubs first - it\'s guaranteed to win!',
+    consequence: 'Perfect! The Q♣ is the highest trump. Leading it bleeds 5 trump from opponents.',
+  },
+
+  {
+    id: 'risky_only_schmear',
+    name: 'Risking only schmear',
+    severity: 'notable',
+    phase: 'playing',
+    memorableRule: 'Don\'t risk your only schmear - wait for a sure trick.',
+    consequence: 'That was your only high-point card. If this trick gets trumped, those points go to the other team.',
+  },
+
+  {
+    id: 'partner_trump_signal',
+    name: 'Partner trump signal',
+    severity: 'positive',
+    phase: 'playing',
+    memorableRule: 'Trumping in with the A♦ signals you\'re the partner.',
+    consequence: 'Classic partner move! Trumping with A♦ tells the picker you\'re on their team.',
+  },
+
+  {
+    id: 'points_before_power',
+    name: 'Points before power',
+    severity: 'positive',
+    phase: 'playing',
+    memorableRule: 'Sacrifice points to save power cards for later.',
+    consequence: 'Smart! You saved your queen by giving up points on a trick you couldn\'t win. That queen might win a bigger trick later.',
+  },
+
+  {
+    id: 'defender_leads_trump',
+    name: 'Defender leading trump',
+    severity: 'notable',
+    phase: 'playing',
+    memorableRule: 'Defenders should lead fail, not trump.',
+    consequence: 'Leading trump as a defender usually helps the picker bleed everyone\'s trump. Lead fail suits to create trumping opportunities.',
+  },
+
+  {
+    id: 'schneider_awareness',
+    name: 'Schneider threshold',
+    severity: 'notable',
+    phase: 'playing',
+    memorableRule: '31 points avoids schneider (double loss).',
+    consequence: 'Getting schneidered (under 31 points) counts as a double loss. Fight for those last few points!',
+  },
+
+  {
+    id: 'good_crossfire',
+    name: 'Crossfire positioning',
+    severity: 'positive',
+    phase: 'playing',
+    memorableRule: 'Defenders: keep the lead in front of the picker.',
+    consequence: 'Nice crossfire! When defenders play before and after the picker, the picker is forced into difficult decisions.',
+  },
+
+  {
+    id: 'saved_called_ace',
+    name: 'Saved called ace',
+    severity: 'positive',
+    phase: 'playing',
+    memorableRule: 'Save the called ace until that suit is led.',
+    consequence: 'Good patience! Holding the called ace keeps your identity hidden and the ace safe from being trumped.',
+  },
 ];
 
 // ============================================
@@ -241,6 +333,17 @@ export function analyzeBuryDecision(
     });
   }
 
+  // Check for burying ANY fail ace (almost always wrong - aces win tricks!)
+  const nonCalledBuriedAces = buriedAces.filter(c => c.suit !== intendedCallSuit);
+  if (nonCalledBuriedAces.length > 0) {
+    const aceList = nonCalledBuriedAces.map(c => `A${getSuitSymbol(c.suit)}`).join(' and ');
+    warnings.push({
+      rule: getRule('bury_fail_ace')!,
+      triggered: true,
+      context: `You're about to bury ${aceList}. Aces win tricks - bury 10s instead!`,
+    });
+  }
+
   // Check for good bury (10s and kings, no trump buried)
   const buriedPoints = cardsToBury.reduce((sum, c) => sum + getCardPoints(c), 0);
   const buriedHighPointCards = cardsToBury.filter(c => c.rank === '10' || c.rank === 'K');
@@ -250,6 +353,22 @@ export function analyzeBuryDecision(
       rule: getRule('good_bury')!,
       triggered: true,
     });
+  }
+
+  // Check for void creation (burying creates a void in a fail suit)
+  const failSuits: Suit[] = ['clubs', 'spades', 'hearts'];
+  for (const suit of failSuits) {
+    const suitCards = fullHand.filter(c => c.suit === suit && !isTrump(c));
+    const buriedSuitCards = cardsToBury.filter(c => c.suit === suit && !isTrump(c));
+    // If we had cards in this suit and burying removes them all, we created a void
+    if (suitCards.length > 0 && suitCards.length === buriedSuitCards.length && suit !== intendedCallSuit) {
+      feedback.push({
+        rule: getRule('good_void_creation')!,
+        triggered: true,
+        context: `You're now void in ${suit}.`,
+      });
+      break; // Only show once
+    }
   }
 
   return { feedback, warnings };
@@ -283,6 +402,14 @@ export function analyzePlayDecision(
 
   // ========== LEADING ANALYSIS ==========
   if (isLeading) {
+    // Picker leading Q♣ (best first lead!)
+    if (isPicker && cardToPlay.rank === 'Q' && cardToPlay.suit === 'clubs') {
+      feedback.push({
+        rule: getRule('picker_leads_queen_clubs')!,
+        triggered: true,
+      });
+    }
+
     // Defender leading called suit (great - smoke out the partner!)
     // This is one of the best defender plays and is objectively good.
     if (isDefender && calledAce && !calledAce.revealed) {

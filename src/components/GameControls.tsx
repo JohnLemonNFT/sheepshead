@@ -8,6 +8,10 @@ interface GameControlsProps {
   isHumanTurn: boolean;
   onPick: () => void;
   onPass: () => void;
+  onCrack?: () => void;
+  onRecrack?: () => void;
+  onNoCrack?: () => void;
+  onBlitz?: () => void;
   onBury: () => void;
   onCallAce: (suit: Suit) => void;
   onGoAlone: () => void;
@@ -17,6 +21,11 @@ interface GameControlsProps {
   canBury: boolean;
   buryReason?: string;
   selectedCount: number;
+  // Variant props
+  canBlitz?: boolean;
+  isCracked?: boolean;
+  isPicker?: boolean;
+  multiplier?: number;
 }
 
 const SUIT_DISPLAY: Record<Suit, { symbol: string; color: string }> = {
@@ -31,6 +40,10 @@ export function GameControls({
   isHumanTurn,
   onPick,
   onPass,
+  onCrack,
+  onRecrack,
+  onNoCrack,
+  onBlitz,
   onBury,
   onCallAce,
   onGoAlone,
@@ -40,7 +53,73 @@ export function GameControls({
   canBury,
   buryReason,
   selectedCount,
+  canBlitz,
+  isCracked,
+  isPicker,
+  multiplier = 1,
 }: GameControlsProps) {
+  // Multiplier display
+  const MultiplierBadge = () => multiplier > 1 ? (
+    <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+      {multiplier}x Stakes
+    </div>
+  ) : null;
+
+  // Cracking phase
+  if (phase === 'cracking' && isHumanTurn) {
+    // Picker deciding on recrack
+    if (isPicker && isCracked) {
+      return (
+        <div className="flex flex-col items-center gap-2 sm:gap-3">
+          <MultiplierBadge />
+          <div className="flex items-center gap-2">
+            <p className="text-sm sm:text-base md:text-lg text-yellow-300">You've been cracked!</p>
+          </div>
+          <p className="text-xs text-gray-400">Re-crack to double the stakes again?</p>
+          <div className="flex gap-2 sm:gap-3 md:gap-4">
+            <button
+              onClick={onRecrack}
+              className="bg-red-500 hover:bg-red-400 active:bg-red-600 text-white font-bold py-2.5 px-5 sm:py-3 sm:px-6 md:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors min-h-[44px]"
+            >
+              Re-crack! ({multiplier * 2}x)
+            </button>
+            <button
+              onClick={onNoCrack}
+              className="bg-gray-600 hover:bg-gray-500 active:bg-gray-700 text-white font-bold py-2.5 px-5 sm:py-3 sm:px-6 md:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors min-h-[44px]"
+            >
+              Accept Crack
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Defender deciding whether to crack
+    return (
+      <div className="flex flex-col items-center gap-2 sm:gap-3">
+        <MultiplierBadge />
+        <div className="flex items-center gap-2">
+          <p className="text-sm sm:text-base md:text-lg">Double the stakes?</p>
+        </div>
+        <p className="text-xs text-gray-400">Crack if you have a strong hand</p>
+        <div className="flex gap-2 sm:gap-3 md:gap-4">
+          <button
+            onClick={onCrack}
+            className="bg-red-500 hover:bg-red-400 active:bg-red-600 text-white font-bold py-2.5 px-5 sm:py-3 sm:px-6 md:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors min-h-[44px]"
+          >
+            Crack! (2x)
+          </button>
+          <button
+            onClick={onNoCrack}
+            className="bg-gray-600 hover:bg-gray-500 active:bg-gray-700 text-white font-bold py-2.5 px-5 sm:py-3 sm:px-6 md:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors min-h-[44px]"
+          >
+            Pass
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Picking phase
   if (phase === 'picking' && isHumanTurn) {
     return (
@@ -73,6 +152,7 @@ export function GameControls({
   if (phase === 'burying' && isHumanTurn) {
     return (
       <div className="flex flex-col items-center gap-2 sm:gap-3">
+        <MultiplierBadge />
         <FirstTimeHelp phase="burying" />
         <div className="flex items-center gap-2">
           <p className="text-sm sm:text-base md:text-lg">Select 2 cards to bury ({selectedCount}/2)</p>
@@ -82,19 +162,30 @@ export function GameControls({
         {buryReason && (
           <p className="text-red-400 text-xs sm:text-sm">{buryReason}</p>
         )}
-        <button
-          onClick={onBury}
-          disabled={!canBury}
-          className={`
-            font-bold py-2.5 px-5 sm:py-3 sm:px-6 md:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors min-h-[44px]
-            ${canBury
-              ? 'bg-green-500 hover:bg-green-400 active:bg-green-600 text-black'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-            }
-          `}
-        >
-          Bury Selected
-        </button>
+        <div className="flex gap-2 sm:gap-3 md:gap-4 flex-wrap justify-center">
+          <button
+            onClick={onBury}
+            disabled={!canBury}
+            className={`
+              font-bold py-2.5 px-5 sm:py-3 sm:px-6 md:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors min-h-[44px]
+              ${canBury
+                ? 'bg-green-500 hover:bg-green-400 active:bg-green-600 text-black'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              }
+            `}
+          >
+            Bury Selected
+          </button>
+          {canBlitz && (
+            <button
+              onClick={onBlitz}
+              className="bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-bold py-2.5 px-4 sm:px-6 rounded-lg text-xs sm:text-sm md:text-base transition-colors min-h-[44px] animate-pulse"
+              title="You have both black queens! Double the stakes!"
+            >
+              Blitz! (2x) Q♣Q♠
+            </button>
+          )}
+        </div>
       </div>
     );
   }

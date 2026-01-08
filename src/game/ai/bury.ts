@@ -95,16 +95,20 @@ function calculateBuryScore(
     return score;
   }
 
-  // Points are great to bury (they count for picker team)
-  score += getCardPoints(card) * 3;
-
-  // Aces are best (11 points)
+  // BEST PRACTICE: NEVER bury fail aces!
+  // Aces are CONTROL cards - they WIN tricks. 11 points that can win is better
+  // than 11 points buried. Bury points that CAN'T win (10s, Kings).
   if (card.rank === 'A') {
-    score += 15;
+    score -= 50; // Strong penalty - aces are control cards!
   }
 
-  // 10s are great too (10 points)
+  // 10s are GREAT to bury (10 points but don't beat aces)
   if (card.rank === '10') {
+    score += 30; // 10s are the best cards to bury
+  }
+
+  // Kings are decent to bury (4 points, rarely win)
+  if (card.rank === 'K') {
     score += 12;
   }
 
@@ -122,13 +126,9 @@ function calculateBuryScore(
   }
 
   // Low cards without points are less valuable to bury
+  // (burying 0 points doesn't help, but creating void might)
   if (card.rank === '7' || card.rank === '8' || card.rank === '9') {
     score -= 5;
-  }
-
-  // Kings are decent to bury (4 points)
-  if (card.rank === 'K') {
-    score += 8;
   }
 
   return score;

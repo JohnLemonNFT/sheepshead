@@ -69,10 +69,14 @@ export function calculateHandScore(state: GameState): HandScore {
     isSchwarz = pickerTricks === 0;
   }
 
-  // Calculate multiplier
+  // Calculate multiplier (from schneider/schwarz)
   let multiplier = 1;
   if (isSchneider) multiplier = 2;
   if (isSchwarz) multiplier = 3;
+
+  // Apply crack/blitz multiplier if present
+  const crackMultiplier = state.crackState?.multiplier ?? 1;
+  multiplier = multiplier * crackMultiplier;
 
   // Calculate individual scores
   const playerScores = calculatePlayerScores(

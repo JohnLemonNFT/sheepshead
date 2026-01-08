@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 
-type RulesTab = 'hierarchy' | 'points' | 'gameplay' | 'following' | 'scoring';
+type RulesTab = 'hierarchy' | 'points' | 'gameplay' | 'following' | 'scoring' | 'variants';
 
 const TABS: { id: RulesTab; label: string }[] = [
   { id: 'hierarchy', label: 'Card Hierarchy' },
@@ -11,6 +11,7 @@ const TABS: { id: RulesTab; label: string }[] = [
   { id: 'gameplay', label: 'Game Flow' },
   { id: 'following', label: 'Following Suit' },
   { id: 'scoring', label: 'Scoring' },
+  { id: 'variants', label: 'Variants' },
 ];
 
 // Card display helper - smaller on mobile
@@ -387,6 +388,102 @@ function ScoringTab() {
   );
 }
 
+function VariantsTab() {
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <p className="text-gray-300 text-sm sm:text-base">
+        These optional rules add excitement to the game. Enable them in Settings before starting a new game.
+      </p>
+
+      {/* Cracking */}
+      <div className="bg-red-900/30 border border-red-600 rounded-lg p-3 sm:p-4">
+        <h3 className="text-lg sm:text-xl font-bold text-red-400 mb-2 sm:mb-3 flex items-center gap-2">
+          Cracking (Doubling)
+        </h3>
+        <p className="text-gray-300 text-sm sm:text-base mb-3">
+          After someone picks, defenders can <strong>"crack"</strong> to double the stakes!
+        </p>
+        <div className="space-y-2 text-sm text-gray-300">
+          <div className="flex items-start gap-2">
+            <span className="text-red-400 font-bold">1.</span>
+            <span>Any defender can crack after the picker is determined</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-red-400 font-bold">2.</span>
+            <span>Cracking doubles all point values (2x multiplier)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-red-400 font-bold">3.</span>
+            <span>The picker can then <strong>re-crack</strong> to double again (4x)!</span>
+          </div>
+        </div>
+        <div className="mt-3 bg-red-950/50 rounded p-2 text-xs text-red-200">
+          <strong>When to crack:</strong> Crack when you have 3+ trump or 2 trump with 2 fail aces - you think the picker will lose!
+        </div>
+      </div>
+
+      {/* Blitz */}
+      <div className="bg-purple-900/30 border border-purple-600 rounded-lg p-3 sm:p-4">
+        <h3 className="text-lg sm:text-xl font-bold text-purple-400 mb-2 sm:mb-3 flex items-center gap-2">
+          Blitz (The Ma's)
+        </h3>
+        <p className="text-gray-300 text-sm sm:text-base mb-3">
+          If the picker has <strong>both black Queens</strong> (Q&#x2663; and Q&#x2660;), they can declare a <strong>Blitz</strong>!
+        </p>
+        <div className="flex gap-2 mb-3 justify-center">
+          <span className="inline-flex items-center justify-center w-10 h-14 bg-white rounded shadow text-lg font-bold text-gray-800">
+            Q&#x2663;
+          </span>
+          <span className="inline-flex items-center justify-center w-10 h-14 bg-white rounded shadow text-lg font-bold text-gray-800">
+            Q&#x2660;
+          </span>
+          <span className="text-purple-400 font-bold self-center">= Blitz!</span>
+        </div>
+        <ul className="text-sm text-gray-300 space-y-1">
+          <li>&#x2022; Blitz doubles the stakes (like a crack)</li>
+          <li>&#x2022; Requires cracking to be enabled</li>
+          <li>&#x2022; Called "The Ma's" because these queens are the two highest cards</li>
+        </ul>
+      </div>
+
+      {/* Jack of Diamonds Partner */}
+      <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-3 sm:p-4">
+        <h3 className="text-lg sm:text-xl font-bold text-yellow-400 mb-2 sm:mb-3 flex items-center gap-2">
+          Jack of Diamonds Partner
+        </h3>
+        <p className="text-gray-300 text-sm sm:text-base mb-3">
+          Instead of calling an ace, the partner is automatically whoever has the <strong>Jack of Diamonds</strong> (J&#x2666;).
+        </p>
+        <div className="flex gap-2 mb-3 justify-center">
+          <span className="inline-flex items-center justify-center w-10 h-14 bg-white rounded shadow text-lg font-bold text-red-600 ring-2 ring-yellow-400">
+            J&#x2666;
+          </span>
+          <span className="text-yellow-400 font-bold self-center">= Partner</span>
+        </div>
+        <ul className="text-sm text-gray-300 space-y-1">
+          <li>&#x2022; Simpler than calling - no decision needed</li>
+          <li>&#x2022; Partner is revealed when J&#x2666; is played</li>
+          <li>&#x2022; If picker has J&#x2666;, they go alone automatically</li>
+          <li>&#x2022; Popular in casual games and with beginners</li>
+        </ul>
+      </div>
+
+      {/* Multiplier Stacking */}
+      <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-3 sm:p-4">
+        <h4 className="font-bold text-blue-300 mb-2 text-sm sm:text-base">Multiplier Stacking</h4>
+        <p className="text-sm text-gray-300 mb-2">
+          Multipliers from different sources stack together:
+        </p>
+        <ul className="text-xs sm:text-sm text-gray-300 space-y-1">
+          <li>&#x2022; <strong>Schneider (2x)</strong> + <strong>Crack (2x)</strong> = 4x stakes</li>
+          <li>&#x2022; <strong>Schwarz (3x)</strong> + <strong>Crack (2x)</strong> = 6x stakes</li>
+          <li>&#x2022; <strong>Schneider (2x)</strong> + <strong>Re-crack (4x)</strong> = 8x stakes!</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export function RulesModal() {
   const { closeRules } = useGameStore();
   const [activeTab, setActiveTab] = useState<RulesTab>('hierarchy');
@@ -398,6 +495,7 @@ export function RulesModal() {
       case 'gameplay': return <GameplayTab />;
       case 'following': return <FollowingSuitTab />;
       case 'scoring': return <ScoringTab />;
+      case 'variants': return <VariantsTab />;
     }
   };
 
