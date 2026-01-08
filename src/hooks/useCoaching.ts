@@ -37,7 +37,8 @@ export interface CoachingActions {
     isPartner: boolean,
     pickerPosition: PlayerPosition | null,
     myPosition: PlayerPosition,
-    trickNumber: number
+    trickNumber: number,
+    partnerPosition: PlayerPosition | null
   ) => CoachingFeedback | null;
 
   // Record what happened after action
@@ -52,7 +53,8 @@ export interface CoachingActions {
     isPartner: boolean,
     pickerPosition: PlayerPosition | null,
     myPosition: PlayerPosition,
-    trickNumber: number
+    trickNumber: number,
+    partnerPosition: PlayerPosition | null
   ) => void;
 
   // Clear warning (user acknowledged or proceeded anyway)
@@ -120,13 +122,15 @@ export function useCoaching(): [CoachingState, CoachingActions] {
     isPartner: boolean,
     pickerPosition: PlayerPosition | null,
     myPosition: PlayerPosition,
-    trickNumber: number
+    trickNumber: number,
+    partnerPosition: PlayerPosition | null
   ): CoachingFeedback | null => {
     if (!enabled) return null;
 
     const analysis = analyzePlayDecision(
       hand, cardToPlay, trick, calledAce,
-      isPicker, isPartner, pickerPosition, myPosition, trickNumber
+      isPicker, isPartner, pickerPosition, myPosition, trickNumber,
+      partnerPosition
     );
 
     if (analysis.warnings.length > 0) {
@@ -177,13 +181,15 @@ export function useCoaching(): [CoachingState, CoachingActions] {
     isPartner: boolean,
     pickerPosition: PlayerPosition | null,
     myPosition: PlayerPosition,
-    trickNumber: number
+    trickNumber: number,
+    partnerPosition: PlayerPosition | null
   ) => {
     if (!enabled) return;
 
     const analysis = analyzePlayDecision(
       hand, cardPlayed, trick, calledAce,
-      isPicker, isPartner, pickerPosition, myPosition, trickNumber
+      isPicker, isPartner, pickerPosition, myPosition, trickNumber,
+      partnerPosition
     );
 
     const triggered = analysis.feedback.filter(f => f.triggered);

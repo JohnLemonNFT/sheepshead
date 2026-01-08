@@ -392,13 +392,15 @@ export function analyzePlayDecision(
   isPartner: boolean,
   pickerPosition: PlayerPosition | null,
   myPosition: PlayerPosition,
-  trickNumber: number
+  trickNumber: number,
+  partnerPosition?: PlayerPosition | null // New: who is the partner
 ): PlayAnalysis {
   const feedback: CoachingFeedback[] = [];
   const warnings: CoachingFeedback[] = [];
 
   const isLeading = trick.cards.length === 0;
   const isDefender = !isPicker && !isPartner;
+  const partnerRevealed = calledAce?.revealed ?? false;
 
   // ========== LEADING ANALYSIS ==========
   if (isLeading) {
@@ -432,7 +434,9 @@ export function analyzePlayDecision(
       currentWinner,
       isPicker,
       isPartner,
-      pickerPosition
+      pickerPosition,
+      partnerPosition ?? null,
+      partnerRevealed
     );
 
     // Partner playing called ace when suit wasn't led (objective mistake)
@@ -499,23 +503,36 @@ function isTeammateCurrentlyWinning(
   winnerPosition: number,
   isPicker: boolean,
   isPartner: boolean,
-  pickerPosition: PlayerPosition | null
+  pickerPosition: PlayerPosition | null,
+  partnerPosition: PlayerPosition | null,
+  partnerRevealed: boolean
 ): boolean {
+  if (pickerPosition === null) {
+    return false; // Leaster - no teams
+  }
+
+  // Picker's team = picker + partner
+  const isWinnerOnPickerTeam =
+    winnerPosition === pickerPosition ||
+    (partnerRevealed && winnerPosition === partnerPosition);
+
   if (isPicker) {
-    // We don't know partner yet in many cases, be conservative
-    return false; // Picker can't easily know if partner is winning
+    // Picker's teammate is the partner (if revealed)
+    if (partnerRevealed && partnerPosition !== null) {
+      return winnerPosition === partnerPosition;
+    }
+    // Partner not revealed - be conservative, don't assume
+    return false;
   }
 
   if (isPartner) {
+    // Partner's teammate is the picker
     return winnerPosition === pickerPosition;
   }
 
-  // Defender - teammate is another defender (not picker, not known partner)
-  if (pickerPosition !== null) {
-    return winnerPosition !== pickerPosition;
-  }
-
-  return false;
+  // Defender - teammates are other defenders (NOT picker, NOT partner)
+  // Winner is a teammate if they're NOT on the picker's team
+  return !isWinnerOnPickerTeam;
 }
 
 function isLegalInContext(

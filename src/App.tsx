@@ -246,6 +246,11 @@ function App() {
 
           // Record play for coaching feedback
           if (gameSettings.coachingEnabled && activePlayer) {
+            // Find partner position for accurate team detection
+            const currentPartnerPos = calledAce?.revealed
+              ? players.findIndex(p => p.isPartner)
+              : null;
+
             coachingActions.recordPlay(
               activePlayer.hand,
               card,
@@ -255,7 +260,8 @@ function App() {
               activePlayer.isPartner,
               pickerPosition,
               activeHumanPosition as PlayerPosition,
-              trickNumber
+              trickNumber,
+              currentPartnerPos !== -1 ? currentPartnerPos as PlayerPosition : null
             );
           }
 
