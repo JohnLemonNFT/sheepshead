@@ -67,6 +67,18 @@ export default function RulesPage() {
               <h3 className="font-bold text-white">Point Values</h3>
               <p className="text-xs text-gray-400">How much each card is worth</p>
             </Link>
+            <Link href="/rules/following-suit" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Following Suit</h3>
+              <p className="text-xs text-gray-400">What you must play when</p>
+            </Link>
+            <Link href="/rules/scoring" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Scoring</h3>
+              <p className="text-xs text-gray-400">How points become game score</p>
+            </Link>
+            <Link href="/rules/called-ace" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Called Ace Partner</h3>
+              <p className="text-xs text-gray-400">The secret partner system</p>
+            </Link>
             <Link href="/rules/leaster" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
               <h3 className="font-bold text-white">Leaster</h3>
               <p className="text-xs text-gray-400">When everyone passes</p>
