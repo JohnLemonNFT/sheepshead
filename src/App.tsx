@@ -91,6 +91,9 @@ function App() {
     openStrategy,
     isHotseatMode,
     updateSettings,
+    statistics,
+    currentShuffleSeed,
+    resetStatistics,
   } = useGameStore();
 
   // Online game state
@@ -894,6 +897,9 @@ function App() {
           showAIExplanation={gameSettings.showAIExplanations && !!lastAIExplanation && phase === 'playing'}
           onShowExplanation={lastAIExplanation ? () => showWhyExplanation(lastAIExplanation.playerPosition) : undefined}
           lastAIPlayerName={lastAIExplanation ? getPlayerDisplayInfo(lastAIExplanation.playerPosition).name : undefined}
+          statistics={statistics}
+          shuffleSeed={currentShuffleSeed}
+          onResetStatistics={resetStatistics}
         />
       </div>
 

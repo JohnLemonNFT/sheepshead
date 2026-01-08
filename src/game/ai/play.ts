@@ -266,15 +266,15 @@ function decideLeadCard(
       }
     }
 
-    // Have to lead trump
+    // Have to lead trump (no fail cards left)
     if (trumpInHand.length > 0) {
-      // Lead lowest trump
+      // Lead LOWEST trump - minimize damage when forced to lead trump as defender
       const sortedTrump = [...trumpInHand].sort(
-        (a, b) => getTrumpPower(b) - getTrumpPower(a)
+        (a, b) => getTrumpPower(a) - getTrumpPower(b)  // Ascending: lowest first
       );
       return {
         card: sortedTrump[0],
-        reason: getPersonalityMessage(position, 'leadTrump') || 'Leading trump',
+        reason: getPersonalityMessage(position, 'leadTrump') || 'Forced to lead trump - playing lowest',
         confidence: 0.5,
       };
     }

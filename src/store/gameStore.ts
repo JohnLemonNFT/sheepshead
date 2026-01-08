@@ -110,8 +110,112 @@ export const SPEED_DELAYS: Record<GameSpeed, number> = {
   fast: 300,
 };
 
+// ============================================
+// STATISTICS TRACKING
+// ============================================
+
+export interface GameStatistics {
+  // Overall stats
+  totalHandsPlayed: number;
+  totalGamesStarted: number;
+
+  // Role-based stats (for human player position 0)
+  handsAsPicker: number;
+  winsAsPicker: number;
+  handsAsPartner: number;
+  winsAsPartner: number;
+  handsAsDefender: number;
+  winsAsDefender: number;
+
+  // Picking stats
+  timesPassed: number;
+  timesCouldPick: number; // Opportunities to pick (position came to you)
+
+  // Trump distribution tracking (to prove fair dealing)
+  trumpCountDistribution: number[]; // Index = trump count (0-14), value = times received
+
+  // Leaster stats
+  leastersPlayed: number;
+  leastersWon: number;
+
+  // Points tracking
+  totalPointsWon: number;
+  totalPointsLost: number;
+
+  // Schneider/Schwarz
+  schneiderWins: number;
+  schneiderLosses: number;
+  schwarzWins: number;
+  schwarzLosses: number;
+
+  // Current session
+  sessionStartTime: number;
+  lastUpdated: number;
+}
+
+export const DEFAULT_STATISTICS: GameStatistics = {
+  totalHandsPlayed: 0,
+  totalGamesStarted: 0,
+  handsAsPicker: 0,
+  winsAsPicker: 0,
+  handsAsPartner: 0,
+  winsAsPartner: 0,
+  handsAsDefender: 0,
+  winsAsDefender: 0,
+  timesPassed: 0,
+  timesCouldPick: 0,
+  trumpCountDistribution: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 0-14 trump
+  leastersPlayed: 0,
+  leastersWon: 0,
+  totalPointsWon: 0,
+  totalPointsLost: 0,
+  schneiderWins: 0,
+  schneiderLosses: 0,
+  schwarzWins: 0,
+  schwarzLosses: 0,
+  sessionStartTime: Date.now(),
+  lastUpdated: Date.now(),
+};
+
 // Default player configuration (1 human, 4 AI)
 export const DEFAULT_PLAYER_TYPES: PlayerType[] = ['human', 'ai', 'ai', 'ai', 'ai'];
+
+// ============================================
+// STATISTICS PERSISTENCE
+// ============================================
+
+const STATS_STORAGE_KEY = 'sheepshead_statistics';
+
+function loadStatistics(): GameStatistics {
+  if (typeof window === 'undefined') return { ...DEFAULT_STATISTICS };
+  try {
+    const saved = localStorage.getItem(STATS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge with defaults to handle new fields
+      return { ...DEFAULT_STATISTICS, ...parsed, sessionStartTime: Date.now() };
+    }
+  } catch (e) {
+    console.warn('Failed to load statistics:', e);
+  }
+  return { ...DEFAULT_STATISTICS, sessionStartTime: Date.now() };
+}
+
+function saveStatistics(stats: GameStatistics): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify({ ...stats, lastUpdated: Date.now() }));
+  } catch (e) {
+    console.warn('Failed to save statistics:', e);
+  }
+}
+
+// Generate a provably fair shuffle seed
+function generateShuffleSeed(): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 10);
+  return `${timestamp}-${random}`;
+}
 
 interface GameStore {
   // Game state
@@ -148,6 +252,12 @@ interface GameStore {
   playerScores: number[];
   handsPlayed: number;
   handHistory: HandScore[];
+
+  // Statistics tracking (persisted)
+  statistics: GameStatistics;
+
+  // Provably fair shuffle seed
+  currentShuffleSeed: string | null;
 
   // Game log
   gameLog: LogEntry[];
@@ -201,6 +311,10 @@ interface GameStore {
   hideExplanation: () => void;
   addLogEntry: (player: string, action: string, reason: string, isHuman: boolean, phase: string) => void;
   clearLog: () => void;
+
+  // Statistics actions
+  updateStatistics: (updates: Partial<GameStatistics>) => void;
+  resetStatistics: () => void;
 
   // AI control
   executeAITurn: () => Promise<void>;
@@ -303,6 +417,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playerScores: [0, 0, 0, 0, 0],
   handsPlayed: 0,
   handHistory: [],
+  statistics: loadStatistics(), // Load from localStorage
+  currentShuffleSeed: null,
   gameLog: [],
   logIdCounter: 0,
 
@@ -405,10 +521,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // ============================================
 
   newGame: () => {
+    const { statistics } = get();
+    const newStats = {
+      ...statistics,
+      totalGamesStarted: statistics.totalGamesStarted + 1,
+    };
+    saveStatistics(newStats);
     set({
       playerScores: [0, 0, 0, 0, 0],
       handsPlayed: 0,
       handHistory: [],
+      statistics: newStats,
     });
     get().newHand();
   },
@@ -485,6 +608,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // In hotseat mode, need handoff before showing any hand
     const humanPosition = playerTypes.findIndex(t => t === 'human') as PlayerPosition;
 
+    // Track trump distribution for statistics (human player's hand)
+    const { statistics } = get();
+    const humanHand = hands[humanPosition] || hands[0];
+    const trumpCount = humanHand.filter(c => isTrump(c)).length;
+    const newTrumpDist = [...statistics.trumpCountDistribution];
+    newTrumpDist[trumpCount] = (newTrumpDist[trumpCount] || 0) + 1;
+
+    // Generate provably fair shuffle seed for display
+    const displaySeed = generateShuffleSeed();
+
     set({
       gameState,
       aiStates,
@@ -494,6 +627,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       animatingTrick: false,
       gameLog: [],
       logIdCounter: 0,
+      currentShuffleSeed: displaySeed,
+      statistics: { ...statistics, trumpCountDistribution: newTrumpDist },
       // Trigger handoff if hotseat mode
       awaitingHandoff: hotseat && firstPlayerIsHuman,
       // In single player mode, always show human's hand. In hotseat, wait for handoff.
@@ -1110,6 +1245,49 @@ export const useGameStore = create<GameStore>((set, get) => ({
         newPlayerScores[ps.position] += ps.points;
       }
 
+      // Update statistics for human player (position 0)
+      const { statistics, playerTypes } = get();
+      const humanPosition = playerTypes.findIndex(t => t === 'human');
+      const humanPlayer = finalState.players[humanPosition];
+      const humanScoreChange = handScore.playerScores.find(ps => ps.position === humanPosition)?.points || 0;
+      const humanWon = humanScoreChange > 0;
+
+      const statsUpdate: Partial<GameStatistics> = {
+        totalHandsPlayed: statistics.totalHandsPlayed + 1,
+        totalPointsWon: statistics.totalPointsWon + (humanWon ? Math.abs(humanScoreChange) : 0),
+        totalPointsLost: statistics.totalPointsLost + (!humanWon ? Math.abs(humanScoreChange) : 0),
+      };
+
+      // Track role-based stats
+      if (humanPlayer?.isPicker) {
+        statsUpdate.handsAsPicker = statistics.handsAsPicker + 1;
+        if (humanWon) statsUpdate.winsAsPicker = statistics.winsAsPicker + 1;
+      } else if (humanPlayer?.isPartner) {
+        statsUpdate.handsAsPartner = statistics.handsAsPartner + 1;
+        if (humanWon) statsUpdate.winsAsPartner = statistics.winsAsPartner + 1;
+      } else if (finalState.pickerPosition !== null) {
+        // Defender (not picker, not partner, and there was a picker)
+        statsUpdate.handsAsDefender = statistics.handsAsDefender + 1;
+        if (humanWon) statsUpdate.winsAsDefender = statistics.winsAsDefender + 1;
+      } else {
+        // Leaster
+        statsUpdate.leastersPlayed = statistics.leastersPlayed + 1;
+        if (humanWon) statsUpdate.leastersWon = statistics.leastersWon + 1;
+      }
+
+      // Track schneider/schwarz
+      if (handScore.isSchneider) {
+        if (humanWon) statsUpdate.schneiderWins = statistics.schneiderWins + 1;
+        else statsUpdate.schneiderLosses = statistics.schneiderLosses + 1;
+      }
+      if (handScore.isSchwarz) {
+        if (humanWon) statsUpdate.schwarzWins = statistics.schwarzWins + 1;
+        else statsUpdate.schwarzLosses = statistics.schwarzLosses + 1;
+      }
+
+      const newStats = { ...statistics, ...statsUpdate, lastUpdated: Date.now() };
+      saveStatistics(newStats);
+
       set({
         gameState: {
           ...finalState,
@@ -1119,6 +1297,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         playerScores: newPlayerScores,
         handsPlayed: handsPlayed + 1,
         handHistory: [...handHistory, handScore],
+        statistics: newStats,
         trickResult: null,
         animatingTrick: false,
       });
@@ -1206,6 +1385,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   clearLog: () => {
     set({ gameLog: [], logIdCounter: 0 });
+  },
+
+  // ============================================
+  // STATISTICS ACTIONS
+  // ============================================
+
+  updateStatistics: (updates: Partial<GameStatistics>) => {
+    const { statistics } = get();
+    const newStats = { ...statistics, ...updates, lastUpdated: Date.now() };
+    saveStatistics(newStats);
+    set({ statistics: newStats });
+  },
+
+  resetStatistics: () => {
+    const freshStats = { ...DEFAULT_STATISTICS, sessionStartTime: Date.now() };
+    saveStatistics(freshStats);
+    set({ statistics: freshStats });
   },
 
   // ============================================

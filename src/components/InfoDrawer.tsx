@@ -1,13 +1,15 @@
 'use client';
 
-// InfoDrawer - Side panel for scores, tips, and game log
+// InfoDrawer - Side panel for scores, tips, game log, and statistics
 
 import { useState } from 'react';
 import { ScoreBoard } from './ScoreBoard';
 import { GameLog } from './GameLog';
 import { StrategyTips } from './StrategyTips';
+import { StatisticsPanel } from './StatisticsPanel';
 import type { PlayerPosition, Card, Trick, Suit } from '../game/types';
 import type { LogEntry } from './GameLog';
+import type { GameStatistics } from '../store/gameStore';
 
 interface CalledAce {
   suit: Suit;
@@ -36,6 +38,10 @@ interface InfoDrawerProps {
   showAIExplanation?: boolean;
   onShowExplanation?: () => void;
   lastAIPlayerName?: string;
+  // Statistics props
+  statistics?: GameStatistics;
+  shuffleSeed?: string | null;
+  onResetStatistics?: () => void;
 }
 
 export function InfoDrawer({
@@ -56,9 +62,12 @@ export function InfoDrawer({
   showAIExplanation,
   onShowExplanation,
   lastAIPlayerName,
+  statistics,
+  shuffleSeed,
+  onResetStatistics,
 }: InfoDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'scores' | 'tips' | 'log'>('scores');
+  const [activeTab, setActiveTab] = useState<'scores' | 'tips' | 'log' | 'stats'>('scores');
 
   return (
     <>
@@ -106,6 +115,7 @@ export function InfoDrawer({
         <div className="flex border-b border-gray-700">
           {[
             { id: 'scores' as const, label: '📊 Scores' },
+            { id: 'stats' as const, label: '📈 Stats' },
             { id: 'tips' as const, label: '💡 Tips' },
             { id: 'log' as const, label: '📜 Log' },
           ].map(tab => (
@@ -134,6 +144,20 @@ export function InfoDrawer({
               currentPlayer={currentPlayer}
               handsPlayed={handsPlayed}
             />
+          )}
+
+          {activeTab === 'stats' && statistics && onResetStatistics && (
+            <StatisticsPanel
+              statistics={statistics}
+              shuffleSeed={shuffleSeed || null}
+              onReset={onResetStatistics}
+            />
+          )}
+
+          {activeTab === 'stats' && !statistics && (
+            <div className="text-center text-gray-500 py-8">
+              <p>Statistics will track your performance over time</p>
+            </div>
           )}
 
           {activeTab === 'tips' && showTips && hand.length > 0 && (
