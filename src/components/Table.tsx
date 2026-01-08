@@ -1,9 +1,10 @@
 // Table component - displays the premium game table with current trick
 
-import { Card as CardType, Trick, PlayerPosition } from '../game/types';
+import { Card as CardType, Trick, PlayerPosition, Suit } from '../game/types';
 import { Card, CardBack } from './Card';
 import { PlayerAvatar } from './PlayerAvatar';
 import { getPlayerDisplayInfo } from '../game/ai/personalities';
+import { CalledAceIndicator } from './CalledAceIndicator';
 
 interface TableProps {
   currentTrick: Trick;
@@ -187,19 +188,19 @@ export function Table({
               <p className="text-emerald-300 text-[10px] sm:text-xs font-medium">
                 Trick {trickNumber}/6
               </p>
-              {calledSuit && (
-                <p className="text-amber-300 text-[10px] sm:text-xs mt-0.5 flex items-center gap-1">
-                  <span>Called:</span>
-                  <span className={calledSuit === 'hearts' || calledSuit === 'spades' ? '' : ''}>
-                    {SUIT_SYMBOLS[calledSuit]}
-                  </span>
-                  {calledAceRevealed && (
-                    <span className="text-green-400 text-[8px]">✓</span>
-                  )}
-                </p>
-              )}
             </div>
           </div>
+
+          {/* Called Ace - prominent center-top indicator */}
+          {calledSuit && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 sm:top-4 z-10">
+              <CalledAceIndicator
+                suit={calledSuit as Suit}
+                revealed={calledAceRevealed}
+                size="sm"
+              />
+            </div>
+          )}
 
           {/* Completed tricks - top right */}
           <div className="absolute top-3 right-4 sm:top-4 sm:right-6">

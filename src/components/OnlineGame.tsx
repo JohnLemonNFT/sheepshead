@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { Card } from './Card';
 import { InfoDrawer } from './InfoDrawer';
+import { CalledAceBadge } from './CalledAceIndicator';
 import type { OnlineGameState, OnlineGameActions } from '../hooks/useOnlineGame';
 import type { Card as CardType, PlayerPosition, Suit } from '../game/types';
 import { isTrump, getCardPoints } from '../game/types';
@@ -233,9 +234,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
             </span>
           )}
           {calledAce && (
-            <span className="bg-purple-600/80 px-2 py-1 rounded text-xs text-white">
-              {SUIT_SYMBOLS[calledAce.suit]} called
-            </span>
+            <CalledAceBadge suit={calledAce.suit} revealed={calledAce.revealed} />
           )}
         </div>
       </div>

@@ -30,6 +30,7 @@ import { useSounds, playSoundEffect } from './hooks/useSounds';
 import { Card as CardType, PlayerPosition, Suit, getCardPoints } from './game/types';
 import { RunningScore } from './components/RunningScore';
 import { SuitHint } from './components/SuitHint';
+import { CalledAceBadge } from './components/CalledAceIndicator';
 import type { CoachingFeedback } from './game/ai/coaching';
 import { getPlayerDisplayInfo } from './game/ai/personalities';
 
@@ -590,9 +591,7 @@ function App() {
             </span>
           )}
           {calledAce && (
-            <span className="bg-purple-600/80 px-2 py-1 rounded text-xs">
-              {SUIT_SYMBOLS[calledAce.suit]} called
-            </span>
+            <CalledAceBadge suit={calledAce.suit} revealed={calledAce.revealed} />
           )}
         </div>
       </div>
