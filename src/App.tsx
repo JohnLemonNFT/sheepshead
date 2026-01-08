@@ -236,7 +236,7 @@ function App() {
   const handleCardClick = useCallback(
     (card: CardType) => {
       if (!isHumanTurn) return;
-      const playerName = activeHumanPosition === 0 ? 'You' : `Player ${activeHumanPosition! + 1}`;
+      const playerName = getPlayerDisplayInfo((activeHumanPosition ?? 0) as PlayerPosition).name;
 
       if (phase === 'burying') {
         toggleCardSelection(card);
@@ -278,7 +278,8 @@ function App() {
 
   // Get display name for active human player
   const getActivePlayerName = useCallback(() => {
-    return activeHumanPosition === 0 ? 'You' : `Player ${activeHumanPosition! + 1}`;
+    const pos = activeHumanPosition ?? 0;
+    return getPlayerDisplayInfo(pos as PlayerPosition).name;
   }, [activeHumanPosition]);
 
   // Handle bury confirmation with coaching check
@@ -702,23 +703,56 @@ function App() {
 
               {/* Current trick - playing phase */}
               {phase === 'playing' && (
-                <div className="flex gap-2 sm:gap-3 items-end justify-center min-h-[100px] sm:min-h-[120px]">
+                <div className="flex flex-col items-center min-h-[100px] sm:min-h-[120px]">
                   {currentTrick.cards.length === 0 ? (
-                    <span className="text-white/40 text-lg">
-                      {currentPlayer === (activeHumanPosition ?? 0) ? 'Lead a card' : 'Waiting...'}
-                    </span>
+                    <>
+                      <span className="text-white/40 text-lg mb-2">
+                        {currentPlayer === (activeHumanPosition ?? 0) ? 'Lead a card' : 'Waiting...'}
+                      </span>
+                      {/* Show last completed trick as a reference */}
+                      {completedTricks.length > 0 && (
+                        <div className="bg-black/30 rounded-lg px-3 py-2 animate-fadeIn">
+                          <p className="text-[10px] text-gray-400 text-center mb-1.5">
+                            Last trick ({getPlayerDisplayInfo(completedTricks[completedTricks.length - 1].winningPlayer as PlayerPosition).name} won)
+                          </p>
+                          <div className="flex gap-1 justify-center">
+                            {completedTricks[completedTricks.length - 1].cards.map((play, i) => {
+                              const isWinner = play.playedBy === completedTricks[completedTricks.length - 1].winningPlayer;
+                              const suitSymbol = { clubs: '♣', spades: '♠', hearts: '♥', diamonds: '♦' }[play.card.suit] || play.card.suit;
+                              const isRed = play.card.suit === 'hearts' || play.card.suit === 'diamonds';
+                              return (
+                                <span
+                                  key={i}
+                                  className={`text-xs font-bold px-1.5 py-0.5 rounded ${isWinner ? 'bg-yellow-500/30 ring-1 ring-yellow-400' : 'bg-gray-800/50'} ${isRed ? 'text-red-400' : 'text-gray-300'}`}
+                                  title={getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
+                                >
+                                  {play.card.rank}{suitSymbol}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   ) : (
-                    currentTrick.cards.map((play, i) => {
+                    <div className="flex gap-2 sm:gap-3 items-end justify-center">
+                    {currentTrick.cards.map((play, i) => {
                       const isWinner = trickResult && play.playedBy === trickResult.winner;
+                      const isLastPlayed = i === currentTrick.cards.length - 1;
                       return (
-                        <div key={i} className={`flex flex-col items-center animate-card-slide-in ${isWinner ? 'scale-110' : ''}`}>
+                        <div key={i} className={`relative flex flex-col items-center animate-card-slide-in ${isWinner ? 'scale-110' : ''}`}>
+                          {/* Highlight for last played card */}
+                          {isLastPlayed && !trickResult && (
+                            <div className="absolute -inset-1 bg-yellow-400/20 rounded-lg animate-pulse" />
+                          )}
                           <Card card={play.card} size="large" />
                           <span className={`text-xs mt-1 ${isWinner ? 'text-green-400 font-bold' : 'text-white/70'}`}>
                             {play.playedBy === (activeHumanPosition ?? 0) ? 'You' : getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
                           </span>
                         </div>
                       );
-                    })
+                    })}
+                    </div>
                   )}
                 </div>
               )}

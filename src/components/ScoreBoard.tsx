@@ -1,6 +1,7 @@
 // ScoreBoard component - displays running scores
 
 import { PlayerPosition } from '../game/types';
+import { getPlayerDisplayInfo } from '../game/ai/personalities';
 
 interface ScoreBoardProps {
   scores: number[];
@@ -27,7 +28,7 @@ export function ScoreBoard({
           const isPicker = pickerPosition === i;
           const isPartner = partnerPosition === i;
           const isCurrent = currentPlayer === i;
-          const isHuman = i === 0;
+          const displayInfo = getPlayerDisplayInfo(i as PlayerPosition);
 
           return (
             <div
@@ -39,8 +40,9 @@ export function ScoreBoard({
                 ${isPartner ? 'text-blue-400' : ''}
               `}
             >
-              <span className="truncate mr-2">
-                {isHuman ? 'You' : `P${i + 1}`}
+              <span className="truncate mr-2 flex items-center gap-1.5">
+                <span>{displayInfo.avatar}</span>
+                <span>{displayInfo.name}</span>
                 {isPicker && ' (P)'}
                 {isPartner && ' (A)'}
               </span>

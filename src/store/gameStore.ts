@@ -1238,7 +1238,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     // Build action description for log
-    const playerName = `Player ${currentPlayer + 1}`;
+    // Import getPlayerDisplayInfo dynamically to get actual player names
+    const { getPlayerDisplayInfo } = await import('../game/ai/personalities');
+    const displayInfo = getPlayerDisplayInfo(currentPlayer);
+    const playerName = displayInfo.name;
     let actionDesc = '';
     switch (decision.action.type) {
       case 'pick': actionDesc = 'picked up the blind'; break;

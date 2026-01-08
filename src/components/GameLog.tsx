@@ -19,9 +19,55 @@ interface GameLogProps {
   onClear?: () => void;
 }
 
+// Suit symbols and colors for card display
+const SUIT_DISPLAY: Record<string, { symbol: string; color: string }> = {
+  clubs: { symbol: '♣', color: 'text-gray-300' },
+  spades: { symbol: '♠', color: 'text-gray-300' },
+  hearts: { symbol: '♥', color: 'text-red-400' },
+  diamonds: { symbol: '♦', color: 'text-red-400' },
+};
+
+// Parse "played X of suit" actions to display card symbols
+function formatAction(action: string): JSX.Element {
+  const playMatch = action.match(/played (\w+) of (\w+)/i);
+  if (playMatch) {
+    const [, rank, suit] = playMatch;
+    const suitInfo = SUIT_DISPLAY[suit.toLowerCase()];
+    if (suitInfo) {
+      return (
+        <span className="flex items-center gap-1">
+          <span>played</span>
+          <span className={`font-bold ${suitInfo.color} bg-gray-800 px-1.5 py-0.5 rounded`}>
+            {rank}{suitInfo.symbol}
+          </span>
+        </span>
+      );
+    }
+  }
+
+  // Check for "called X ace" actions
+  const callMatch = action.match(/called (\w+) ace/i);
+  if (callMatch) {
+    const [, suit] = callMatch;
+    const suitInfo = SUIT_DISPLAY[suit.toLowerCase()];
+    if (suitInfo) {
+      return (
+        <span className="flex items-center gap-1">
+          <span>called</span>
+          <span className={`font-bold ${suitInfo.color}`}>
+            A{suitInfo.symbol}
+          </span>
+        </span>
+      );
+    }
+  }
+
+  return <span>{action}</span>;
+}
+
 export function GameLog({ entries, onClear }: GameLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Default to expanded
 
   // Auto-scroll to bottom when new entries added and expanded
   useEffect(() => {
@@ -86,11 +132,11 @@ export function GameLog({ entries, onClear }: GameLogProps) {
                     entry.isHuman ? 'border-green-500' : 'border-gray-600'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={`font-bold ${getActionColor(entry.phase, entry.isHuman)}`}>
                       {entry.player}
                     </span>
-                    <span className="text-white">{entry.action}</span>
+                    <span className="text-white">{formatAction(entry.action)}</span>
                   </div>
                   {entry.reason && (
                     <p className="text-gray-400 mt-0.5 italic text-[11px]">

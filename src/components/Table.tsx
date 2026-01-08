@@ -6,6 +6,12 @@ import { PlayerAvatar } from './PlayerAvatar';
 import { getPlayerDisplayInfo } from '../game/ai/personalities';
 import { CalledAceIndicator } from './CalledAceIndicator';
 
+interface CompletedTrick {
+  cards: { card: CardType; playedBy: PlayerPosition }[];
+  leadPlayer: PlayerPosition;
+  winningPlayer: PlayerPosition;
+}
+
 interface TableProps {
   currentTrick: Trick;
   blind: CardType[];
@@ -17,6 +23,7 @@ interface TableProps {
   calledAceRevealed: boolean;
   currentPlayer?: PlayerPosition;
   playerCount?: number;
+  lastCompletedTrick?: CompletedTrick | null;
 }
 
 // Suit symbols for display
@@ -38,6 +45,7 @@ export function Table({
   calledAceRevealed,
   currentPlayer,
   playerCount = 5,
+  lastCompletedTrick,
 }: TableProps) {
   // Get card played by each position
   const getCardForPosition = (position: number) => {
@@ -119,17 +127,32 @@ export function Table({
                 {/* Played cards positioned relative to their players */}
                 {currentTrick.cards.map((play, i) => {
                   const style = getCardStyle(play.playedBy, playerCount);
-                  const isWinning = i === currentTrick.cards.length - 1; // Simple highlight for last played
+                  const isLastPlayed = i === currentTrick.cards.length - 1;
+                  const playerInfo = getPlayerDisplayInfo(play.playedBy as PlayerPosition);
                   return (
                     <div
                       key={`${play.playedBy}-${play.card.id}`}
-                      className="absolute animate-cardPlay"
+                      className={`absolute animate-cardPlay ${isLastPlayed ? 'z-10' : ''}`}
                       style={{
                         ...style,
                         animationDelay: `${i * 50}ms`,
                       }}
                     >
-                      <Card card={play.card} small />
+                      {/* Highlight ring for most recently played card */}
+                      {isLastPlayed && (
+                        <div className="absolute -inset-1 bg-yellow-400/30 rounded-lg animate-pulse" />
+                      )}
+                      <div className="relative">
+                        <Card card={play.card} small />
+                        {/* Player name badge on last played card */}
+                        {isLastPlayed && (
+                          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                            <span className="text-[9px] sm:text-[10px] bg-yellow-500/80 text-black font-bold px-1.5 py-0.5 rounded-full">
+                              {playerInfo.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -210,6 +233,37 @@ export function Table({
               </p>
             </div>
           </div>
+
+          {/* Last Completed Trick - shows at bottom when no cards in current trick */}
+          {lastCompletedTrick && currentTrick.cards.length === 0 && blind.length === 0 && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 sm:bottom-4">
+              <div className="glass rounded-lg px-3 py-2 animate-fadeIn">
+                <p className="text-[9px] sm:text-[10px] text-emerald-400/70 text-center mb-1.5">
+                  Last trick won by {getPlayerDisplayInfo(lastCompletedTrick.winningPlayer).name}
+                </p>
+                <div className="flex gap-1 justify-center">
+                  {lastCompletedTrick.cards.map((play, i) => {
+                    const isWinner = play.playedBy === lastCompletedTrick.winningPlayer;
+                    const suitSymbol = SUIT_SYMBOLS[play.card.suit] || play.card.suit;
+                    const isRed = play.card.suit === 'hearts' || play.card.suit === 'diamonds';
+                    return (
+                      <span
+                        key={i}
+                        className={`
+                          text-[10px] sm:text-xs font-bold px-1 py-0.5 rounded
+                          ${isWinner ? 'bg-yellow-500/30 ring-1 ring-yellow-400' : 'bg-gray-800/50'}
+                          ${isRed ? 'text-red-400' : 'text-gray-300'}
+                        `}
+                        title={`${getPlayerDisplayInfo(play.playedBy).name}`}
+                      >
+                        {play.card.rank}{suitSymbol}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
