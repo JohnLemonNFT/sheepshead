@@ -2,6 +2,7 @@
 
 // Home Page - Premium Landing page with navigation to game and guides
 
+import Link from 'next/link';
 import { useGameStore } from '../store/gameStore';
 
 interface MenuCardProps {
@@ -144,6 +145,37 @@ export function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* SEO Pages Links */}
+        <nav className="glass rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8">
+          <h2 className="text-sm font-medium text-emerald-300/80 mb-3 text-center">Learn More</h2>
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+            <Link
+              href="/rules"
+              className="px-4 py-2 bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 rounded-lg text-amber-200 text-sm font-medium transition-colors"
+            >
+              📖 Full Rules
+            </Link>
+            <Link
+              href="/strategy"
+              className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/30 rounded-lg text-rose-200 text-sm font-medium transition-colors"
+            >
+              🧠 Strategy Guide
+            </Link>
+            <Link
+              href="/learn"
+              className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 rounded-lg text-blue-200 text-sm font-medium transition-colors"
+            >
+              🎓 Beginner's Guide
+            </Link>
+            <Link
+              href="/glossary"
+              className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 rounded-lg text-purple-200 text-sm font-medium transition-colors"
+            >
+              📚 Glossary
+            </Link>
+          </div>
+        </nav>
 
         {/* Footer */}
         <footer className="text-center text-emerald-200/40 text-xs sm:text-sm pb-6 sm:pb-8">
