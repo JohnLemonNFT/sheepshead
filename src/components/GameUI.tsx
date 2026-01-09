@@ -244,6 +244,29 @@ export function GameUI({ state, actions, config }: GameUIProps) {
   // Array of player names for passing to child components
   const playerNames = players.map(p => p.name);
 
+  // Helper for opponent border class (avoids nested ternaries)
+  const getOpponentBorderClass = (isCurrent: boolean, isPicker: boolean, isPartnerRevealed: boolean): string => {
+    if (isCurrent) return 'border-blue-400 animate-active-turn';
+    if (isPicker) return 'border-yellow-400 animate-picker-glow';
+    if (isPartnerRevealed) return 'border-green-400 shadow-green-400/50';
+    return 'border-gray-600';
+  };
+
+  // Helper for player name text color
+  const getPlayerNameColor = (isCurrent: boolean, isPicker: boolean, isPartnerRevealed: boolean): string => {
+    if (isPicker) return 'text-yellow-400';
+    if (isPartnerRevealed) return 'text-green-400';
+    if (isCurrent) return 'text-blue-400';
+    return 'text-gray-300';
+  };
+
+  // Role badge config (avoids nested ternaries)
+  const roleBadgeConfig: Record<string, { bg: string; label: string }> = {
+    picker: { bg: 'bg-yellow-600', label: '👑 PICKER' },
+    partner: { bg: 'bg-blue-600', label: '🤝 PARTNER' },
+    defender: { bg: 'bg-red-700', label: '⚔️ DEFENDER' },
+  };
+
   // Reset play lock when turn changes
   useEffect(() => {
     if (isHumanTurn) {
@@ -375,7 +398,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
     const isCurrent = player.position === currentPlayer;
     const isPicker = player.isPicker;
     // Only show partner for OTHER players when revealed
-    const isPartnerRevealed = player.position !== activePlayerPosition && player.isPartner && calledAce?.revealed;
+    const isPartnerRevealed = player.position !== activePlayerPosition && player.isPartner && (calledAce?.revealed ?? false);
     const displayInfo = getPlayerDisplayInfo(player.position);
 
     return (
@@ -384,10 +407,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
           relative w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3
           flex items-center justify-center text-2xl sm:text-3xl
           bg-gray-800 shadow-lg transition-all duration-300
-          ${isCurrent ? 'border-blue-400 animate-active-turn' : ''}
-          ${isPicker && !isCurrent ? 'border-yellow-400 animate-picker-glow' : ''}
-          ${isPartnerRevealed && !isCurrent ? 'border-green-400 shadow-green-400/50' : ''}
-          ${!isCurrent && !isPicker && !isPartnerRevealed ? 'border-gray-600' : ''}
+          ${getOpponentBorderClass(isCurrent, isPicker, isPartnerRevealed)}
         `}>
           {displayInfo.avatar}
           {isDealer && (
@@ -408,11 +428,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
             </div>
           )}
         </div>
-        <span className={`mt-1 text-xs sm:text-sm font-medium ${
-          isPicker ? 'text-yellow-400' :
-          isPartnerRevealed ? 'text-green-400' :
-          isCurrent ? 'text-blue-400' : 'text-gray-300'
-        }`}>
+        <span className={`mt-1 text-xs sm:text-sm font-medium ${getPlayerNameColor(isCurrent, isPicker, isPartnerRevealed)}`}>
           {player.name}
         </span>
         {mode === 'online' && (
@@ -422,20 +438,20 @@ export function GameUI({ state, actions, config }: GameUIProps) {
     );
   };
 
-  // Calculate running scores
+  // Calculate running scores (single pass)
   const actualPartnerPosition = players.findIndex(p => p.isPartner);
-  const pickerTeamPoints = completedTricks.reduce((sum, t) => {
-    const trickPoints = t.cards.reduce((pts, c) => pts + getCardPoints(c.card), 0);
-    const winnerOnPickerTeam = t.winningPlayer === pickerPosition ||
-      (actualPartnerPosition !== -1 && t.winningPlayer === actualPartnerPosition);
-    return sum + (winnerOnPickerTeam ? trickPoints : 0);
-  }, 0);
-  const defenderTeamPoints = completedTricks.reduce((sum, t) => {
-    const trickPoints = t.cards.reduce((pts, c) => pts + getCardPoints(c.card), 0);
-    const winnerOnPickerTeam = t.winningPlayer === pickerPosition ||
-      (actualPartnerPosition !== -1 && t.winningPlayer === actualPartnerPosition);
-    return sum + (winnerOnPickerTeam ? 0 : trickPoints);
-  }, 0);
+  const { pickerTeamPoints, defenderTeamPoints } = completedTricks.reduce(
+    (acc, t) => {
+      const trickPoints = t.cards.reduce((pts, c) => pts + getCardPoints(c.card), 0);
+      const winnerOnPickerTeam = t.winningPlayer === pickerPosition ||
+        (actualPartnerPosition !== -1 && t.winningPlayer === actualPartnerPosition);
+      return {
+        pickerTeamPoints: acc.pickerTeamPoints + (winnerOnPickerTeam ? trickPoints : 0),
+        defenderTeamPoints: acc.defenderTeamPoints + (winnerOnPickerTeam ? 0 : trickPoints),
+      };
+    },
+    { pickerTeamPoints: 0, defenderTeamPoints: 0 }
+  );
 
   // Blind count for display
   const blindCount = typeof blind === 'number' ? blind : blind.length;
@@ -508,12 +524,8 @@ export function GameUI({ state, actions, config }: GameUIProps) {
         {/* Status badges */}
         <div className="flex gap-2 flex-wrap justify-end">
           {pickerPosition !== null && activePlayerRole && (
-            <span className={`px-2 py-1 rounded text-xs font-bold ${
-              activePlayerRole === 'picker' ? 'bg-yellow-600' :
-              activePlayerRole === 'partner' ? 'bg-blue-600' : 'bg-red-700'
-            }`}>
-              {activePlayerRole === 'picker' ? '👑 PICKER' :
-               activePlayerRole === 'partner' ? '🤝 PARTNER' : '⚔️ DEFENDER'}
+            <span className={`px-2 py-1 rounded text-xs font-bold ${roleBadgeConfig[activePlayerRole].bg}`}>
+              {roleBadgeConfig[activePlayerRole].label}
             </span>
           )}
           {phase === 'playing' && (

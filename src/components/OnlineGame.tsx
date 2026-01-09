@@ -10,8 +10,8 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { GameUI } from './GameUI';
 import type { GameUIState, GameUIActions, GameUIConfig, PlayerData } from './GameUI';
 import type { OnlineGameState, OnlineGameActions } from '../hooks/useOnlineGame';
-import type { Card as CardType, PlayerPosition, Suit, HandScore } from '../game/types';
-import { isTrump } from '../game/types';
+import type { Card as CardType, PlayerPosition, Suit } from '../game/types';
+import { isTrump, getCardPoints } from '../game/types';
 import { getPlayerDisplayInfo } from '../game/ai/personalities';
 import { Announcement } from './Announcement';
 import { useGameStore } from '../store/gameStore';
@@ -55,9 +55,6 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
 
   // Game log (built from state changes)
   const [gameLog, setGameLog] = useState<LogEntry[]>([]);
-
-  // Hand history for scoring summary
-  const [handHistory, setHandHistory] = useState<HandScore[]>([]);
 
   // Loading state - show before GameUI
   if (!gameState || myPosition === null) {
@@ -169,15 +166,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
         // New trick completed - find winner from the most recent completed trick
         const lastCompletedTrick = completedTricks[completedTricks.length - 1];
         if (lastCompletedTrick && lastCompletedTrick.winningPlayer !== undefined) {
-          const points = lastCompletedTrick.cards.reduce((sum, c) => {
-            const card = c.card;
-            if (card.rank === 'A') return sum + 11;
-            if (card.rank === '10') return sum + 10;
-            if (card.rank === 'K') return sum + 4;
-            if (card.rank === 'Q') return sum + 3;
-            if (card.rank === 'J') return sum + 2;
-            return sum;
-          }, 0);
+          const points = lastCompletedTrick.cards.reduce((sum, c) => sum + getCardPoints(c.card), 0);
 
           setTrickResult({
             cards: lastCompletedTrick.cards,
@@ -201,8 +190,10 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   // Auto-dismiss announcements
   useEffect(() => {
     if (announcement) {
-      const delay = announcement.type === 'call' || announcement.type === 'leaster' ? 2500 :
-                    announcement.type === 'partnerReveal' ? 3000 : 2000;
+      const announcementDelays: Record<string, number> = {
+        call: 2500, leaster: 2500, partnerReveal: 3000
+      };
+      const delay = announcementDelays[announcement.type] ?? 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);
       return () => clearTimeout(timer);
     }
@@ -297,7 +288,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
 
   const handleBury = useCallback((cards: [CardType, CardType]) => {
     const myName = getPlayerName(myPosition);
-    const pts = cards.reduce((sum, c) => sum + (c.rank === 'A' ? 11 : c.rank === '10' ? 10 : c.rank === 'K' ? 4 : c.rank === 'Q' ? 3 : c.rank === 'J' ? 2 : 0), 0);
+    const pts = cards.reduce((sum, c) => sum + getCardPoints(c), 0);
     addLogEntry(myName, `buried 2 cards (${pts} pts)`, '', true, 'burying');
     onlineActions.sendAction({ type: 'bury', cards });
   }, [myPosition, getPlayerName, addLogEntry, onlineActions]);
@@ -340,8 +331,8 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
     onBlitz: undefined,
   };
 
-  // Get current hand score (if in scoring phase)
-  const currentHandScore = handHistory.length > 0 ? handHistory[handHistory.length - 1] : null;
+  // Hand score (TODO: implement when server sends scoring data)
+  const currentHandScore = null;
 
   // Build GameUIConfig
   const gameUIConfig: GameUIConfig = {
