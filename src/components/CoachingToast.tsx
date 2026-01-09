@@ -62,12 +62,13 @@ export function CoachingToast({
   return (
     <div
       className={`
-        fixed bottom-4 left-1/2 -translate-x-1/2 z-50
+        fixed left-1/2 -translate-x-1/2 z-50
         max-w-md w-full mx-4
         ${bgColor} ${borderColor} border-2
         rounded-lg shadow-xl p-4
         animate-in slide-in-from-bottom
       `}
+      style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
     >
       <div className="flex items-start gap-3">
         <span className="text-2xl">{icon}</span>

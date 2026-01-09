@@ -90,7 +90,10 @@ interface AIBubbleManagerProps {
 
 export function AIBubbleManager({ bubbles, onBubbleComplete }: AIBubbleManagerProps) {
   return (
-    <div className="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-8 sm:bottom-32 z-50 space-y-2 pointer-events-none">
+    <div
+      className="fixed left-4 right-4 sm:left-auto sm:right-8 z-50 space-y-2 pointer-events-none"
+      style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
+    >
       {bubbles.map((bubble) => (
         <AIBubble
           key={bubble.id}

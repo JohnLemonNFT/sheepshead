@@ -97,6 +97,7 @@ export function InfoDrawer({
           bg-gray-900/98 backdrop-blur-lg border-r-2 border-gray-600
           transition-all duration-300 ease-out
           flex flex-col
+          pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]
           ${isOpen ? 'w-72 sm:w-80 translate-x-0' : 'w-72 sm:w-80 -translate-x-full'}
         `}
       >

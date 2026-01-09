@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732">
+  <defs>
+    <!-- Background gradient - card table green -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#111827"/>
+      <stop offset="100%" style="stop-color:#0a0f14"/>
+    </linearGradient>
+    <!-- Gold accent -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700"/>
+      <stop offset="100%" style="stop-color:#b8860b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dark background -->
+  <rect width="2732" height="2732" fill="url(#bgGrad)"/>
+
+  <!-- Center card with crown and club -->
+  <g transform="translate(1366, 1200)">
+    <!-- Card shape -->
+    <rect x="-200" y="-280" width="400" height="560" rx="24" fill="#ffffff" opacity="0.95"/>
+
+    <!-- Crown at top -->
+    <g transform="translate(0, -160)">
+      <path d="M-80 40 L-100 -40 L-50 0 L0 -60 L50 0 L100 -40 L80 40 Z"
+            fill="url(#goldGrad)" stroke="#8b6914" stroke-width="2"/>
+      <rect x="-85" y="30" width="170" height="16" rx="3" fill="url(#goldGrad)"/>
+    </g>
+
+    <!-- Large club symbol -->
+    <g transform="translate(0, 60)">
+      <circle cx="0" cy="-55" r="45" fill="#1a472a"/>
+      <circle cx="-45" cy="8" r="45" fill="#1a472a"/>
+      <circle cx="45" cy="8" r="45" fill="#1a472a"/>
+      <path d="M-20 35 L20 35 L16 100 L-16 100 Z" fill="#1a472a"/>
+      <ellipse cx="0" cy="108" rx="36" ry="14" fill="#1a472a"/>
+    </g>
+
+    <!-- Q in corner -->
+    <text x="-155" y="-180" font-family="Georgia, serif" font-size="56" font-weight="bold" fill="#1a472a">Q</text>
+  </g>
+
+  <!-- App name -->
+  <text x="1366" y="1700" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="bold" fill="#ffffff" text-anchor="middle">SHEEPSHEAD</text>
+
+  <!-- Tagline -->
+  <text x="1366" y="1780" font-family="system-ui, -apple-system, sans-serif" font-size="36" fill="#9ca3af" text-anchor="middle">The Classic Wisconsin Card Game</text>
+</svg>
