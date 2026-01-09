@@ -1,6 +1,7 @@
 // Card component for displaying playing cards - Premium Edition
 
 import { Card as CardType, isTrump, getCardPoints } from '../game/types';
+import { tapLight, tapMedium } from '../utils/haptics';
 
 interface CardProps {
   card: CardType;
@@ -81,9 +82,21 @@ export function Card({
     );
   }
 
+  const handleClick = () => {
+    if (onClick) {
+      // Haptic feedback on card tap
+      if (selected) {
+        tapLight(); // Light tap when deselecting
+      } else {
+        tapMedium(); // Medium tap when selecting/playing
+      }
+      onClick();
+    }
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled && !onClick}
       className={`
         ${sizeClasses}
@@ -94,7 +107,7 @@ export function Card({
         ${cardIsTrump ? 'card-trump' : 'shadow-lg hover:shadow-xl'}
         ${selected ? 'ring-3 sm:ring-4 ring-green-400 -translate-y-2 sm:-translate-y-3 scale-105 your-turn-glow' : ''}
         ${highlight && !disabled ? 'ring-2 ring-blue-400/70' : ''}
-        ${disabled ? 'opacity-50 cursor-not-allowed grayscale-[20%]' : 'cursor-pointer hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98]'}
+        ${disabled ? 'opacity-50 cursor-not-allowed grayscale-[20%]' : 'cursor-pointer hover:-translate-y-1 hover:scale-[1.02] active:scale-95 active:brightness-95'}
         ${animationClass}
       `}
       style={{ animationDelay: `${animationDelay}ms` }}

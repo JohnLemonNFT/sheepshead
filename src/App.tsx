@@ -29,6 +29,7 @@ import { Tutorial } from './tutorial';
 import { useOnlineGame } from './hooks/useOnlineGame';
 import { useCoaching } from './hooks/useCoaching';
 import { useSounds, playSoundEffect } from './hooks/useSounds';
+import { useHaptics } from './hooks/useHaptics';
 import { Card as CardType, PlayerPosition, Suit, getCardPoints } from './game/types';
 import { RunningScore } from './components/RunningScore';
 import { SuitHint } from './components/SuitHint';
@@ -110,8 +111,9 @@ function App() {
     coachingActions.setEnabled(gameSettings.coachingEnabled);
   }, [gameSettings.coachingEnabled, coachingActions]);
 
-  // Sound system
+  // Sound and haptic feedback systems
   useSounds();
+  useHaptics();
 
   // Watch for online state changes to transition views
   useEffect(() => {
