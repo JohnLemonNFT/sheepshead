@@ -39,7 +39,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
     pickerPosition: PlayerPosition | null;
     calledAce: { suit: Suit; revealed: boolean } | null;
     trickNumber: number;
-    currentTrickLength: number;
+    completedTricksLength: number;
     phase: string;
   } | null>(null);
 
@@ -164,9 +164,9 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
         setAnnouncement({ type: 'leaster', playerPosition: 0 });
       }
 
-      // Detect trick completion (went from <5 to 5 cards, or trick number increased)
-      if (prev.trickNumber < trickNumber && prev.currentTrickLength === 5) {
-        // Previous trick just completed - find winner from completed tricks
+      // Detect trick completion (completedTricks array grew)
+      if (completedTricks.length > prev.completedTricksLength) {
+        // New trick completed - find winner from the most recent completed trick
         const lastCompletedTrick = completedTricks[completedTricks.length - 1];
         if (lastCompletedTrick && lastCompletedTrick.winningPlayer !== undefined) {
           const points = lastCompletedTrick.cards.reduce((sum, c) => {
@@ -193,10 +193,10 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
       pickerPosition,
       calledAce,
       trickNumber,
-      currentTrickLength: currentTrick.cards.length,
+      completedTricksLength: completedTricks.length,
       phase,
     };
-  }, [pickerPosition, calledAce, trickNumber, currentTrick.cards.length, phase, completedTricks, myPosition, getPlayerName, addLogEntry, serverPlayers]);
+  }, [pickerPosition, calledAce, trickNumber, completedTricks, phase, myPosition, getPlayerName, addLogEntry, serverPlayers]);
 
   // Auto-dismiss announcements
   useEffect(() => {

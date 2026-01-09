@@ -23,6 +23,7 @@ interface InfoDrawerProps {
   partnerPosition: PlayerPosition | null;
   currentPlayer: PlayerPosition;
   handsPlayed: number;
+  playerNames?: string[];
   // Tips props
   showTips: boolean;
   phase: string;
@@ -50,6 +51,7 @@ export function InfoDrawer({
   partnerPosition,
   currentPlayer,
   handsPlayed,
+  playerNames,
   showTips,
   phase,
   hand,
@@ -144,6 +146,7 @@ export function InfoDrawer({
               partnerPosition={partnerPosition}
               currentPlayer={currentPlayer}
               handsPlayed={handsPlayed}
+              playerNames={playerNames}
             />
           )}
 

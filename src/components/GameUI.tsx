@@ -235,6 +235,15 @@ export function GameUI({ state, actions, config }: GameUIProps) {
   };
   const activePlayerRole = getActivePlayerRole();
 
+  // Helper to get player name from state (uses actual names in online mode)
+  const getPlayerName = useCallback((position: PlayerPosition): string => {
+    const player = players.find(p => p.position === position);
+    return player?.name || getPlayerDisplayInfo(position).name;
+  }, [players]);
+
+  // Array of player names for passing to child components
+  const playerNames = players.map(p => p.name);
+
   // Reset play lock when turn changes
   useEffect(() => {
     if (isHumanTurn) {
@@ -547,7 +556,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
               {phase === 'picking' && blindCount > 0 && (
                 <div className="text-center">
                   <p className="text-white/80 text-lg mb-3 font-medium">
-                    {isMyTurn ? 'Pick up the blind?' : `${getPlayerDisplayInfo(currentPlayer).name} is deciding...`}
+                    {isMyTurn ? 'Pick up the blind?' : `${getPlayerName(currentPlayer)} is deciding...`}
                   </p>
                   <div className="flex justify-center gap-2">
                     {Array.from({ length: blindCount }).map((_, i) => (
@@ -579,7 +588,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
               {phase === 'calling' && (
                 <div className="text-center">
                   <p className="text-white/80 text-lg mb-2 font-medium">
-                    {isMyTurn ? 'Call an Ace for your partner' : `${getPlayerDisplayInfo(currentPlayer).name} is calling...`}
+                    {isMyTurn ? 'Call an Ace for your partner' : `${getPlayerName(currentPlayer)} is calling...`}
                   </p>
                 </div>
               )}
@@ -603,7 +612,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
                             )}
                             <Card card={play.card} size="large" />
                             <span className={`text-xs mt-1 ${isWinner ? 'text-green-400 font-bold' : 'text-white/70'}`}>
-                              {play.playedBy === activePlayerPosition ? 'You' : getPlayerDisplayInfo(play.playedBy as PlayerPosition).name}
+                              {play.playedBy === activePlayerPosition ? 'You' : getPlayerName(play.playedBy as PlayerPosition)}
                             </span>
                           </div>
                         );
@@ -618,7 +627,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
                 <div className="bg-gradient-to-r from-yellow-500 to-amber-600 px-6 py-3 rounded-xl shadow-2xl animate-trick-winner">
                   <div className="text-center">
                     <div className="text-white text-xl font-bold">
-                      {getPlayerDisplayInfo(trickResult.winner).name}
+                      {getPlayerName(trickResult.winner)}
                     </div>
                     <div className="text-yellow-100">🏆 +{trickResult.points} points</div>
                   </div>
@@ -633,7 +642,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
                   partnerPosition={partnerPosition !== -1 ? partnerPosition as PlayerPosition : null}
                   calledSuit={calledAce?.suit || null}
                   onClose={() => {}}
-                  playerNames={[0, 1, 2, 3, 4].map(pos => getPlayerDisplayInfo(pos as PlayerPosition).name)}
+                  playerNames={playerNames}
                   activeHumanPosition={activePlayerPosition}
                 />
               )}
@@ -737,6 +746,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
         partnerPosition={partnerPosition !== -1 ? partnerPosition as PlayerPosition : null}
         currentPlayer={currentPlayer}
         handsPlayed={handsPlayed}
+        playerNames={playerNames}
         showTips={(showStrategyTips ?? false) && isHumanTurn}
         phase={phase}
         hand={activePlayer?.hand || []}
@@ -748,7 +758,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
         onClearLog={onClearLog || (() => {})}
         showAIExplanation={mode === 'local' && !!lastAIExplanation && phase === 'playing'}
         onShowExplanation={config.onShowExplanation}
-        lastAIPlayerName={lastAIExplanation ? getPlayerDisplayInfo(lastAIExplanation.playerPosition).name : undefined}
+        lastAIPlayerName={lastAIExplanation ? getPlayerName(lastAIExplanation.playerPosition) : undefined}
         statistics={statistics}
         shuffleSeed={shuffleSeed}
         onResetStatistics={onResetStatistics}

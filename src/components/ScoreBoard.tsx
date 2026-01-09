@@ -9,6 +9,7 @@ interface ScoreBoardProps {
   partnerPosition?: PlayerPosition | null;
   currentPlayer?: PlayerPosition;
   handsPlayed: number;
+  playerNames?: string[];
 }
 
 export function ScoreBoard({
@@ -17,6 +18,7 @@ export function ScoreBoard({
   partnerPosition,
   currentPlayer,
   handsPlayed,
+  playerNames,
 }: ScoreBoardProps) {
   return (
     <div className="bg-black/30 rounded-lg p-2 sm:p-3 md:p-4">
@@ -29,6 +31,8 @@ export function ScoreBoard({
           const isPartner = partnerPosition === i;
           const isCurrent = currentPlayer === i;
           const displayInfo = getPlayerDisplayInfo(i as PlayerPosition);
+          // Use provided name or fall back to displayInfo
+          const name = playerNames?.[i] || displayInfo.name;
 
           return (
             <div
@@ -42,7 +46,7 @@ export function ScoreBoard({
             >
               <span className="truncate mr-2 flex items-center gap-1.5">
                 <span>{displayInfo.avatar}</span>
-                <span>{displayInfo.name}</span>
+                <span>{name}</span>
                 {isPicker && ' (P)'}
                 {isPartner && ' (A)'}
               </span>
