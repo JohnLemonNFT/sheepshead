@@ -2,7 +2,20 @@
 
 // Home Page - Premium Landing page with navigation to game and guides
 
+import { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
+
+// Heritage fun facts - rotate through these
+const funFacts = [
+  "Sheepshead originated as 'Schafkopf' in Bavaria in the 1700s",
+  "German immigrants brought Sheepshead to Wisconsin in the 1840s",
+  "By 1880, 27% of Milwaukee's population was German-born",
+  "Milwaukee declared Sheepshead its official card game in 1983",
+  "'Schmear' comes from German 'schmieren' — to grease",
+  "The game was traditionally played on barrel heads in Bavarian taverns",
+  "Sheepshead has been played in Wisconsin for over 150 years",
+  "'Schneider' means tailor in German — you've been cut short!",
+];
 
 interface MenuCardProps {
   icon: string;
@@ -38,6 +51,15 @@ function MenuCard({ icon, title, description, onClick, gradient, delay = 0 }: Me
 
 export function HomePage() {
   const { goToSetup, goToOnline, openSettings, openRules, openStrategy, openTutorial } = useGameStore();
+
+  // Rotating fun fact
+  const [factIndex, setFactIndex] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFactIndex((prev) => (prev + 1) % funFacts.length);
+    }, 8000); // Change every 8 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen p-3 sm:p-4 md:p-8 text-white overflow-hidden">
@@ -127,7 +149,7 @@ export function HomePage() {
             <div className="group">
               <h3 className="font-bold text-white mb-1 sm:mb-2 group-hover:text-emerald-300 transition-colors">🏔️ Origins</h3>
               <p className="text-gray-400 group-hover:text-gray-300 transition-colors">
-                A trick-taking card game from Central Europe, hugely popular in German-American communities, especially Wisconsin.
+                Born as Schafkopf in Bavaria in the 1700s, brought to Wisconsin by German immigrants in the 1840s.
               </p>
             </div>
             <div className="group">
@@ -142,6 +164,12 @@ export function HomePage() {
                 Hidden partnerships, unique trump hierarchy, and strategic depth make it endlessly engaging.
               </p>
             </div>
+          </div>
+          {/* Fun Fact */}
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <p className="text-xs sm:text-sm text-amber-200/70 text-center italic transition-opacity duration-500">
+              <span className="text-amber-400">Did you know?</span> {funFacts[factIndex]}
+            </p>
           </div>
         </section>
 
@@ -184,7 +212,7 @@ export function HomePage() {
 
         {/* Footer */}
         <footer className="text-center text-emerald-200/40 text-xs sm:text-sm pb-6 sm:pb-8">
-          <p>Play solo, hotseat, or online with friends</p>
+          <p className="text-emerald-200/30">A Bavarian classic since the 1700s</p>
           <p className="mt-1 sm:mt-2 flex items-center justify-center gap-1">
             Built with <span className="text-rose-400">❤️</span> for Sheepshead fans everywhere
           </p>
