@@ -23,3 +23,5 @@ export { OnlineGame } from './OnlineGame';
 export { InfoDrawer } from './InfoDrawer';
 export { TableLayout, TableLayoutCompact } from './TableLayout';
 export { TableView } from './TableView';
+export { GameUI } from './GameUI';
+export type { GameUIState, GameUIActions, GameUIConfig, GameUIProps, PlayerData } from './GameUI';
