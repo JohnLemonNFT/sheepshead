@@ -140,28 +140,48 @@ function calculatePlayerScores(
 
 /**
  * Calculate leaster scoring (when no one picks)
- * Player with fewest points wins, takes 1 point from each other player
+ * Player(s) with fewest points win. If tied, all tied players win.
+ * Winners split points from losers.
  */
 function calculateLeasterScore(state: GameState): HandScore {
   const { players } = state;
 
-  // Find player with fewest points
-  let minPoints = Infinity;
-  let winnerPosition = 0;
-
-  for (let i = 0; i < players.length; i++) {
-    const points = calculatePlayerPoints(players[i]);
-    if (points < minPoints) {
-      minPoints = points;
-      winnerPosition = i;
-    }
-  }
-
-  // Winner gets 1 point from each other player
-  const playerScores = players.map((_, i) => ({
-    position: i as PlayerPosition,
-    points: i === winnerPosition ? players.length - 1 : -1,
+  // Calculate points for each player
+  const playerPoints = players.map((p, i) => ({
+    position: i,
+    points: calculatePlayerPoints(p),
   }));
+
+  // Find minimum points
+  const minPoints = Math.min(...playerPoints.map(p => p.points));
+
+  // Find all winners (tied for minimum)
+  const winners = playerPoints.filter(p => p.points === minPoints);
+  const winnerPositions = new Set(winners.map(w => w.position));
+  const loserCount = players.length - winners.length;
+
+  // Each winner gets (loserCount / winnerCount) points
+  // Each loser pays 1 point to be split among winners
+  // To keep it simple: each loser pays 1, winners split the pool
+  const pointsPerWinner = loserCount > 0 ? Math.floor(loserCount / winners.length) : 0;
+  const remainder = loserCount > 0 ? loserCount % winners.length : 0;
+
+  const playerScores = players.map((_, i) => {
+    if (winnerPositions.has(i)) {
+      // Winner - get base share, first winner gets remainder
+      const isFirst = i === winners[0].position;
+      return {
+        position: i as PlayerPosition,
+        points: pointsPerWinner + (isFirst ? remainder : 0),
+      };
+    } else {
+      // Loser - pays 1 point
+      return {
+        position: i as PlayerPosition,
+        points: -1,
+      };
+    }
+  });
 
   return {
     pickerTeamPoints: 0,

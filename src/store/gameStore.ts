@@ -1442,6 +1442,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     switch (decision.action.type) {
       case 'pick': actionDesc = 'picked up the blind'; break;
       case 'pass': actionDesc = 'passed'; break;
+      case 'crack': actionDesc = 'cracked! (doubled the stakes)'; break;
+      case 'recrack': actionDesc = 're-cracked! (doubled again)'; break;
+      case 'noCrack': actionDesc = 'declined to crack'; break;
+      case 'blitz': actionDesc = 'declared blitz! (has both black Queens)'; break;
       case 'bury': actionDesc = 'buried 2 cards'; break;
       case 'callAce': actionDesc = `called ${(decision.action as any).suit} ace`; break;
       case 'goAlone': actionDesc = 'is going alone'; break;

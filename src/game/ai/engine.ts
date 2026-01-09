@@ -108,6 +108,9 @@ function getPickDecision(
 
 /**
  * Get crack/recrack/noCrack decision
+ * Difficulty affects willingness to crack:
+ * - Beginner: Cracks too often (overconfident)
+ * - Expert: Only cracks with genuinely strong hands
  */
 function getCrackDecision(
   state: GameState,
@@ -116,16 +119,31 @@ function getCrackDecision(
 ): AIDecision {
   const { crackState, pickerPosition } = state;
   const isPicker = player.position === pickerPosition;
+  const difficulty = aiState.difficulty;
+
+  // Difficulty-based thresholds
+  const thresholds: Record<string, { trumpToCrack: number; acesToHelp: number; trumpToRecrack: number }> = {
+    beginner: { trumpToCrack: 2, acesToHelp: 1, trumpToRecrack: 4 },
+    intermediate: { trumpToCrack: 3, acesToHelp: 2, trumpToRecrack: 5 },
+    advanced: { trumpToCrack: 3, acesToHelp: 2, trumpToRecrack: 5 },
+    expert: { trumpToCrack: 4, acesToHelp: 2, trumpToRecrack: 5 },
+  };
+  const t = thresholds[difficulty] || thresholds.intermediate;
+
+  const trumpCount = player.hand.filter(c =>
+    c.rank === 'Q' || c.rank === 'J' || c.suit === 'diamonds'
+  ).length;
+  const queenCount = player.hand.filter(c => c.rank === 'Q').length;
+  const failAces = player.hand.filter(c =>
+    c.rank === 'A' && c.suit !== 'diamonds'
+  ).length;
 
   // If picker is deciding on recrack
   if (isPicker && crackState?.cracked) {
-    // Recrack with strong hands (4+ trump with queens)
-    const trumpCount = player.hand.filter(c =>
-      c.rank === 'Q' || c.rank === 'J' || c.suit === 'diamonds'
-    ).length;
-    const hasQueens = player.hand.filter(c => c.rank === 'Q').length >= 2;
+    // Recrack with strong hands
+    const hasQueens = queenCount >= 2;
 
-    if (trumpCount >= 5 || (trumpCount >= 4 && hasQueens)) {
+    if (trumpCount >= t.trumpToRecrack || (trumpCount >= t.trumpToRecrack - 1 && hasQueens)) {
       return {
         action: { type: 'recrack' },
         reason: 'Strong hand - re-doubling the stakes!',
@@ -139,16 +157,7 @@ function getCrackDecision(
   }
 
   // Defender deciding whether to crack
-  // Crack when you have a strong defensive hand
-  const trumpCount = player.hand.filter(c =>
-    c.rank === 'Q' || c.rank === 'J' || c.suit === 'diamonds'
-  ).length;
-  const failAces = player.hand.filter(c =>
-    c.rank === 'A' && c.suit !== 'diamonds'
-  ).length;
-
-  // Crack with 3+ trump or 2 trump + 2 fail aces
-  if (trumpCount >= 3 || (trumpCount >= 2 && failAces >= 2)) {
+  if (trumpCount >= t.trumpToCrack || (trumpCount >= t.trumpToCrack - 1 && failAces >= t.acesToHelp)) {
     return {
       action: { type: 'crack' },
       reason: 'Strong defensive hand - doubling the stakes!',

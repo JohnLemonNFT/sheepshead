@@ -57,6 +57,12 @@ export function decidePlay(
   // Determine role and strategy
   const isLeading = trick.cards.length === 0;
   const isOnPickerTeam = isPicker || isPartner;
+  const isLeaster = pickerPosition === null;
+
+  // LEASTER: Everyone plays for themselves, trying to get FEWEST points
+  if (isLeaster) {
+    return decideLeasterPlay(legalPlays, hand, trick, myPosition, knowledge);
+  }
 
   if (isLeading) {
     return decideLeadCard(
@@ -85,6 +91,112 @@ export function decidePlay(
       difficulty
     );
   }
+}
+
+/**
+ * Decide which card to play in a Leaster (no picker, lowest points wins)
+ * Strategy: Avoid winning tricks, dump high-point cards when others win
+ */
+function decideLeasterPlay(
+  legalPlays: Card[],
+  hand: Card[],
+  trick: Trick,
+  myPosition: PlayerPosition,
+  knowledge: AIGameKnowledge
+): PlayDecision {
+  const isLeading = trick.cards.length === 0;
+
+  // Sort cards by points (high to low for dumping, low to high for winning)
+  const byPointsDesc = [...legalPlays].sort((a, b) => getCardPoints(b) - getCardPoints(a));
+  const byPointsAsc = [...legalPlays].sort((a, b) => getCardPoints(a) - getCardPoints(b));
+
+  if (isLeading) {
+    // LEADING in Leaster: Lead high-point cards to force others to take them
+    // Best: Lead fail Aces/Tens - someone else will likely have to win them
+    const highPointCards = byPointsDesc.filter(c => getCardPoints(c) >= 10);
+    if (highPointCards.length > 0) {
+      // Prefer fail suits over trump (harder for others to dodge)
+      const failHighCards = highPointCards.filter(c => !isTrump(c));
+      if (failHighCards.length > 0) {
+        return {
+          card: failHighCards[0],
+          reason: 'Leaster: Leading high-point fail card to force others to take it',
+          confidence: 0.8,
+        };
+      }
+      return {
+        card: highPointCards[0],
+        reason: 'Leaster: Leading high-point card to offload points',
+        confidence: 0.75,
+      };
+    }
+
+    // No high cards - lead lowest to minimize damage if we win
+    return {
+      card: byPointsAsc[0],
+      reason: 'Leaster: Leading low card to minimize points if stuck winning',
+      confidence: 0.6,
+    };
+  }
+
+  // FOLLOWING in Leaster: Try to lose the trick
+  const leadCard = trick.cards[0].card;
+  const leadSuit = getEffectiveSuit(leadCard);
+
+  // Determine current trick winner
+  const trickWithUs = [...trick.cards];
+  let currentWinner = determineTrickWinner({ cards: trickWithUs, leadPlayer: trick.leadPlayer });
+
+  // Check what we can play
+  const trumpPlays = legalPlays.filter(c => isTrump(c));
+  const followPlays = legalPlays.filter(c => getEffectiveSuit(c) === leadSuit);
+  const canFollow = followPlays.length > 0 || (leadSuit === 'trump' && trumpPlays.length > 0);
+
+  // If we're last to play and someone else is winning, dump our highest point card
+  if (trick.cards.length === 4 && currentWinner !== myPosition) {
+    return {
+      card: byPointsDesc[0],
+      reason: 'Leaster: Dumping highest points - someone else wins this trick',
+      confidence: 0.9,
+    };
+  }
+
+  // If we must follow suit
+  if (canFollow) {
+    const relevantCards = leadSuit === 'trump' ? trumpPlays : followPlays;
+    // Try to play a card that won't win
+    // Find lowest card that stays under current winner
+    const sortedByPower = [...relevantCards].sort((a, b) => {
+      if (isTrump(a) && isTrump(b)) {
+        return getTrumpPower(a) - getTrumpPower(b);
+      }
+      return getCardPoints(a) - getCardPoints(b);
+    });
+
+    // Play lowest to try to lose
+    return {
+      card: sortedByPower[0],
+      reason: 'Leaster: Playing low to avoid winning trick',
+      confidence: 0.75,
+    };
+  }
+
+  // Can't follow - play off-suit
+  // If someone else is winning, dump high points
+  if (currentWinner !== myPosition) {
+    return {
+      card: byPointsDesc[0],
+      reason: 'Leaster: Off-suit, dumping high points to winner',
+      confidence: 0.85,
+    };
+  }
+
+  // We might win - play lowest point card
+  return {
+    card: byPointsAsc[0],
+    reason: 'Leaster: Playing lowest points in case we win',
+    confidence: 0.6,
+  };
 }
 
 /**

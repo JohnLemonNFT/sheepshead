@@ -3,7 +3,7 @@
 import { PlayerAvatar, getPlayerName } from './PlayerAvatar';
 
 interface AnnouncementProps {
-  type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin';
+  type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster';
   playerPosition: number;
   details?: string;
   onDismiss?: () => void;
@@ -70,6 +70,13 @@ export function Announcement({
           bgColor: 'bg-green-900/90',
           borderColor: 'border-green-500',
         };
+      case 'leaster':
+        return {
+          title: 'Leaster!',
+          subtitle: 'Everyone passed. Lowest points wins!',
+          bgColor: 'bg-orange-900/90',
+          borderColor: 'border-orange-500',
+        };
       default:
         return {
           title: '',
@@ -92,14 +99,21 @@ export function Announcement({
           animate-slideIn
         `}
       >
-        <div className="flex justify-center mb-4">
-          <PlayerAvatar
-            position={playerPosition}
-            size="lg"
-            isPicker={type === 'pick' || type === 'call' || type === 'goAlone'}
-            isPartner={type === 'partnerReveal'}
-          />
-        </div>
+        {type !== 'leaster' && (
+          <div className="flex justify-center mb-4">
+            <PlayerAvatar
+              position={playerPosition}
+              size="lg"
+              isPicker={type === 'pick' || type === 'call' || type === 'goAlone'}
+              isPartner={type === 'partnerReveal'}
+            />
+          </div>
+        )}
+        {type === 'leaster' && (
+          <div className="flex justify-center mb-4 text-6xl">
+            🎲
+          </div>
+        )}
 
         <h2 className="text-2xl font-bold text-white mb-2">{content.title}</h2>
         <div className="text-lg text-gray-200">{content.subtitle}</div>

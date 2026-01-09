@@ -6,7 +6,7 @@
 // This component maps local store state to GameUI's common interface
 // All game UI logic is in GameUI - this just provides the data
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { GameUI } from './GameUI';
 import type { GameUIState, GameUIActions, GameUIConfig, PlayerData } from './GameUI';
 import { useGameStore, SPEED_DELAYS } from '../store/gameStore';
@@ -74,7 +74,7 @@ export function LocalGame() {
 
   // Announcement state
   const [announcement, setAnnouncement] = useState<{
-    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal';
+    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'leaster';
     playerPosition: number;
     details?: string;
   } | null>(null);
@@ -91,6 +91,9 @@ export function LocalGame() {
     trickNumber,
     dealerPosition,
   } = gameState;
+
+  // Track previous phase for leaster detection (after destructuring)
+  const prevPhaseRef = useRef(phase);
 
   // Determine if current player is human and active
   const isCurrentPlayerHuman = playerTypes[currentPlayer] === 'human';
@@ -133,10 +136,41 @@ export function LocalGame() {
     }
   }, [lastAIExplanation, calledAce?.suit]);
 
+  // Track previous revealed state for partner detection
+  const prevRevealedRef = useRef(calledAce?.revealed);
+
+  // Detect partner reveal (when called ace is played)
+  useEffect(() => {
+    if (calledAce?.revealed && !prevRevealedRef.current) {
+      // Find the partner position
+      const partnerPlayer = players.find(p => p.isPartner);
+      if (partnerPlayer) {
+        setAnnouncement({ type: 'partnerReveal', playerPosition: partnerPlayer.position });
+        addLogEntry(
+          getPlayerDisplayInfo(partnerPlayer.position).name,
+          'revealed as partner',
+          `played the ${calledAce.suit} Ace`,
+          partnerPlayer.type === 'human',
+          'playing'
+        );
+      }
+    }
+    prevRevealedRef.current = calledAce?.revealed;
+  }, [calledAce?.revealed, calledAce?.suit, players, addLogEntry]);
+
+  // Detect leaster (phase went to playing with no picker)
+  useEffect(() => {
+    if (phase === 'playing' && prevPhaseRef.current === 'picking' && pickerPosition === null) {
+      setAnnouncement({ type: 'leaster', playerPosition: 0 });
+      addLogEntry('Game', 'Leaster - everyone passed!', 'Lowest points wins', false, 'playing');
+    }
+    prevPhaseRef.current = phase;
+  }, [phase, pickerPosition, addLogEntry]);
+
   // Auto-dismiss announcements
   useEffect(() => {
     if (announcement) {
-      const delay = announcement.type === 'call' ? 2500 : 2000;
+      const delay = announcement.type === 'call' || announcement.type === 'partnerReveal' || announcement.type === 'leaster' ? 2500 : 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);
       return () => clearTimeout(timer);
     }

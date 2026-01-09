@@ -45,7 +45,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
 
   // Announcement state
   const [announcement, setAnnouncement] = useState<{
-    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin';
+    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster';
     playerPosition: number;
     details?: string;
   } | null>(null);
@@ -158,6 +158,12 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
         }
       }
 
+      // Detect leaster (phase went to playing with no picker)
+      if (prev.phase === 'picking' && phase === 'playing' && pickerPosition === null) {
+        addLogEntry('Game', 'Leaster - everyone passed!', 'Lowest points wins', false, 'playing');
+        setAnnouncement({ type: 'leaster', playerPosition: 0 });
+      }
+
       // Detect trick completion (went from <5 to 5 cards, or trick number increased)
       if (prev.trickNumber < trickNumber && prev.currentTrickLength === 5) {
         // Previous trick just completed - find winner from completed tricks
@@ -195,7 +201,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   // Auto-dismiss announcements
   useEffect(() => {
     if (announcement) {
-      const delay = announcement.type === 'call' ? 2500 :
+      const delay = announcement.type === 'call' || announcement.type === 'leaster' ? 2500 :
                     announcement.type === 'partnerReveal' ? 3000 : 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);
       return () => clearTimeout(timer);
