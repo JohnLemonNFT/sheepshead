@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sheepshead</string>
+    <string name="title_activity_main">Sheepshead</string>
+    <string name="package_name">com.gambiter.sheepshead</string>
+    <string name="custom_url_scheme">com.gambiter.sheepshead</string>
+</resources>

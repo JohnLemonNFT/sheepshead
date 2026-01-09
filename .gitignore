@@ -33,3 +33,14 @@ coverage/
 # Temp files
 *.tmp
 *.temp
+
+# Capacitor - Native build artifacts
+ios/App/App/public/
+ios/App/Pods/
+ios/DerivedData/
+android/app/src/main/assets/public/
+android/.gradle/
+android/app/build/
+android/build/
+*.xcworkspace
+*.xcuserdata
