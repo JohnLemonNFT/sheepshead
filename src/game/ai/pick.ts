@@ -42,8 +42,8 @@ export function decideWhetherToPick(
   let score = 0;
   let reasons: string[] = [];
 
-  // Trump count is primary factor
-  score += eval_.trumpCount * 15;
+  // Trump count is primary factor (reduced from 15 to 12)
+  score += eval_.trumpCount * 12;
   if (eval_.trumpCount >= 4) {
     reasons.push(`${eval_.trumpCount} trump`);
   } else if (eval_.trumpCount >= 3) {
@@ -52,56 +52,56 @@ export function decideWhetherToPick(
     reasons.push(`only ${eval_.trumpCount} trump`);
   }
 
-  // High trump bonus
+  // High trump bonus (Queens are very valuable)
   if (eval_.hasHighTrump) {
-    score += 20;
+    score += 15;
     reasons.push('have queens');
   }
 
-  // Trump power
-  score += eval_.trumpPower;
+  // Trump power (reduced weight - already counting trump quantity)
+  score += Math.floor(eval_.trumpPower * 0.5);
 
   // Fail aces are valuable
-  score += eval_.failAces * 10;
+  score += eval_.failAces * 8;
   if (eval_.failAces > 0) {
     reasons.push(`${eval_.failAces} fail ace${eval_.failAces > 1 ? 's' : ''}`);
   }
 
   // Void suits are great for trumping
-  score += eval_.voidSuits.length * 8;
+  score += eval_.voidSuits.length * 6;
   if (eval_.voidSuits.length > 0) {
     reasons.push(`void in ${eval_.voidSuits.length} suit${eval_.voidSuits.length > 1 ? 's' : ''}`);
   }
 
   // Black queens bonus - the "Ma's" are the best trump combo
   if (hasBlackQueens) {
-    score += 25;
+    score += 18;
     reasons.push('have the Ma\'s (black queens)');
   }
 
   // POSITION 2 IS DANGEROUS - 3 players can go over you!
   // Need a stronger hand here - be more conservative
   if (isPosition2) {
-    score -= 15; // Penalty for dangerous position
+    score -= 10; // Penalty for dangerous position
     reasons.push('risky position 2');
   }
 
   // Position adjustment - later position can be more aggressive
   // Blind might have good cards, and if others passed, hand may be marginal
   if (isOnEnd || pickPosition >= 3) {
-    score += 10;
+    score += 6;
     reasons.push('late position');
   }
 
   // Having the lead is valuable with good trump
   if (hasLead && eval_.hasHighTrump) {
-    score += 8;
+    score += 5;
     reasons.push('can lead trump');
   }
 
   // Last chance adjustment - don't want leaster with bad hand
   if (isLastChance && score < thresholds.pick) {
-    score += 15; // More willing to pick to avoid leaster
+    score += 10; // More willing to pick to avoid leaster
     reasons.push('avoiding leaster');
   }
 
@@ -154,17 +154,17 @@ function getPickThresholds(difficulty: AIDifficulty): {
 } {
   switch (difficulty) {
     case 'beginner':
-      // Beginner picks too often or not enough
-      return { pick: 45, maybe: 35 };
+      // Beginner picks too often (lower threshold)
+      return { pick: 38, maybe: 30 };
     case 'intermediate':
-      // Intermediate is reasonable
-      return { pick: 55, maybe: 45 };
+      // Intermediate is reasonable - needs ~3 trump + something extra
+      return { pick: 48, maybe: 40 };
     case 'advanced':
       // Advanced is more selective
-      return { pick: 58, maybe: 48 };
+      return { pick: 52, maybe: 44 };
     case 'expert':
       // Expert knows when marginal hands work
-      return { pick: 60, maybe: 50 };
+      return { pick: 55, maybe: 47 };
   }
 }
 
