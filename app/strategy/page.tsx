@@ -76,13 +76,21 @@ export default function StrategyPage() {
               <h3 className="font-bold text-white">What to Bury</h3>
               <p className="text-xs text-gray-400">Maximize your bury points</p>
             </Link>
+            <Link href="/strategy/partner-selection" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Partner Selection</h3>
+              <p className="text-xs text-gray-400">Which ace to call</p>
+            </Link>
+            <Link href="/strategy/leading" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">When to Lead Trump</h3>
+              <p className="text-xs text-gray-400">Lead trump vs fail decisions</p>
+            </Link>
+            <Link href="/strategy/defense" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Defensive Play</h3>
+              <p className="text-xs text-gray-400">How to beat the picker</p>
+            </Link>
             <Link href="/strategy/schmearing" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
               <h3 className="font-bold text-white">Schmearing</h3>
               <p className="text-xs text-gray-400">Throw points strategically</p>
-            </Link>
-            <Link href="/rules/called-ace" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
-              <h3 className="font-bold text-white">Calling Partner</h3>
-              <p className="text-xs text-gray-400">Which ace to call</p>
             </Link>
             <Link href="/faq" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
               <h3 className="font-bold text-white">FAQ</h3>

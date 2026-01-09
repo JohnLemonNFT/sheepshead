@@ -79,9 +79,17 @@ export default function RulesPage() {
               <h3 className="font-bold text-white">Called Ace Partner</h3>
               <p className="text-xs text-gray-400">The secret partner system</p>
             </Link>
+            <Link href="/rules/jack-of-diamonds" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Jack of Diamonds Partner</h3>
+              <p className="text-xs text-gray-400">Alternative partner method</p>
+            </Link>
             <Link href="/rules/leaster" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
               <h3 className="font-bold text-white">Leaster</h3>
               <p className="text-xs text-gray-400">When everyone passes</p>
+            </Link>
+            <Link href="/rules/doublers" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Doublers</h3>
+              <p className="text-xs text-gray-400">Double stakes, redeal variant</p>
             </Link>
             <Link href="/rules/blitz" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
               <h3 className="font-bold text-white">Blitz</h3>
@@ -91,9 +99,13 @@ export default function RulesPage() {
               <h3 className="font-bold text-white">Cracking</h3>
               <p className="text-xs text-gray-400">Doubling the stakes</p>
             </Link>
-            <Link href="/faq" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
-              <h3 className="font-bold text-white">FAQ</h3>
-              <p className="text-xs text-gray-400">Common questions answered</p>
+            <Link href="/rules/3-player" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">3-Player Rules</h3>
+              <p className="text-xs text-gray-400">Three-handed variant</p>
+            </Link>
+            <Link href="/rules/4-player" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">4-Player Rules</h3>
+              <p className="text-xs text-gray-400">Four-handed variant</p>
             </Link>
           </div>
         </section>

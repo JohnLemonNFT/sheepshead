@@ -59,6 +59,25 @@ export default function LearnPage() {
           </p>
         </div>
 
+        {/* Quick Links */}
+        <section className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-600/50 rounded-xl p-6 mb-12">
+          <h2 className="text-lg font-bold text-purple-400 mb-4">Explore & Discover</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <Link href="/learn/history" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">History of Sheepshead</h3>
+              <p className="text-xs text-gray-400">From Bavaria to Wisconsin</p>
+            </Link>
+            <Link href="/learn/sheepshead-vs-euchre" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Sheepshead vs Euchre</h3>
+              <p className="text-xs text-gray-400">Compare to similar games</p>
+            </Link>
+            <Link href="/glossary" className="bg-black/30 hover:bg-black/50 p-3 rounded-lg transition-colors">
+              <h3 className="font-bold text-white">Glossary</h3>
+              <p className="text-xs text-gray-400">Key terms explained</p>
+            </Link>
+          </div>
+        </section>
+
         {/* What is Sheepshead */}
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-4">What is Sheepshead?</h2>
