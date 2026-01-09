@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Sheepshead Glossary - Card Game Terminology',
-  description: 'Complete glossary of Sheepshead terms and terminology. Learn what picker, schmear, leaster, trump, fail, bury, and other Sheepshead words mean.',
-  keywords: ['Sheepshead glossary', 'Sheepshead terms', 'card game terminology', 'picker', 'schmear', 'leaster', 'trump cards'],
+  title: 'Sheepshead Glossary - Card Game Terminology & German Origins',
+  description: 'Complete glossary of Sheepshead terms and terminology. Learn what picker, schmear, leaster, schneider, schwarz, mauer, and other Sheepshead words mean — including their German origins.',
+  keywords: ['Sheepshead glossary', 'Sheepshead terms', 'card game terminology', 'schmear', 'schneider', 'schwarz', 'mauer', 'Schafkopf terms', 'German card game words'],
   openGraph: {
-    title: 'Sheepshead Glossary - Game Terminology',
-    description: 'Complete glossary of Sheepshead terms. Learn the language of Wisconsin\'s favorite card game.',
+    title: 'Sheepshead Glossary - Terms & German Origins',
+    description: 'Complete glossary of Sheepshead terms with German origins. Learn the language of this classic card game.',
     type: 'article',
   },
 };
@@ -16,12 +16,16 @@ interface TermProps {
   term: string;
   definition: string;
   example?: string;
+  origin?: string;
 }
 
-function Term({ term, definition, example }: TermProps) {
+function Term({ term, definition, example, origin }: TermProps) {
   return (
     <div className="border-b border-gray-700 pb-4 mb-4 last:border-0">
       <dt className="text-lg font-bold text-green-400 mb-1">{term}</dt>
+      {origin && (
+        <dd className="text-xs text-amber-400/80 mb-1">German: {origin}</dd>
+      )}
       <dd className="text-gray-300 mb-2">{definition}</dd>
       {example && (
         <dd className="text-sm text-gray-500 italic">Example: {example}</dd>
@@ -53,7 +57,7 @@ export default function GlossaryPage() {
         {/* Page Title */}
         <h1 className="text-4xl font-bold mb-2">Sheepshead Glossary</h1>
         <p className="text-xl text-green-300 mb-8">
-          All the terms you need to know
+          All the terms you need to know — many with German roots
         </p>
 
         {/* Quick Jump */}
@@ -202,6 +206,7 @@ export default function GlossaryPage() {
                 term="Leaster"
                 definition="A special hand played when all 5 players pass. Everyone plays for themselves, and the player who takes the FEWEST points wins."
                 example="In a Leaster, you want to avoid winning point-heavy tricks!"
+                origin="Possibly from 'letzt' (last) — the last resort when no one picks"
               />
             </dl>
           </section>
@@ -213,6 +218,12 @@ export default function GlossaryPage() {
               <Term
                 term="The Ma's"
                 definition="Slang for the two black Queens (Q♣ and Q♠), the two highest cards in the game. Having 'The Ma's' lets you declare a Blitz."
+              />
+              <Term
+                term="Mauer"
+                definition="To deliberately pass on a pickable hand, often to avoid risk or because the blind looks unfavorable. Considered poor etiquette by some players."
+                example="He had 6 trump but mauered anyway — didn't trust the blind."
+                origin="'Mauer' — wall; you're 'walling off' and refusing to pick"
               />
             </dl>
           </section>
@@ -266,20 +277,24 @@ export default function GlossaryPage() {
             <dl>
               <Term
                 term="Schafkopf"
-                definition="The German ancestor of Sheepshead. The name means 'sheep's head' in German."
+                definition="The German ancestor of Sheepshead, originating in Bavaria in the 1700s. The name likely refers to playing on a barrel head ('Schaff' = barrel, 'Kopf' = head), though it's often translated as 'sheep's head.'"
+                origin="'Schafkopf' — barrel head, or literally 'sheep's head'"
               />
               <Term
                 term="Schmear"
                 definition="To throw high-point cards (Aces, Tens) on a trick your teammate is winning. Essential strategy for maximizing points."
                 example="When the picker wins with a Queen, their partner should schmear their A♣ for +11 points."
+                origin="'Schmieren' — to grease or smear; you're 'greasing' the trick with points"
               />
               <Term
                 term="Schneider"
                 definition="When the losing team scores fewer than 31 points. Doubles all scores for the hand."
+                origin="'Schneider' — tailor; they were 'cut short' like fabric"
               />
               <Term
                 term="Schwarz"
                 definition="When the losing team wins zero tricks. Triples all scores for the hand. Rare but devastating!"
+                origin="'Schwarz' — black; a complete shutout, as in 'blackened'"
               />
             </dl>
           </section>
