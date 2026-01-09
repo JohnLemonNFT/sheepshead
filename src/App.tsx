@@ -30,6 +30,7 @@ import { useOnlineGame } from './hooks/useOnlineGame';
 import { useCoaching } from './hooks/useCoaching';
 import { useSounds, playSoundEffect } from './hooks/useSounds';
 import { useHaptics } from './hooks/useHaptics';
+import { useServiceWorker } from './hooks/useServiceWorker';
 import { Card as CardType, PlayerPosition, Suit, getCardPoints } from './game/types';
 import { RunningScore } from './components/RunningScore';
 import { SuitHint } from './components/SuitHint';
@@ -114,6 +115,9 @@ function App() {
   // Sound and haptic feedback systems
   useSounds();
   useHaptics();
+
+  // Service worker for offline support (PWA)
+  useServiceWorker();
 
   // Watch for online state changes to transition views
   useEffect(() => {

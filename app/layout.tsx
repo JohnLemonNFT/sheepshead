@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: 'Sheepshead - Play the Classic Wisconsin Card Game Online',
   description: 'Learn and play Sheepshead, the beloved trick-taking card game from Wisconsin. Play against AI opponents, learn the rules, and master strategies.',
   keywords: ['Sheepshead', 'card game', 'Wisconsin', 'trick-taking', 'Schafkopf', 'online card game'],
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-512.png',
+    apple: '/icon-192.png',
+  },
   openGraph: {
     title: 'Sheepshead - The Classic Wisconsin Card Game',
     description: 'Learn and play Sheepshead online. Play against AI, learn rules, and master strategies.',
