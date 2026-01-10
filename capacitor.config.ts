@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.gambiter.sheepshead',
+  appId: 'org.playsheepshead.app',
   appName: 'Sheepshead',
   webDir: 'out',
   server: {

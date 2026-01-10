@@ -1,4 +1,4 @@
-package com.gambiter.sheepshead;
+package org.playsheepshead.app;
 
 import com.getcapacitor.BridgeActivity;
 
