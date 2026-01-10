@@ -41,6 +41,15 @@ export interface CalledAce {
 export interface RoomSettings {
   partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
   noPickRule: 'leaster' | 'forcedPick';
+  maxHands?: 10 | 15 | 25;
+}
+
+// Final standings for game over
+export interface FinalStanding {
+  position: PlayerPosition;
+  name: string;
+  score: number;
+  rank: number;
 }
 
 // Public room info for lobby browser
@@ -77,11 +86,19 @@ type ServerMessage =
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
   | { type: 'player_reconnected'; position: PlayerPosition; name: string }
-  | { type: 'player_timeout'; position: PlayerPosition; playerName: string }
+  | { type: 'player_inactive'; position: PlayerPosition; playerName: string }
+  | { type: 'player_active'; position: PlayerPosition }
+  | { type: 'player_kicked'; position: PlayerPosition; playerName: string }
+  | { type: 'turn_warning'; position: PlayerPosition; secondsRemaining: number }
+  | { type: 'host_transferred'; newHostPosition: PlayerPosition; newHostName: string }
+  | { type: 'room_expiring'; minutesRemaining: number }
   | { type: 'room_update'; players: PlayerInfo[] }
   | { type: 'public_rooms_list'; rooms: PublicRoomInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }
+  | { type: 'game_over'; standings: FinalStanding[]; handsPlayed: number }
+  | { type: 'play_again_vote'; position: PlayerPosition; playerName: string; votesNeeded: number; currentVotes: number }
+  | { type: 'game_restarting' }
   | { type: 'error'; message: string };
 
 // Session storage for reconnection
@@ -118,12 +135,20 @@ export interface OnlineGameState {
   roomCode: string | null;
   myPosition: PlayerPosition | null;
   isHost: boolean;
+  hostPosition: PlayerPosition;
   players: PlayerInfo[];
   gameStarted: boolean;
   gameState: ClientGameState | null;
   error: string | null;
   publicRooms: PublicRoomInfo[];
   roomSettings: RoomSettings | null;
+  turnWarning: { position: PlayerPosition; secondsRemaining: number } | null;
+  // Inactive players (can be kicked)
+  inactivePlayers: Set<PlayerPosition>;
+  // Game end state
+  gameEnded: boolean;
+  finalStandings: FinalStanding[] | null;
+  playAgainVotes: { current: number; needed: number } | null;
 }
 
 export interface OnlineGameActions {
@@ -136,6 +161,8 @@ export interface OnlineGameActions {
   leaveRoom: () => void;
   clearError: () => void;
   listPublicRooms: () => void;
+  playAgain: () => void;
+  kickInactive: (position: PlayerPosition) => void;
 }
 
 export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
@@ -145,12 +172,18 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     roomCode: null,
     myPosition: null,
     isHost: false,
+    hostPosition: 0 as PlayerPosition,
     players: [],
     gameStarted: false,
     gameState: null,
     error: null,
     publicRooms: [],
     roomSettings: null,
+    turnWarning: null,
+    inactivePlayers: new Set(),
+    gameEnded: false,
+    finalStandings: null,
+    playAgainVotes: null,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -179,6 +212,7 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
             roomCode: message.roomCode,
             myPosition: message.position,
             isHost: true,
+            hostPosition: message.position,
             players: [{
               position: message.position,
               name: pendingName.current,
@@ -237,25 +271,95 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
           break;
 
         case 'player_reconnected':
+          setState(prev => {
+            const newInactive = new Set(prev.inactivePlayers);
+            newInactive.delete(message.position);
+            return {
+              ...prev,
+              players: prev.players.map(p =>
+                p.position === message.position ? { ...p, connected: true, name: message.name } : p
+              ),
+              inactivePlayers: newInactive,
+            };
+          });
+          break;
+
+        case 'player_inactive':
+          // Player went inactive - AI taking over, can be kicked
+          console.log(`${message.playerName} is inactive - AI taking over`);
+          setState(prev => {
+            const newInactive = new Set(prev.inactivePlayers);
+            newInactive.add(message.position);
+            return {
+              ...prev,
+              inactivePlayers: newInactive,
+              turnWarning: null,
+            };
+          });
+          break;
+
+        case 'player_active':
+          // Player is back (made a move after being inactive)
+          setState(prev => {
+            const newInactive = new Set(prev.inactivePlayers);
+            newInactive.delete(message.position);
+            return {
+              ...prev,
+              inactivePlayers: newInactive,
+            };
+          });
+          break;
+
+        case 'player_kicked':
+          // Player was kicked by another player
+          console.log(`${message.playerName} was kicked`);
+          setState(prev => {
+            const newInactive = new Set(prev.inactivePlayers);
+            newInactive.delete(message.position);
+            return {
+              ...prev,
+              inactivePlayers: newInactive,
+              error: `${message.playerName} was kicked for inactivity`,
+            };
+          });
+          // Auto-clear the notification after 5 seconds
+          setTimeout(() => {
+            setState(prev => prev.error?.includes('was kicked') ? { ...prev, error: null } : prev);
+          }, 5000);
+          break;
+
+        case 'turn_warning':
+          // Warning before timeout
           setState(prev => ({
             ...prev,
-            players: prev.players.map(p =>
-              p.position === message.position ? { ...p, connected: true, name: message.name } : p
-            ),
+            turnWarning: {
+              position: message.position,
+              secondsRemaining: message.secondsRemaining,
+            },
           }));
           break;
 
-        case 'player_timeout':
-          // Player timed out - AI is taking over for them
-          console.log(`${message.playerName} timed out - AI taking over`);
+        case 'host_transferred':
+          // Host has been transferred to another player
+          console.log(`Host transferred to ${message.newHostName}`);
           setState(prev => ({
             ...prev,
-            error: `${message.playerName} took too long and is now controlled by AI`,
+            hostPosition: message.newHostPosition,
+            isHost: prev.myPosition === message.newHostPosition,
+            error: `${message.newHostName} is now the host`,
           }));
-          // Auto-clear the error after 5 seconds
+          // Auto-clear the notification after 5 seconds
           setTimeout(() => {
-            setState(prev => prev.error?.includes('took too long') ? { ...prev, error: null } : prev);
+            setState(prev => prev.error?.includes('is now the host') ? { ...prev, error: null } : prev);
           }, 5000);
+          break;
+
+        case 'room_expiring':
+          // Room will expire soon
+          setState(prev => ({
+            ...prev,
+            error: `Room will close in ${message.minutesRemaining} minutes if game doesn't start`,
+          }));
           break;
 
         case 'room_update':
@@ -284,7 +388,46 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
             ...prev,
             gameState: message.state,
             myPosition: message.yourPosition,
+            // Clear turn warning when game state changes (new turn)
+            turnWarning: prev.turnWarning?.position !== message.state.currentPlayer ? null : prev.turnWarning,
           }));
+          break;
+
+        case 'game_over':
+          // Game has ended - show final standings
+          setState(prev => ({
+            ...prev,
+            gameEnded: true,
+            finalStandings: message.standings,
+            playAgainVotes: null,
+            turnWarning: null,
+          }));
+          console.log(`Game over! ${message.handsPlayed} hands played`);
+          break;
+
+        case 'play_again_vote':
+          // Someone voted to play again
+          setState(prev => ({
+            ...prev,
+            playAgainVotes: {
+              current: message.currentVotes,
+              needed: message.votesNeeded,
+            },
+          }));
+          console.log(`${message.playerName} voted to play again (${message.currentVotes}/${message.votesNeeded})`);
+          break;
+
+        case 'game_restarting':
+          // Back to lobby - someone clicked play again
+          setState(prev => ({
+            ...prev,
+            gameEnded: false,
+            gameStarted: false,
+            finalStandings: null,
+            playAgainVotes: null,
+            gameState: null,
+          }));
+          console.log('Returning to lobby');
           break;
 
         case 'error':
@@ -362,12 +505,18 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
         roomCode: null,
         myPosition: null,
         isHost: false,
+        hostPosition: 0 as PlayerPosition,
         players: [],
         gameStarted: false,
         gameState: null,
         error: reconnectAttempts.current >= maxReconnectAttempts ? 'Connection lost. Please reconnect.' : null,
         publicRooms: [],
         roomSettings: null,
+        turnWarning: null,
+        inactivePlayers: new Set(),
+        gameEnded: false,
+        finalStandings: null,
+        playAgainVotes: null,
       });
     };
 
@@ -459,6 +608,10 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
       players: [],
       gameStarted: false,
       gameState: null,
+      inactivePlayers: new Set(),
+      gameEnded: false,
+      finalStandings: null,
+      playAgainVotes: null,
     }));
   }, []);
 
@@ -473,6 +626,24 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
       return;
     }
     wsRef.current.send(JSON.stringify({ type: 'list_public_rooms' }));
+  }, []);
+
+  // Vote to play again after game ends
+  const playAgain = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      setState(prev => ({ ...prev, error: 'Not connected to server' }));
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ type: 'play_again' }));
+  }, []);
+
+  // Kick an inactive player
+  const kickInactive = useCallback((position: PlayerPosition) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      setState(prev => ({ ...prev, error: 'Not connected to server' }));
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ type: 'kick_inactive', position }));
   }, []);
 
   // Auto-reconnect on mount if we have a saved session
@@ -503,6 +674,8 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     leaveRoom,
     clearError,
     listPublicRooms,
+    playAgain,
+    kickInactive,
   };
 
   return [state, actions];

@@ -14,7 +14,7 @@ import { InfoDrawer } from './InfoDrawer';
 import { Announcement } from './Announcement';
 import { ExplanationModal } from './ExplanationModal';
 import { SuitHint } from './SuitHint';
-import { CalledAceBadge } from './CalledAceIndicator';
+import { CalledAceBadge, CalledAceIndicator } from './CalledAceIndicator';
 import { CoachingToast, HandSummaryModal } from './CoachingToast';
 import type { Card as CardType, PlayerPosition, Suit, GamePhase, Trick } from '../game/types';
 import { getCardPoints, isTrump } from '../game/types';
@@ -274,10 +274,10 @@ export function GameUI({ state, actions, config }: GameUIProps) {
     }
   }, [currentPlayer, isHumanTurn, trickNumber]);
 
-  // Auto-clear trick result
+  // Auto-clear trick result (3 seconds for better visibility)
   useEffect(() => {
     if (trickResult && onClearTrickResult) {
-      const timer = setTimeout(onClearTrickResult, 2000);
+      const timer = setTimeout(onClearTrickResult, 3000);
       return () => clearTimeout(timer);
     }
   }, [trickResult, onClearTrickResult]);
@@ -411,7 +411,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
         `}>
           {displayInfo.avatar}
           {isDealer && (
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white border-2 border-gray-800 rounded-full flex items-center justify-center text-[10px] font-black text-gray-800">
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-500 border-2 border-amber-300 rounded-full flex items-center justify-center text-[11px] font-black text-white shadow-md">
               D
             </div>
           )}
@@ -431,6 +431,9 @@ export function GameUI({ state, actions, config }: GameUIProps) {
         <span className={`mt-1 text-xs sm:text-sm font-medium ${getPlayerNameColor(isCurrent, isPicker, isPartnerRevealed)}`}>
           {player.name}
         </span>
+        {isDealer && (
+          <span className="text-[10px] text-amber-400 font-medium">Dealer</span>
+        )}
         {mode === 'online' && (
           <span className="text-[10px] text-gray-500">{player.cardCount} cards</span>
         )}
@@ -552,6 +555,11 @@ export function GameUI({ state, actions, config }: GameUIProps) {
           {/* Center game area */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 max-w-lg px-4">
+              {/* Called Ace indicator - always visible during play */}
+              {phase === 'playing' && calledAce && (
+                <CalledAceIndicator suit={calledAce.suit} revealed={calledAce.revealed} size="sm" />
+              )}
+
               {/* Running score - only after partner revealed */}
               {phase === 'playing' && pickerPosition !== null && calledAce?.revealed && (
                 <div className="flex gap-2">
@@ -634,14 +642,18 @@ export function GameUI({ state, actions, config }: GameUIProps) {
                 </div>
               )}
 
-              {/* Trick winner announcement */}
+              {/* Trick winner announcement - prominent overlay */}
               {trickResult && (
-                <div className="bg-gradient-to-r from-yellow-500 to-amber-600 px-6 py-3 rounded-xl shadow-2xl animate-trick-winner">
-                  <div className="text-center">
-                    <div className="text-white text-xl font-bold">
-                      {getPlayerName(trickResult.winner)}
+                <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+                  <div className="bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 px-8 py-5 rounded-2xl shadow-2xl animate-trick-winner border-4 border-yellow-300">
+                    <div className="text-center">
+                      <div className="text-white text-2xl sm:text-3xl font-black drop-shadow-md">
+                        {trickResult.winner === activePlayerPosition ? 'You Won!' : `${getPlayerName(trickResult.winner)} Wins!`}
+                      </div>
+                      <div className="text-yellow-100 text-lg sm:text-xl font-bold mt-1">
+                        🏆 +{trickResult.points} points
+                      </div>
                     </div>
-                    <div className="text-yellow-100">🏆 +{trickResult.points} points</div>
                   </div>
                 </div>
               )}
@@ -692,6 +704,15 @@ export function GameUI({ state, actions, config }: GameUIProps) {
         {/* Your Hand */}
         {activePlayer && (
           <div className="relative z-20 pb-4">
+            {/* Dealer indicator for human player */}
+            {activePlayerPosition === dealerPosition && (
+              <div className="text-center mb-1">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 border border-amber-500/50 rounded-full text-amber-400 text-xs font-medium">
+                  <span className="w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">D</span>
+                  You are dealing
+                </span>
+              </div>
+            )}
             {isHumanTurn && phase === 'burying' && (
               <div className="text-center mb-2 text-base sm:text-lg text-yellow-400 font-medium">
                 Select 2 cards to bury

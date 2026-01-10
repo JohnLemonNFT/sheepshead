@@ -17,12 +17,24 @@ import {
   getPublicRooms,
   broadcast,
   sendTo,
-  convertToAI,
+  markInactive,
+  markActive,
+  isInactive,
+  kickPlayer,
   isPositionAI,
   clearTurnTimer,
   getRoomCount,
   cleanupConnection,
   getStats,
+  startLobbyExpiration,
+  clearLobbyExpiration,
+  setOnRoomDeleteCallback,
+  getFinalStandings,
+  resetRoomForNewGame,
+  clearGameEndTimer,
+  getConnectedHumanCount,
+  deleteRoom,
+  hasConnectedHumans,
 } from './room.js';
 import {
   createGameState,
@@ -31,6 +43,13 @@ import {
   getClientGameState,
   getAIAction,
 } from './game.js';
+import {
+  saveRoomState,
+  deleteRoomBackup,
+  startAutoSave,
+  stopAutoSave,
+  cleanupOldBackups,
+} from './persistence.js';
 import type { ClientMessage, ServerMessage, PlayerPosition } from './types.js';
 
 // ============================================
@@ -38,7 +57,8 @@ import type { ClientMessage, ServerMessage, PlayerPosition } from './types.js';
 // ============================================
 
 const PORT = parseInt(process.env.PORT || '3001');
-const TURN_TIMEOUT_MS = 60000; // 60 seconds to make a move
+const INACTIVITY_THRESHOLD_MS = 45000; // 45 seconds before marked inactive
+const INACTIVITY_WARNING_MS = 30000; // Warning at 30 seconds (15 seconds before inactive)
 
 // Server limits - adjust based on your Render plan
 const MAX_CONNECTIONS = parseInt(process.env.MAX_CONNECTIONS || '500');
@@ -133,12 +153,21 @@ const wss = new WebSocketServer({
   maxPayload: MAX_MESSAGE_SIZE,
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Sheepshead server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Stats: http://localhost:${PORT}/stats`);
   console.log(`WebSocket: ws://localhost:${PORT}`);
   console.log(`Limits: ${MAX_CONNECTIONS} connections, ${MAX_ROOMS} rooms`);
+
+  // Set up room deletion callback for persistence cleanup
+  setOnRoomDeleteCallback((code) => {
+    stopAutoSave(code);
+    deleteRoomBackup(code);
+  });
+
+  // Clean up old game backups on startup
+  await cleanupOldBackups();
 });
 
 // ============================================
@@ -238,8 +267,25 @@ wss.on('connection', (ws: WebSocket, req) => {
     console.log(`Client disconnected from ${connInfo?.ip || 'unknown'}`);
 
     // Clean up room association
-    const room = leaveRoom(ws);
-    if (room) {
+    const result = leaveRoom(ws);
+    if (result) {
+      const { room, hostTransferred, allHumansLeft } = result;
+
+      // If all humans left during a game, pause AI and log
+      if (allHumansLeft && room.gameState) {
+        console.log(`Room ${room.code}: All humans disconnected, game paused (AI waiting)`);
+        // Game state is preserved - if anyone rejoins, game can continue
+      }
+
+      // Notify about host transfer if it happened
+      if (hostTransferred) {
+        broadcast(room, {
+          type: 'host_transferred',
+          newHostPosition: hostTransferred.position,
+          newHostName: hostTransferred.newHost.name,
+        });
+      }
+
       broadcast(room, {
         type: 'room_update',
         players: getPlayerInfoList(room),
@@ -287,6 +333,14 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
           sendTo(ws, { type: 'error', message: 'Failed to create room' });
           return;
         }
+
+        // Start lobby expiration timer (30 minutes)
+        startLobbyExpiration(room, (r, minutesRemaining) => {
+          broadcast(r, {
+            type: 'room_expiring',
+            minutesRemaining,
+          });
+        });
 
         const response: ServerMessage = {
           type: 'room_created',
@@ -377,6 +431,13 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
 
         if (room.gameStarted && room.gameState) {
           broadcastGameState(room);
+          // If it's this player's turn, restart their turn timer (clears old one)
+          if (room.gameState.currentPlayer === position) {
+            clearTurnTimer(room);
+            startTurnTimer(room);
+          }
+          // Resume AI loop if game was paused (no humans were connected)
+          runAILoop(room);
         }
 
         console.log(`${playerName} rejoined room ${room.code} at position ${position}`);
@@ -406,8 +467,15 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
           return;
         }
 
+        // Clear lobby expiration timer - game is starting
+        clearLobbyExpiration(room.code);
+
         room.gameStarted = true;
         room.gameState = createGameState(room);
+
+        // Save initial game state and start auto-save
+        saveRoomState(room);
+        startAutoSave(room);
 
         broadcast(room, { type: 'game_started' });
         broadcastGameState(room);
@@ -432,6 +500,18 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
 
         clearTurnTimer(room);
 
+        // Player made a move - mark them as active (no longer inactive)
+        const wasInactive = isInactive(room, info.position);
+        markActive(room, info.position);
+
+        // Notify others if player was inactive and is now back
+        if (wasInactive) {
+          broadcast(room, {
+            type: 'player_active',
+            position: info.position,
+          });
+        }
+
         const success = applyAction(room.gameState, info.position, message.action);
         if (!success) {
           sendTo(ws, { type: 'error', message: 'Invalid action' });
@@ -440,6 +520,8 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
 
         if (room.gameState.phase === 'scoring') {
           calculateScores(room.gameState, room);
+          // Save game state after scoring
+          saveRoomState(room);
           scheduleNewHand(room);
         }
 
@@ -449,12 +531,120 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
       }
 
       case 'leave_room': {
-        const room = leaveRoom(ws);
-        if (room) {
+        const result = leaveRoom(ws);
+        if (result) {
+          const { room, hostTransferred } = result;
+
+          // Notify about host transfer if it happened
+          if (hostTransferred) {
+            broadcast(room, {
+              type: 'host_transferred',
+              newHostPosition: hostTransferred.position,
+              newHostName: hostTransferred.newHost.name,
+            });
+          }
+
           broadcast(room, {
             type: 'room_update',
             players: getPlayerInfoList(room),
           });
+        }
+        break;
+      }
+
+      case 'play_again': {
+        const info = getRoomInfo(ws);
+        if (!info) {
+          sendTo(ws, { type: 'error', message: 'Not in a room' });
+          return;
+        }
+
+        const room = getRoom(info.roomCode);
+        if (!room) {
+          sendTo(ws, { type: 'error', message: 'Room not found' });
+          return;
+        }
+
+        if (!room.gameEnded) {
+          sendTo(ws, { type: 'error', message: 'Game is not over' });
+          return;
+        }
+
+        // Clear the game end timer
+        clearGameEndTimer(room);
+
+        // Reset room to lobby state
+        resetRoomForNewGame(room);
+
+        // Notify all players - back to lobby
+        broadcast(room, { type: 'game_restarting' });
+        broadcast(room, {
+          type: 'room_update',
+          players: getPlayerInfoList(room),
+        });
+
+        console.log(`Room ${room.code} returned to lobby`);
+        break;
+      }
+
+      case 'kick_inactive': {
+        const info = getRoomInfo(ws);
+        if (!info) {
+          sendTo(ws, { type: 'error', message: 'Not in a room' });
+          return;
+        }
+
+        const room = getRoom(info.roomCode);
+        if (!room || !room.gameStarted) {
+          sendTo(ws, { type: 'error', message: 'Game not in progress' });
+          return;
+        }
+
+        const targetPosition = message.position;
+
+        // Can't kick yourself
+        if (targetPosition === info.position) {
+          sendTo(ws, { type: 'error', message: 'Cannot kick yourself' });
+          return;
+        }
+
+        // Can only kick inactive players
+        if (!isInactive(room, targetPosition)) {
+          sendTo(ws, { type: 'error', message: 'Player is not inactive' });
+          return;
+        }
+
+        const targetPlayer = room.players.get(targetPosition);
+        const targetName = targetPlayer?.name || `Player ${targetPosition + 1}`;
+
+        // Kick the player (returns null if already kicked - handles race condition)
+        const kickedWs = kickPlayer(room, targetPosition);
+        if (kickedWs === null) {
+          // Player was already kicked by another request
+          return;
+        }
+
+        // Notify everyone
+        broadcast(room, {
+          type: 'player_kicked',
+          position: targetPosition,
+          playerName: targetName,
+        });
+
+        // Send message to kicked player and close connection
+        if (kickedWs && kickedWs.readyState === WebSocket.OPEN) {
+          sendTo(kickedWs, {
+            type: 'error',
+            message: 'You were kicked for inactivity',
+          });
+          kickedWs.close(1000, 'Kicked for inactivity');
+        }
+
+        console.log(`${targetName} was kicked by ${room.players.get(info.position)?.name}`);
+
+        // If kicked player was current player, AI needs to play for them immediately
+        if (room.gameState && room.gameState.currentPlayer === targetPosition) {
+          runAILoop(room);
         }
         break;
       }
@@ -501,9 +691,19 @@ function broadcastGameState(room: import('./room.js').Room): void {
 // Track scheduled timers per room for cleanup
 const roomTimers = new Map<string, Set<NodeJS.Timeout>>();
 
+// Game end room closure timeout (2 minutes)
+const GAME_END_TIMEOUT_MS = 2 * 60 * 1000;
+
 function scheduleNewHand(room: import('./room.js').Room): void {
+  // Check if game is over (maxHands reached)
+  if (room.handsPlayed >= room.settings.maxHands) {
+    endGame(room);
+    return;
+  }
+
   const timer = setTimeout(() => {
-    if (room.gameState) {
+    // Don't start new hand if game has ended (handles race condition)
+    if (room.gameState && !room.gameEnded) {
       room.gameState = createGameState(room);
       broadcastGameState(room);
       runAILoop(room);
@@ -519,9 +719,40 @@ function scheduleNewHand(room: import('./room.js').Room): void {
   roomTimers.get(room.code)!.add(timer);
 }
 
+function endGame(room: import('./room.js').Room): void {
+  room.gameEnded = true;
+  room.playAgainVotes.clear();
+  clearTurnTimer(room);
+  stopAutoSave(room.code);
+
+  // Get final standings
+  const standings = getFinalStandings(room);
+
+  // Broadcast game over
+  broadcast(room, {
+    type: 'game_over',
+    standings,
+    handsPlayed: room.handsPlayed,
+  });
+
+  console.log(`Game over in room ${room.code} after ${room.handsPlayed} hands`);
+
+  // Start 2-minute timer to close room if no play again
+  room.gameEndTimer = setTimeout(() => {
+    console.log(`Room ${room.code} closing - no play again votes after game end`);
+    deleteRoom(room.code);
+  }, GAME_END_TIMEOUT_MS);
+}
+
 function runAILoop(room: import('./room.js').Room): void {
   if (!room.gameState) return;
   if (room.gameState.phase === 'scoring' || room.gameState.phase === 'gameOver') return;
+
+  // Don't run AI if no humans are connected - game is paused
+  if (!hasConnectedHumans(room)) {
+    console.log(`Room ${room.code}: AI loop paused - no humans connected`);
+    return;
+  }
 
   const currentPlayer = room.gameState.currentPlayer;
   const isAI = isPositionAI(room, currentPlayer);
@@ -563,11 +794,30 @@ function runAILoop(room: import('./room.js').Room): void {
 function startTurnTimer(room: import('./room.js').Room): void {
   if (!room.gameState) return;
 
+  // Don't timeout during burying/calling - picker needs time for these decisions
+  // They can still be kicked if they were previously marked inactive
+  if (room.gameState.phase === 'burying' || room.gameState.phase === 'calling') {
+    return;
+  }
+
   clearTurnTimer(room);
 
   const currentPlayer = room.gameState.currentPlayer;
   room.turnStartTime = Date.now();
 
+  // Set warning timer (15 seconds before inactive)
+  room.turnWarningTimer = setTimeout(() => {
+    if (!room.gameState) return;
+    if (room.gameState.currentPlayer !== currentPlayer) return;
+
+    broadcast(room, {
+      type: 'turn_warning',
+      position: currentPlayer,
+      secondsRemaining: 15,
+    });
+  }, INACTIVITY_WARNING_MS);
+
+  // Set inactivity timer - AI takes over, others can kick
   room.turnTimer = setTimeout(() => {
     if (!room.gameState) return;
     if (room.gameState.currentPlayer !== currentPlayer) return;
@@ -575,17 +825,21 @@ function startTurnTimer(room: import('./room.js').Room): void {
     const player = room.players.get(currentPlayer);
     const playerName = player?.name || `Player ${currentPlayer + 1}`;
 
-    convertToAI(room, currentPlayer);
+    // Mark player as inactive (AI takes over, can be kicked by others)
+    markInactive(room, currentPlayer);
 
+    // Notify all players - they can now kick this player
     broadcast(room, {
-      type: 'player_timeout',
+      type: 'player_inactive',
       position: currentPlayer,
       playerName,
     });
 
-    console.log(`Player ${playerName} at position ${currentPlayer} timed out`);
+    console.log(`Player ${playerName} at position ${currentPlayer} is now inactive`);
+
+    // AI takes over for this turn
     runAILoop(room);
-  }, TURN_TIMEOUT_MS);
+  }, INACTIVITY_THRESHOLD_MS);
 }
 
 // Export for room.ts to clean up timers

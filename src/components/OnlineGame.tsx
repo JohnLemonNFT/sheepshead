@@ -6,11 +6,11 @@
 // This component maps WebSocket state to GameUI's common interface
 // All game UI logic is in GameUI - this just provides the data
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameUI } from './GameUI';
 import type { GameUIState, GameUIActions, GameUIConfig, PlayerData } from './GameUI';
 import type { OnlineGameState, OnlineGameActions } from '../hooks/useOnlineGame';
-import type { Card as CardType, PlayerPosition, Suit } from '../game/types';
+import type { Card as CardType, PlayerPosition, Suit, Trick } from '../game/types';
 import { isTrump, getCardPoints } from '../game/types';
 import { getPlayerDisplayInfo } from '../game/ai/personalities';
 import { Announcement } from './Announcement';
@@ -29,7 +29,7 @@ interface TrickResult {
 }
 
 export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
-  const { myPosition, gameState, error, roomCode } = onlineState;
+  const { myPosition, gameState, error, roomCode, gameEnded, finalStandings, inactivePlayers } = onlineState;
 
   // Get modal openers and goToHome from game store
   const { openSettings, openRules, openStrategy, goToHome } = useGameStore();
@@ -57,62 +57,32 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   // Game log (built from state changes)
   const [gameLog, setGameLog] = useState<LogEntry[]>([]);
 
-  // Loading state - show before GameUI
-  if (!gameState || myPosition === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white bg-felt-table">
-        <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">Loading game...</div>
-          <div className="text-gray-300">Room: {roomCode}</div>
-        </div>
-      </div>
-    );
-  }
+  // Log ID counter
+  const logIdRef = useRef(0);
 
-  const {
-    phase,
-    players: serverPlayers,
-    blind,
-    currentTrick,
-    completedTricks = [],
-    currentPlayer,
-    dealerPosition,
-    pickerPosition,
-    calledAce,
-    trickNumber,
-    playerScores,
-    handsPlayed,
-  } = gameState;
+  // Extract values from gameState (with safe defaults for when loading)
+  const phase = gameState?.phase ?? 'dealing';
+  const serverPlayers = gameState?.players ?? [];
+  const blind = gameState?.blind ?? 0;
+  const currentTrick: Trick = gameState?.currentTrick ?? { cards: [], leadPlayer: 0 as PlayerPosition };
+  const completedTricks = gameState?.completedTricks ?? [];
+  const currentPlayer = gameState?.currentPlayer ?? (0 as PlayerPosition);
+  const dealerPosition = gameState?.dealerPosition ?? (0 as PlayerPosition);
+  const pickerPosition = gameState?.pickerPosition ?? null;
+  const calledAce = gameState?.calledAce ?? null;
+  const trickNumber = gameState?.trickNumber ?? 1;
+  const playerScores = gameState?.playerScores ?? [0, 0, 0, 0, 0];
+  const handsPlayed = gameState?.handsPlayed ?? 0;
 
   // Find my player data
   const myPlayer = serverPlayers.find(p => p.position === myPosition);
   const myHand = myPlayer?.hand || [];
-
-  // Map server players to GameUI PlayerData format
-  const players: PlayerData[] = serverPlayers.map(p => {
-    const displayInfo = getPlayerDisplayInfo(p.position);
-    return {
-      position: p.position,
-      name: p.name || displayInfo.name,
-      hand: p.position === myPosition ? (p.hand || []) : [],
-      cardCount: p.cardCount,
-      isPicker: p.isPicker,
-      // SECURITY FIX: Only expose isPartner for yourself or after revealed
-      isPartner: p.position === myPosition ? p.isPartner : (calledAce?.revealed ? p.isPartner : false),
-      isDealer: p.position === dealerPosition,
-      type: p.isAI ? 'ai' : 'human',
-      connected: p.connected,
-    };
-  });
 
   // Get player name helper
   const getPlayerName = useCallback((position: PlayerPosition): string => {
     const player = serverPlayers.find(p => p.position === position);
     return player?.name || getPlayerDisplayInfo(position).name;
   }, [serverPlayers]);
-
-  // Log ID counter
-  const logIdRef = useRef(0);
 
   // Add log entry helper
   const addLogEntry = useCallback((player: string, action: string, reason: string = '', isHuman: boolean = true, logPhase: string = '') => {
@@ -130,6 +100,9 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
 
   // Detect state changes and trigger announcements/log entries
   useEffect(() => {
+    // Only run detection logic when we have valid game state
+    if (!gameState || myPosition === null) return;
+
     const prev = prevStateRef.current;
 
     if (prev) {
@@ -192,13 +165,13 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
       phase,
       dealerPosition,
     };
-  }, [pickerPosition, calledAce, trickNumber, completedTricks, phase, dealerPosition, myPosition, getPlayerName, addLogEntry, serverPlayers]);
+  }, [gameState, myPosition, pickerPosition, calledAce, trickNumber, completedTricks, phase, dealerPosition, getPlayerName, addLogEntry, serverPlayers]);
 
   // Auto-dismiss announcements
   useEffect(() => {
     if (announcement) {
       const announcementDelays: Record<string, number> = {
-        call: 2500, leaster: 2500, partnerReveal: 3000, dealer: 1800
+        call: 2500, leaster: 2500, partnerReveal: 3000, dealer: 2500
       };
       const delay = announcementDelays[announcement.type] ?? 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);
@@ -209,7 +182,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   // Auto-clear trick result
   useEffect(() => {
     if (trickResult) {
-      const timer = setTimeout(() => setTrickResult(null), 2000);
+      const timer = setTimeout(() => setTrickResult(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [trickResult]);
@@ -258,6 +231,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
 
   // Wrapped handlers with logging and announcements for human player
   const handlePick = useCallback(() => {
+    if (myPosition === null) return;
     const myName = getPlayerName(myPosition);
     addLogEntry(myName, 'picked up the blind', '', true, 'picking');
     setAnnouncement({ type: 'pick', playerPosition: myPosition });
@@ -268,12 +242,14 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   }, [myPosition, getPlayerName, addLogEntry, onlineActions]);
 
   const handlePass = useCallback(() => {
+    if (myPosition === null) return;
     const myName = getPlayerName(myPosition);
     addLogEntry(myName, 'passed', '', true, 'picking');
     onlineActions.sendAction({ type: 'pass' });
   }, [myPosition, getPlayerName, addLogEntry, onlineActions]);
 
   const handleCallAce = useCallback((suit: Suit) => {
+    if (myPosition === null) return;
     const myName = getPlayerName(myPosition);
     addLogEntry(myName, `called ${suit} ace`, '', true, 'calling');
     setAnnouncement({ type: 'call', playerPosition: myPosition, details: suit });
@@ -284,6 +260,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   }, [myPosition, getPlayerName, addLogEntry, onlineActions]);
 
   const handleGoAlone = useCallback(() => {
+    if (myPosition === null) return;
     const myName = getPlayerName(myPosition);
     addLogEntry(myName, 'going alone', '', true, 'calling');
     setAnnouncement({ type: 'goAlone', playerPosition: myPosition });
@@ -294,6 +271,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   }, [myPosition, getPlayerName, addLogEntry, onlineActions]);
 
   const handleBury = useCallback((cards: [CardType, CardType]) => {
+    if (myPosition === null) return;
     const myName = getPlayerName(myPosition);
     const pts = cards.reduce((sum, c) => sum + getCardPoints(c), 0);
     addLogEntry(myName, `buried 2 cards (${pts} pts)`, '', true, 'burying');
@@ -301,10 +279,137 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
   }, [myPosition, getPlayerName, addLogEntry, onlineActions]);
 
   const handlePlayCard = useCallback((card: CardType) => {
+    if (myPosition === null) return;
     const myName = getPlayerName(myPosition);
     addLogEntry(myName, `played ${card.rank} of ${card.suit}`, '', true, 'playing');
     onlineActions.sendAction({ type: 'playCard', card });
   }, [myPosition, getPlayerName, addLogEntry, onlineActions]);
+
+  // Loading state - show AFTER all hooks have been called
+  if (!gameState || myPosition === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white bg-felt-table">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-pulse">Loading game...</div>
+          <div className="text-gray-300">Room: {roomCode}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Game Over Screen
+  if (gameEnded && finalStandings) {
+    // Find my standing
+    const myStanding = finalStandings.find(s => s.position === myPosition);
+    const myRank = myStanding?.rank ?? 0;
+
+    // Medal emojis for top 3
+    const getMedal = (rank: number) => {
+      if (rank === 1) return '🥇';
+      if (rank === 2) return '🥈';
+      if (rank === 3) return '🥉';
+      return '';
+    };
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-white bg-felt-table p-4">
+        <div className="bg-black/70 rounded-2xl p-6 sm:p-8 max-w-md w-full">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold mb-2">Game Over!</h1>
+            <p className="text-gray-400 text-sm">
+              {handsPlayed} hands played
+            </p>
+          </div>
+
+          {/* Your result */}
+          <div className="text-center mb-6 py-4 bg-amber-900/30 rounded-lg">
+            <p className="text-gray-400 text-sm mb-1">Your Finish</p>
+            <div className="text-4xl font-bold">
+              {getMedal(myRank)} #{myRank}
+            </div>
+            <p className="text-2xl text-amber-400 mt-1">
+              {myStanding?.score ?? 0} points
+            </p>
+          </div>
+
+          {/* Leaderboard */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3 text-center">Final Standings</h2>
+            <div className="space-y-2">
+              {finalStandings.map((standing) => (
+                <div
+                  key={standing.position}
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    standing.position === myPosition
+                      ? 'bg-amber-600/30 border border-amber-500/50'
+                      : 'bg-black/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl w-8 text-center">
+                      {getMedal(standing.rank) || `#${standing.rank}`}
+                    </span>
+                    <span className={standing.position === myPosition ? 'font-bold' : ''}>
+                      {standing.name}
+                      {standing.position === myPosition && ' (You)'}
+                    </span>
+                  </div>
+                  <span className="font-mono text-lg">
+                    {standing.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={() => onlineActions.playAgain()}
+              className="w-full py-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold text-lg transition-colors"
+            >
+              Back to Lobby
+            </button>
+
+            <button
+              onClick={() => {
+                onlineActions.leaveRoom();
+                goToHome();
+              }}
+              className="w-full py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors"
+            >
+              Leave Room
+            </button>
+          </div>
+        </div>
+
+        {/* Error banner */}
+        {error && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-red-900/90 p-3 text-center text-red-200 text-sm">
+            {error}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Map server players to GameUI PlayerData format
+  const players: PlayerData[] = serverPlayers.map(p => {
+    const displayInfo = getPlayerDisplayInfo(p.position);
+    return {
+      position: p.position,
+      name: p.name || displayInfo.name,
+      hand: p.position === myPosition ? (p.hand || []) : [],
+      cardCount: p.cardCount,
+      isPicker: p.isPicker,
+      // SECURITY FIX: Only expose isPartner for yourself or after revealed
+      isPartner: p.position === myPosition ? p.isPartner : (calledAce?.revealed ? p.isPartner : false),
+      isDealer: p.position === dealerPosition,
+      type: p.isAI ? 'ai' : 'human',
+      connected: p.connected,
+    };
+  });
 
   // Build GameUIState
   const gameUIState: GameUIState = {
@@ -388,6 +493,30 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
           {error}
         </div>
       )}
+
+      {/* Inactive player notification with kick button */}
+      {inactivePlayers.size > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-40 bg-amber-900/95 p-2 text-center">
+          {Array.from(inactivePlayers).map(pos => {
+            const player = serverPlayers.find(p => p.position === pos);
+            const playerName = player?.name || `Player ${pos + 1}`;
+            // Don't show kick button for yourself
+            if (pos === myPosition) return null;
+            return (
+              <div key={pos} className="flex items-center justify-center gap-3 text-amber-100">
+                <span className="text-sm">{playerName} is inactive (AI playing)</span>
+                <button
+                  onClick={() => onlineActions.kickInactive(pos)}
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs font-semibold transition-colors"
+                >
+                  Kick
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <GameUI state={gameUIState} actions={gameUIActions} config={gameUIConfig} />
 
       {/* Announcement overlay */}

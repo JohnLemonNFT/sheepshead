@@ -95,6 +95,7 @@ export interface PlayerInfo {
 export interface RoomSettings {
   partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
   noPickRule: 'leaster' | 'forcedPick';
+  maxHands: 10 | 15 | 25; // Quick (10), Standard (15), Full (25)
 }
 
 // Public room info for lobby browser
@@ -116,7 +117,17 @@ export type ClientMessage =
   | { type: 'start_game' }
   | { type: 'action'; action: GameAction }
   | { type: 'leave_room' }
-  | { type: 'set_ai'; position: PlayerPosition; enabled: boolean };
+  | { type: 'set_ai'; position: PlayerPosition; enabled: boolean }
+  | { type: 'play_again' } // Return to lobby after game ends
+  | { type: 'kick_inactive'; position: PlayerPosition }; // Kick an inactive player
+
+// Final standings for game over
+export interface FinalStanding {
+  position: PlayerPosition;
+  name: string;
+  score: number;
+  rank: number;
+}
 
 // Server → Client messages
 export type ServerMessage =
@@ -126,11 +137,19 @@ export type ServerMessage =
   | { type: 'player_joined'; player: PlayerInfo }
   | { type: 'player_left'; position: PlayerPosition }
   | { type: 'player_reconnected'; position: PlayerPosition; name: string }
-  | { type: 'player_timeout'; position: PlayerPosition; playerName: string }
+  | { type: 'player_inactive'; position: PlayerPosition; playerName: string } // Player went inactive, AI taking over, kick option available
+  | { type: 'player_active'; position: PlayerPosition } // Player is back (made a move)
+  | { type: 'player_kicked'; position: PlayerPosition; playerName: string } // Player was kicked by another player
+  | { type: 'turn_warning'; position: PlayerPosition; secondsRemaining: number }
+  | { type: 'host_transferred'; newHostPosition: PlayerPosition; newHostName: string }
+  | { type: 'room_expiring'; minutesRemaining: number }
   | { type: 'room_update'; players: PlayerInfo[] }
   | { type: 'public_rooms_list'; rooms: PublicRoomInfo[] }
   | { type: 'game_started' }
   | { type: 'game_state'; state: ClientGameState; yourPosition: PlayerPosition }
+  | { type: 'game_over'; standings: FinalStanding[]; handsPlayed: number }
+  | { type: 'play_again_vote'; position: PlayerPosition; playerName: string; votesNeeded: number; currentVotes: number }
+  | { type: 'game_restarting' }
   | { type: 'error'; message: string };
 
 // Game state sent to clients (with hidden cards)

@@ -181,7 +181,7 @@ export function LocalGame() {
   useEffect(() => {
     if (announcement) {
       const delay = announcement.type === 'call' || announcement.type === 'partnerReveal' || announcement.type === 'leaster' ? 2500 :
-                    announcement.type === 'dealer' ? 1800 : 2000;
+                    announcement.type === 'dealer' ? 2500 : 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);
       return () => clearTimeout(timer);
     }

@@ -19,6 +19,7 @@ export interface Room {
   hostPosition: PlayerPosition;
   gameState: GameState | null;
   gameStarted: boolean;
+  gameEnded: boolean; // True when maxHands reached
   // Room visibility and settings
   isPublic: boolean;
   settings: RoomSettings;
@@ -29,7 +30,12 @@ export interface Room {
   // Turn timeout tracking
   turnStartTime: number | null;
   turnTimer: NodeJS.Timeout | null;
-  timedOutPlayers: Set<PlayerPosition>; // Players who timed out and are now AI
+  turnWarningTimer: NodeJS.Timeout | null; // Warning before timeout
+  inactivePlayers: Set<PlayerPosition>; // Players currently inactive (AI playing, can be kicked)
+  kickedPlayers: Set<PlayerPosition>; // Players who were kicked (cannot rejoin)
+  // Play again voting
+  playAgainVotes: Set<PlayerPosition>;
+  gameEndTimer: NodeJS.Timeout | null; // 2 min timer to close room after game ends
 }
 
 // Active rooms
@@ -56,6 +62,7 @@ function generateRoomCode(): string {
 const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   partnerVariant: 'calledAce',
   noPickRule: 'leaster',
+  maxHands: 15, // Standard game
 };
 
 // Create a new room
@@ -75,6 +82,7 @@ export function createRoom(
     hostPosition: position,
     gameState: null,
     gameStarted: false,
+    gameEnded: false,
     isPublic,
     settings,
     createdAt: Date.now(),
@@ -82,7 +90,11 @@ export function createRoom(
     handsPlayed: 0,
     turnStartTime: null,
     turnTimer: null,
-    timedOutPlayers: new Set(),
+    turnWarningTimer: null,
+    inactivePlayers: new Set(),
+    kickedPlayers: new Set(),
+    playAgainVotes: new Set(),
+    gameEndTimer: null,
   };
 
   room.players.set(position, {
@@ -146,8 +158,69 @@ export function joinRoom(
 // Room cleanup timers
 const roomCleanupTimers = new Map<string, NodeJS.Timeout>();
 
+// Lobby expiration timers (unfilled rooms auto-delete after 30 minutes)
+const lobbyExpirationTimers = new Map<string, NodeJS.Timeout>();
+const lobbyWarningTimers = new Map<string, NodeJS.Timeout>();
+const LOBBY_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
+const LOBBY_WARNING_MS = 25 * 60 * 1000; // Warning at 25 minutes (5 min before expiry)
+
+// Start lobby expiration timer for a room
+export function startLobbyExpiration(room: Room, onWarning: (room: Room, minutesRemaining: number) => void): void {
+  const code = room.code;
+
+  // Clear any existing timers
+  clearLobbyExpiration(code);
+
+  // Set warning timer (5 minutes before expiry)
+  const warningTimer = setTimeout(() => {
+    const r = rooms.get(code);
+    if (r && !r.gameStarted) {
+      onWarning(r, 5);
+    }
+  }, LOBBY_WARNING_MS);
+  lobbyWarningTimers.set(code, warningTimer);
+
+  // Set expiration timer
+  const expirationTimer = setTimeout(() => {
+    const r = rooms.get(code);
+    if (r && !r.gameStarted) {
+      console.log(`Room ${code} expired - lobby timeout (30 minutes)`);
+      deleteRoom(code);
+    }
+  }, LOBBY_EXPIRATION_MS);
+  lobbyExpirationTimers.set(code, expirationTimer);
+}
+
+// Clear lobby expiration timers
+export function clearLobbyExpiration(code: string): void {
+  const warningTimer = lobbyWarningTimers.get(code);
+  if (warningTimer) {
+    clearTimeout(warningTimer);
+    lobbyWarningTimers.delete(code);
+  }
+
+  const expirationTimer = lobbyExpirationTimers.get(code);
+  if (expirationTimer) {
+    clearTimeout(expirationTimer);
+    lobbyExpirationTimers.delete(code);
+  }
+}
+
+// Transfer host to another connected player
+export function transferHost(room: Room): { newHost: RoomPlayer; position: PlayerPosition } | null {
+  // Find first connected player that isn't the current host
+  for (const [position, player] of room.players) {
+    if (position !== room.hostPosition && player.connected) {
+      room.hostPosition = position;
+      console.log(`Host transferred to ${player.name} at position ${position} in room ${room.code}`);
+      return { newHost: player, position };
+    }
+  }
+  return null;
+}
+
 // Leave a room (mark as disconnected, don't fully remove for reconnection)
-export function leaveRoom(ws: WebSocket): Room | null {
+export function leaveRoom(ws: WebSocket): { room: Room; hostTransferred: { newHost: RoomPlayer; position: PlayerPosition } | null; allHumansLeft: boolean } | null {
   const info = wsToRoom.get(ws);
   if (!info) return null;
 
@@ -162,10 +235,19 @@ export function leaveRoom(ws: WebSocket): Room | null {
 
   wsToRoom.delete(ws);
 
+  // Check if host left before game started - need to transfer host
+  let hostTransferred: { newHost: RoomPlayer; position: PlayerPosition } | null = null;
+  if (!room.gameStarted && info.position === room.hostPosition) {
+    hostTransferred = transferHost(room);
+  }
+
   // Check if all players are disconnected
   const allDisconnected = Array.from(room.players.values()).every(p => !p.connected);
 
   if (allDisconnected) {
+    // Clear turn timer - game is paused until someone reconnects
+    clearTurnTimer(room);
+
     // Start cleanup timer - delete room after 5 minutes if no one reconnects
     const existingTimer = roomCleanupTimers.get(info.roomCode);
     if (existingTimer) clearTimeout(existingTimer);
@@ -173,13 +255,14 @@ export function leaveRoom(ws: WebSocket): Room | null {
     const timer = setTimeout(() => {
       rooms.delete(info.roomCode);
       roomCleanupTimers.delete(info.roomCode);
+      clearLobbyExpiration(info.roomCode);
       console.log(`Room ${info.roomCode} deleted due to inactivity`);
     }, 5 * 60 * 1000); // 5 minutes
 
     roomCleanupTimers.set(info.roomCode, timer);
   }
 
-  return room;
+  return { room, hostTransferred, allHumansLeft: allDisconnected };
 }
 
 // Rejoin an existing room
@@ -196,6 +279,11 @@ export function rejoinRoom(
     return { error: 'Room no longer exists' };
   }
 
+  // Check if player was kicked - they can't rejoin
+  if (room.kickedPlayers.has(position)) {
+    return { error: 'You were removed from this game' };
+  }
+
   const existingPlayer = room.players.get(position);
 
   // Check if position exists and name matches (allow reconnection)
@@ -204,6 +292,14 @@ export function rejoinRoom(
     existingPlayer.ws = ws;
     existingPlayer.connected = true;
     wsToRoom.set(ws, { roomCode: code, position });
+
+    // Clear inactive status if they were inactive
+    room.inactivePlayers.delete(position);
+    // Also remove from AI positions if they were put there due to inactivity
+    // (but only if they weren't originally AI - check if they're in players map)
+    if (room.players.has(position)) {
+      room.aiPositions.delete(position);
+    }
 
     // Cancel any cleanup timer
     const timer = roomCleanupTimers.get(code);
@@ -296,24 +392,69 @@ export function getPublicRooms(): PublicRoomInfo[] {
   return publicRooms.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-// Convert a player to AI (due to timeout)
-export function convertToAI(room: Room, position: PlayerPosition): void {
-  room.timedOutPlayers.add(position);
-  // Note: We don't remove from players map so they can see the game continue
-  // The game logic will treat them as AI for decisions
-  console.log(`Player at position ${position} timed out - AI taking over`);
+// Mark a player as inactive (AI takes over temporarily, can be kicked by others)
+export function markInactive(room: Room, position: PlayerPosition): void {
+  room.inactivePlayers.add(position);
+  console.log(`Player at position ${position} marked inactive - AI taking over`);
 }
 
-// Check if a position is now controlled by AI (either started as AI or timed out)
+// Mark a player as active again (they made a move)
+export function markActive(room: Room, position: PlayerPosition): void {
+  room.inactivePlayers.delete(position);
+}
+
+// Check if a player is inactive (can be kicked)
+export function isInactive(room: Room, position: PlayerPosition): boolean {
+  return room.inactivePlayers.has(position);
+}
+
+// Check if any human players are connected to the room
+export function hasConnectedHumans(room: Room): boolean {
+  for (const [position, player] of room.players) {
+    if (!room.aiPositions.has(position) && player.connected) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Kick a player completely (removed from game, cannot rejoin)
+export function kickPlayer(room: Room, position: PlayerPosition): WebSocket | null {
+  const player = room.players.get(position);
+  if (!player) return null;
+
+  const ws = player.ws;
+
+  // Mark as kicked (cannot rejoin) and remove from inactive
+  room.kickedPlayers.add(position);
+  room.inactivePlayers.delete(position);
+  room.aiPositions.add(position);
+
+  // Remove from players map
+  room.players.delete(position);
+
+  // Remove ws-to-room mapping
+  wsToRoom.delete(ws);
+
+  console.log(`Player ${player.name} at position ${position} kicked from room ${room.code}`);
+
+  return ws; // Return so caller can send message and close
+}
+
+// Check if a position is controlled by AI (started as AI, inactive, or kicked)
 export function isPositionAI(room: Room, position: PlayerPosition): boolean {
-  return room.aiPositions.has(position) || room.timedOutPlayers.has(position);
+  return room.aiPositions.has(position) || room.inactivePlayers.has(position) || room.kickedPlayers.has(position);
 }
 
-// Clear turn timer
+// Clear turn timer and warning timer
 export function clearTurnTimer(room: Room): void {
   if (room.turnTimer) {
     clearTimeout(room.turnTimer);
     room.turnTimer = null;
+  }
+  if (room.turnWarningTimer) {
+    clearTimeout(room.turnWarningTimer);
+    room.turnWarningTimer = null;
   }
   room.turnStartTime = null;
 }
@@ -387,6 +528,75 @@ export function getStats(): {
   };
 }
 
+// Get final standings for game over
+export function getFinalStandings(room: Room): Array<{ position: PlayerPosition; name: string; score: number; rank: number }> {
+  const standings: Array<{ position: PlayerPosition; name: string; score: number; rank: number }> = [];
+
+  for (let i = 0; i < 5; i++) {
+    const pos = i as PlayerPosition;
+    const player = room.players.get(pos);
+    const name = player?.name || `AI ${pos + 1}`;
+    standings.push({
+      position: pos,
+      name,
+      score: room.playerScores[pos],
+      rank: 0, // Will be set below
+    });
+  }
+
+  // Sort by score descending
+  standings.sort((a, b) => b.score - a.score);
+
+  // Assign ranks (handle ties)
+  let currentRank = 1;
+  for (let i = 0; i < standings.length; i++) {
+    if (i > 0 && standings[i].score < standings[i - 1].score) {
+      currentRank = i + 1;
+    }
+    standings[i].rank = currentRank;
+  }
+
+  return standings;
+}
+
+// Reset room for a new game (play again)
+export function resetRoomForNewGame(room: Room): void {
+  room.playerScores = [0, 0, 0, 0, 0];
+  room.handsPlayed = 0;
+  room.gameState = null;
+  room.gameStarted = false;
+  room.gameEnded = false;
+  room.inactivePlayers.clear();
+  room.kickedPlayers.clear();
+  room.playAgainVotes.clear();
+  clearTurnTimer(room);
+  clearGameEndTimer(room);
+}
+
+// Clear game end timer
+export function clearGameEndTimer(room: Room): void {
+  if (room.gameEndTimer) {
+    clearTimeout(room.gameEndTimer);
+    room.gameEndTimer = null;
+  }
+}
+
+// Get count of connected human players
+export function getConnectedHumanCount(room: Room): number {
+  let count = 0;
+  for (const player of room.players.values()) {
+    if (player.connected) count++;
+  }
+  return count;
+}
+
+// Callback for room deletion (set by index.ts for persistence cleanup)
+let onRoomDeleteCallback: ((code: string) => void) | null = null;
+
+export function setOnRoomDeleteCallback(callback: (code: string) => void): void {
+  onRoomDeleteCallback = callback;
+}
+
 // Delete a room and clean up its timer
 export function deleteRoom(code: string): boolean {
   const room = rooms.get(code);
@@ -394,6 +604,12 @@ export function deleteRoom(code: string): boolean {
 
   // Clear turn timer if exists
   clearTurnTimer(room);
+
+  // Clear game end timer if exists
+  clearGameEndTimer(room);
+
+  // Clear lobby expiration timers
+  clearLobbyExpiration(code);
 
   // Clear cleanup timer if exists
   const cleanupTimer = roomCleanupTimers.get(code);
@@ -408,6 +624,12 @@ export function deleteRoom(code: string): boolean {
   }
 
   rooms.delete(code);
+
+  // Call cleanup callback (for persistence)
+  if (onRoomDeleteCallback) {
+    onRoomDeleteCallback(code);
+  }
+
   console.log(`Room ${code} deleted`);
   return true;
 }

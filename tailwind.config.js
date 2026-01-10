@@ -30,6 +30,14 @@ module.exports = {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 3s ease-in-out infinite',
+        'trick-winner': 'trickWinner 0.5s ease-out',
+      },
+      keyframes: {
+        trickWinner: {
+          '0%': { transform: 'scale(0.8)', opacity: '0' },
+          '50%': { transform: 'scale(1.1)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
       },
       ringWidth: {
         '3': '3px',
