@@ -50,7 +50,7 @@ function MenuCard({ icon, title, description, onClick, gradient, delay = 0 }: Me
 }
 
 export function HomePage() {
-  const { goToSetup, goToOnline, openSettings, openRules, openStrategy, openTutorial } = useGameStore();
+  const { goToSetup, goToOnline, goToStats, openSettings, openRules, openStrategy, openTutorial } = useGameStore();
 
   // Rotating fun fact
   const [factIndex, setFactIndex] = useState(0);
@@ -136,6 +136,13 @@ export function HomePage() {
               description="Game speed, variants, and display options"
               onClick={openSettings}
               gradient="bg-gradient-to-br from-slate-600/90 to-slate-800/90"
+            />
+            <MenuCard
+              icon="🏆"
+              title="Stats & Achievements"
+              description="Track your progress and unlock badges"
+              onClick={goToStats}
+              gradient="bg-gradient-to-br from-yellow-600/90 to-amber-800/90"
             />
           </div>
         </section>

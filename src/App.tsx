@@ -20,6 +20,7 @@ import {
   OnlineWaitingRoom,
   OnlineGame,
   LocalGame,
+  StatsScreen,
 } from './components';
 import { Tutorial } from './tutorial';
 import { useOnlineGame } from './hooks/useOnlineGame';
@@ -39,6 +40,7 @@ function App() {
     goToHome,
     goToOnlineWaiting,
     goToOnlineGame,
+    goToStats,
   } = useGameStore();
 
   // Online game state
@@ -92,6 +94,16 @@ function App() {
     return (
       <>
         <GameSetup />
+        {modals}
+      </>
+    );
+  }
+
+  // Stats screen
+  if (currentView === 'stats') {
+    return (
+      <>
+        <StatsScreen onBack={goToHome} />
         {modals}
       </>
     );

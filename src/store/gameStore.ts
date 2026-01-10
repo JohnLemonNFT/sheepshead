@@ -35,6 +35,7 @@ import {
   getDetailedExplanation,
   updateAIKnowledge,
 } from '../game/ai';
+import { useStatsStore, GameResult } from './statsStore';
 
 // ============================================
 // STORE TYPES
@@ -233,7 +234,7 @@ interface GameStore {
   activeHumanPosition: PlayerPosition | null;
 
   // Navigation
-  currentView: 'home' | 'setup' | 'game' | 'online' | 'onlineWaiting' | 'onlineGame';
+  currentView: 'home' | 'setup' | 'game' | 'online' | 'onlineWaiting' | 'onlineGame' | 'stats';
 
   // Modal state
   showSettingsModal: boolean;
@@ -269,6 +270,7 @@ interface GameStore {
   goToOnline: () => void;
   goToOnlineWaiting: () => void;
   goToOnlineGame: () => void;
+  goToStats: () => void;
   startGame: () => void;
 
   // Player configuration actions
@@ -444,6 +446,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   goToOnlineGame: () => {
     set({ currentView: 'onlineGame' });
+  },
+
+  goToStats: () => {
+    set({ currentView: 'stats' });
   },
 
   startGame: () => {
@@ -1287,6 +1293,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       const newStats = { ...statistics, ...statsUpdate, lastUpdated: Date.now() };
       saveStatistics(newStats);
+
+      // Record to achievements/stats store (only for single human player games)
+      const humanCount = playerTypes.filter(t => t === 'human').length;
+      if (humanCount === 1 && humanPosition >= 0) {
+        const isLeaster = finalState.pickerPosition === null;
+        const pickerTeamPoints = handScore.pickerTeamPoints;
+        const defenderTeamPoints = handScore.defenderTeamPoints;
+        const humanOnPickerTeam = humanPlayer?.isPicker || humanPlayer?.isPartner;
+        const myTeamPoints = humanOnPickerTeam ? pickerTeamPoints : defenderTeamPoints;
+        const theirTeamPoints = humanOnPickerTeam ? defenderTeamPoints : pickerTeamPoints;
+
+        const gameResult: GameResult = {
+          won: humanWon,
+          wasPicker: humanPlayer?.isPicker || false,
+          wasLeaster: isLeaster,
+          playerPoints: myTeamPoints,
+          opponentPoints: theirTeamPoints,
+          isSchneider: handScore.isSchneider && humanWon,
+          wasSchneidered: handScore.isSchneider && !humanWon,
+        };
+        useStatsStore.getState().recordGameResult(gameResult);
+      }
 
       set({
         gameState: {
