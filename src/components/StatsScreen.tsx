@@ -167,8 +167,11 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
           Back to Menu
         </button>
 
-        {/* Reset Stats (subtle) */}
-        <div className="text-center">
+        {/* Fine print */}
+        <div className="text-center space-y-2">
+          <p className="text-xs text-gray-600">
+            Stats are stored locally on this device
+          </p>
           <button
             onClick={() => {
               if (confirm('Are you sure you want to reset all stats and achievements? This cannot be undone.')) {
