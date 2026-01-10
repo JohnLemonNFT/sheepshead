@@ -2,7 +2,7 @@
 
 // Online Lobby - Create or join rooms for online play
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { OnlineGameState, OnlineGameActions, RoomSettings, PublicRoomInfo } from '../hooks/useOnlineGame';
 import { useGameStore, NoPickRule, PartnerVariant } from '../store/gameStore';
 
@@ -31,9 +31,32 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
   const [roomCode, setRoomCode] = useState('');
   const [mode, setMode] = useState<'choose' | 'create' | 'join' | 'browse'>('choose');
   const [isPublic, setIsPublic] = useState(false);
+  const [connectingSeconds, setConnectingSeconds] = useState(0);
+  const connectingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { gameSettings, updateSettings } = useGameStore();
 
   const { connected, connecting, error, publicRooms } = onlineState;
+
+  // Track how long we've been connecting
+  useEffect(() => {
+    if (connecting) {
+      setConnectingSeconds(0);
+      connectingTimerRef.current = setInterval(() => {
+        setConnectingSeconds(s => s + 1);
+      }, 1000);
+    } else {
+      if (connectingTimerRef.current) {
+        clearInterval(connectingTimerRef.current);
+        connectingTimerRef.current = null;
+      }
+      setConnectingSeconds(0);
+    }
+    return () => {
+      if (connectingTimerRef.current) {
+        clearInterval(connectingTimerRef.current);
+      }
+    };
+  }, [connecting]);
 
   // Auto-connect on mount
   useEffect(() => {
@@ -96,19 +119,54 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
         {/* Connection Status - only show if connecting or error */}
         {(connecting || error) && (
           <section className="mb-4 sm:mb-6">
-            <div className={`
-              flex items-center justify-center gap-2 p-2 sm:p-3 rounded-lg text-sm sm:text-base
-              ${connecting ? 'bg-yellow-900/30 text-yellow-400' : 'bg-red-900/30 text-red-400'}
-            `}>
-              {connecting && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                  Connecting to server...
-                </>
-              )}
-              {error && !connecting && (
+            {connecting && (
+              <div className="bg-gray-800 rounded-xl p-5 sm:p-6 text-center">
+                {/* Spinner */}
+                <div className="mb-4">
+                  <div className="w-12 h-12 mx-auto border-4 border-gray-600 border-t-green-500 rounded-full animate-spin" />
+                </div>
+
+                {/* Message changes based on time */}
+                {connectingSeconds < 3 ? (
+                  <>
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      Connecting to server...
+                    </h3>
+                    <p className="text-gray-400 text-sm">
+                      This usually takes a moment
+                    </p>
+                  </>
+                ) : connectingSeconds < 10 ? (
+                  <>
+                    <h3 className="text-lg font-semibold text-yellow-400 mb-2">
+                      Waking up the server...
+                    </h3>
+                    <p className="text-gray-400 text-sm">
+                      The server is starting up. This can take 15-30 seconds.
+                    </p>
+                    <p className="text-gray-500 text-xs mt-2">
+                      Thanks for your patience!
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-semibold text-yellow-400 mb-2">
+                      Almost there...
+                    </h3>
+                    <p className="text-gray-400 text-sm">
+                      The server is warming up after being idle.
+                    </p>
+                    <p className="text-gray-500 text-xs mt-2">
+                      {connectingSeconds}s elapsed - usually ready within 30s
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+            {error && !connecting && (
+              <div className="bg-red-900/30 rounded-lg p-3 sm:p-4">
                 <div className="flex justify-between items-center w-full gap-2">
-                  <span className="text-xs sm:text-sm">{error}</span>
+                  <span className="text-red-400 text-xs sm:text-sm">{error}</span>
                   <button
                     onClick={() => {
                       onlineActions.clearError();
@@ -119,8 +177,8 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                     Retry
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         )}
 
