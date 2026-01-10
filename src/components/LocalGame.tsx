@@ -74,7 +74,7 @@ export function LocalGame() {
 
   // Announcement state
   const [announcement, setAnnouncement] = useState<{
-    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'leaster';
+    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'leaster' | 'dealer';
     playerPosition: number;
     details?: string;
   } | null>(null);
@@ -167,10 +167,21 @@ export function LocalGame() {
     prevPhaseRef.current = phase;
   }, [phase, pickerPosition, addLogEntry]);
 
+  // Show dealer announcement at start of each hand
+  const prevHandsPlayedRef = useRef<number | null>(null);
+  useEffect(() => {
+    // Show dealer when we're in picking phase and this is a new hand
+    if (phase === 'picking' && prevHandsPlayedRef.current !== handsPlayed) {
+      setAnnouncement({ type: 'dealer', playerPosition: dealerPosition });
+      prevHandsPlayedRef.current = handsPlayed;
+    }
+  }, [phase, handsPlayed, dealerPosition]);
+
   // Auto-dismiss announcements
   useEffect(() => {
     if (announcement) {
-      const delay = announcement.type === 'call' || announcement.type === 'partnerReveal' || announcement.type === 'leaster' ? 2500 : 2000;
+      const delay = announcement.type === 'call' || announcement.type === 'partnerReveal' || announcement.type === 'leaster' ? 2500 :
+                    announcement.type === 'dealer' ? 1800 : 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);
       return () => clearTimeout(timer);
     }

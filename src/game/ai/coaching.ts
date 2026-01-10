@@ -531,6 +531,13 @@ function isTeammateCurrentlyWinning(
   }
 
   // Defender - teammates are other defenders (NOT picker, NOT partner)
+  // But we only KNOW our teammates once partner is revealed
+  // Before reveal, we can't be sure who the partner is
+  if (!partnerRevealed) {
+    // Partner not revealed yet - we don't know for sure who our teammates are
+    // Only the picker is definitely NOT our teammate
+    return false;
+  }
   // Winner is a teammate if they're NOT on the picker's team
   return !isWinnerOnPickerTeam;
 }

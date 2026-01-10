@@ -41,11 +41,12 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
     trickNumber: number;
     completedTricksLength: number;
     phase: string;
+    dealerPosition: PlayerPosition;
   } | null>(null);
 
   // Announcement state
   const [announcement, setAnnouncement] = useState<{
-    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster';
+    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster' | 'dealer';
     playerPosition: number;
     details?: string;
   } | null>(null);
@@ -177,6 +178,11 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
       }
     }
 
+    // Detect new hand (dealer changed or first hand)
+    if (phase === 'picking' && (!prev || prev.dealerPosition !== dealerPosition || prev.phase !== 'picking')) {
+      setAnnouncement({ type: 'dealer', playerPosition: dealerPosition });
+    }
+
     // Update previous state
     prevStateRef.current = {
       pickerPosition,
@@ -184,14 +190,15 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
       trickNumber,
       completedTricksLength: completedTricks.length,
       phase,
+      dealerPosition,
     };
-  }, [pickerPosition, calledAce, trickNumber, completedTricks, phase, myPosition, getPlayerName, addLogEntry, serverPlayers]);
+  }, [pickerPosition, calledAce, trickNumber, completedTricks, phase, dealerPosition, myPosition, getPlayerName, addLogEntry, serverPlayers]);
 
   // Auto-dismiss announcements
   useEffect(() => {
     if (announcement) {
       const announcementDelays: Record<string, number> = {
-        call: 2500, leaster: 2500, partnerReveal: 3000
+        call: 2500, leaster: 2500, partnerReveal: 3000, dealer: 1800
       };
       const delay = announcementDelays[announcement.type] ?? 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);

@@ -3,7 +3,7 @@
 import { PlayerAvatar, getPlayerName } from './PlayerAvatar';
 
 interface AnnouncementProps {
-  type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster';
+  type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster' | 'dealer';
   playerPosition: number;
   details?: string;
   onDismiss?: () => void;
@@ -76,6 +76,13 @@ export function Announcement({
           subtitle: 'Everyone passed. Lowest points wins!',
           bgColor: 'bg-orange-900/90',
           borderColor: 'border-orange-500',
+        };
+      case 'dealer':
+        return {
+          title: `${playerName} is Dealing`,
+          subtitle: 'New hand starting...',
+          bgColor: 'bg-gray-800/90',
+          borderColor: 'border-gray-500',
         };
       default:
         return {
