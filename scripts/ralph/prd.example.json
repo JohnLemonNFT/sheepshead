@@ -1,0 +1,33 @@
+{
+  "project": "Sheepshead Online",
+  "branch": "main",
+  "description": "Example PRD for Ralph autonomous development",
+  "stories": [
+    {
+      "id": "STORY-001",
+      "title": "Example: Add loading spinner",
+      "description": "Add a loading spinner component that can be reused throughout the app",
+      "acceptance_criteria": [
+        "Spinner component exists at src/components/Spinner.tsx",
+        "Spinner has size prop (sm, md, lg)",
+        "Spinner uses Tailwind for styling"
+      ],
+      "priority": 1,
+      "status": "incomplete",
+      "notes": ""
+    },
+    {
+      "id": "STORY-002",
+      "title": "Example: Add error boundary",
+      "description": "Wrap the app in an error boundary to catch runtime errors gracefully",
+      "acceptance_criteria": [
+        "ErrorBoundary component catches errors",
+        "Shows user-friendly error message",
+        "Includes 'Try Again' button"
+      ],
+      "priority": 2,
+      "status": "incomplete",
+      "notes": ""
+    }
+  ]
+}
