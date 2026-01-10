@@ -334,3 +334,80 @@ export function sendTo(ws: WebSocket, message: object): void {
     ws.send(JSON.stringify(message));
   }
 }
+
+// Get total room count
+export function getRoomCount(): number {
+  return rooms.size;
+}
+
+// Clean up all room data for a connection
+export function cleanupConnection(ws: WebSocket): void {
+  const info = wsToRoom.get(ws);
+  if (info) {
+    leaveRoom(ws);
+  }
+}
+
+// Get room statistics for monitoring
+export function getStats(): {
+  totalRooms: number;
+  activeGames: number;
+  waitingRooms: number;
+  totalPlayers: number;
+  publicRooms: number;
+} {
+  let activeGames = 0;
+  let waitingRooms = 0;
+  let totalPlayers = 0;
+  let publicRooms = 0;
+
+  for (const room of rooms.values()) {
+    if (room.gameStarted) {
+      activeGames++;
+    } else {
+      waitingRooms++;
+    }
+    if (room.isPublic) {
+      publicRooms++;
+    }
+    // Count connected human players
+    for (const player of room.players.values()) {
+      if (player.connected) {
+        totalPlayers++;
+      }
+    }
+  }
+
+  return {
+    totalRooms: rooms.size,
+    activeGames,
+    waitingRooms,
+    totalPlayers,
+    publicRooms,
+  };
+}
+
+// Delete a room and clean up its timer
+export function deleteRoom(code: string): boolean {
+  const room = rooms.get(code);
+  if (!room) return false;
+
+  // Clear turn timer if exists
+  clearTurnTimer(room);
+
+  // Clear cleanup timer if exists
+  const cleanupTimer = roomCleanupTimers.get(code);
+  if (cleanupTimer) {
+    clearTimeout(cleanupTimer);
+    roomCleanupTimers.delete(code);
+  }
+
+  // Remove all websocket mappings for this room
+  for (const player of room.players.values()) {
+    wsToRoom.delete(player.ws);
+  }
+
+  rooms.delete(code);
+  console.log(`Room ${code} deleted`);
+  return true;
+}
