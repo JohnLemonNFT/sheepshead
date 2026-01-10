@@ -12,9 +12,12 @@ const getDefaultServerUrl = () => {
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_WS_SERVER_URL) {
     return process.env.NEXT_PUBLIC_WS_SERVER_URL;
   }
-  // Production check
-  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-    return 'wss://sheepshead.onrender.com';
+  // Production check - vercel.app or custom domain
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname.includes('vercel.app') || hostname.includes('playsheepshead.org') || hostname.includes('sheepshead')) {
+      return 'wss://sheepshead.onrender.com';
+    }
   }
   return 'ws://localhost:3001';
 };
