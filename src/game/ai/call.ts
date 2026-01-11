@@ -59,10 +59,29 @@ export function decideCall(
     };
   }
 
-  // AI never voluntarily goes alone - the risk/reward isn't worth it
-  // In real Sheepshead, going alone is very rare because losing alone
-  // results in a huge penalty (-4 to -8 points)
-  // AI only goes alone when FORCED (no valid suit to call)
+  // Going alone is very rare - only with truly AMAZING hands
+  // The risk/reward usually isn't worth it (-4 to -8 if you lose)
+  // Only consider it with monster hands that are almost guaranteed to win
+  const trumpCount = hand.filter(c => isTrump(c)).length;
+  const queens = hand.filter(c => c.rank === 'Q').length;
+  const jacks = hand.filter(c => c.rank === 'J').length;
+
+  // Truly amazing hands for going alone:
+  // - All 4 queens (unbeatable top trump)
+  // - 3+ queens AND 3+ jacks (control 6+ of top 8 trump)
+  // - 4 queens/jacks AND 7+ total trump
+  const hasMonsterHand =
+    queens === 4 || // All queens - extremely rare, almost guaranteed win
+    (queens >= 3 && jacks >= 3) || // 6+ of top 8 trump
+    (queens + jacks >= 4 && trumpCount >= 7); // Strong top trump + deep trump
+
+  if (hasMonsterHand) {
+    return {
+      suit: null,
+      goAlone: true,
+      reason: `Going alone with monster hand (${queens}Q, ${jacks}J, ${trumpCount} trump)`,
+    };
+  }
 
   if (callableSuits.length === 0) {
     // No valid suits to call - must go alone
