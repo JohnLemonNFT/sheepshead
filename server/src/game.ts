@@ -138,25 +138,40 @@ function getLegalPlays(
   // Following
   const leadCard = currentTrick.cards[0].card;
   const leadIsTrump = isTrump(leadCard);
-
-  if (leadIsTrump) {
-    const trumpInHand = hand.filter(c => isTrump(c));
-    return trumpInHand.length > 0 ? trumpInHand : hand;
-  }
-
   const leadSuit = leadCard.suit;
-  const suitInHand = hand.filter(c => c.suit === leadSuit && !isTrump(c));
 
-  // Called ace rule: partner MUST play the called ace when the called suit is led
-  // No exceptions - if the suit is led and partner has the ace, they must play it
-  if (calledAce && !calledAce.revealed && isPartner && leadSuit === calledAce.suit) {
+  // Called ace rule: partner can ONLY play the called ace when the called suit is led
+  // The ace is "locked" until that suit is played
+  const isCalledAce = (c: Card) =>
+    calledAce && !calledAce.revealed && isPartner &&
+    c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c);
+
+  // Check if called suit is led - partner MUST play the ace
+  if (calledAce && !calledAce.revealed && isPartner && !leadIsTrump && leadSuit === calledAce.suit) {
     const ace = hand.filter(c => c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c));
     if (ace.length > 0) {
-      return ace;
+      return ace; // Must play the called ace
     }
   }
 
-  return suitInHand.length > 0 ? suitInHand : hand;
+  if (leadIsTrump) {
+    const trumpInHand = hand.filter(c => isTrump(c));
+    if (trumpInHand.length > 0) {
+      return trumpInHand;
+    }
+    // No trump - can play any card EXCEPT the called ace (it's locked)
+    const playable = hand.filter(c => !isCalledAce(c));
+    return playable.length > 0 ? playable : hand; // Edge case: only card left is the ace
+  }
+
+  const suitInHand = hand.filter(c => c.suit === leadSuit && !isTrump(c));
+  if (suitInHand.length > 0) {
+    return suitInHand; // Must follow suit
+  }
+
+  // Can't follow suit - can play any card EXCEPT the called ace (it's locked)
+  const playable = hand.filter(c => !isCalledAce(c));
+  return playable.length > 0 ? playable : hand; // Edge case: only card left is the ace
 }
 
 // Determine trick winner

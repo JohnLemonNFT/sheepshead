@@ -36,36 +36,40 @@ export function getLegalPlays(
   if (currentTrick.cards.length === 0) {
     return getLeadOptions(hand, calledAce, isPicker, isPartner);
   }
-  
+
   // Following: must follow suit if possible
   const leadCard = currentTrick.cards[0].card;
   const leadSuit = getEffectiveSuit(leadCard);
-  
-  // Get cards that can follow suit
-  const followCards = hand.filter(card => getEffectiveSuit(card) === leadSuit);
-  
-  // Special rule: if called suit is led, whoever has the called ace MUST play it
-  // This forces the partner to reveal themselves
+
+  // Called ace rule: partner can ONLY play the called ace when the called suit is led
+  // The ace is "locked" until that suit is played
+  const isCalledAce = (c: Card) =>
+    calledAce && !calledAce.revealed && isPartner &&
+    c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c);
+
+  // Check if called suit is led - partner MUST play the ace
   if (calledAce && !calledAce.revealed && leadSuit !== 'trump') {
     const calledSuit = calledAce.suit;
     if (leadCard.suit === calledSuit && !isTrump(leadCard)) {
-      // Find the called ace in hand
       const calledAceCard = hand.find(c => c.suit === calledSuit && c.rank === 'A');
       if (calledAceCard) {
-        // Player with the called ace MUST play it when called suit is led
-        return [calledAceCard];
+        return [calledAceCard]; // Must play the called ace
       }
     }
   }
-  
+
+  // Get cards that can follow suit
+  const followCards = hand.filter(card => getEffectiveSuit(card) === leadSuit);
+
   // If can follow suit, must follow
   if (followCards.length > 0) {
     return followCards;
   }
-  
-  // Cannot follow suit - can play any card
-  // EXCEPT: picker must keep hold card until called suit is led
-  return getOffSuitOptions(hand, calledAce, isPicker);
+
+  // Cannot follow suit - can play any card EXCEPT the locked called ace
+  const offSuitOptions = getOffSuitOptions(hand, calledAce, isPicker);
+  const playable = offSuitOptions.filter(c => !isCalledAce(c));
+  return playable.length > 0 ? playable : offSuitOptions; // Edge case: only card left is the ace
 }
 
 /**
