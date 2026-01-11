@@ -1,6 +1,73 @@
-// CalledAceIndicator - Prominent display of the called ace
+// CalledAceIndicator - Prominent display of the called ace or going alone status
 
 import { Suit } from '../game/types';
+
+// Going Alone indicator - shown when picker has no partner
+export function GoingAloneIndicator({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClasses = {
+    sm: {
+      container: 'px-2 py-1.5',
+      icon: 'text-xl',
+      label: 'text-[10px]',
+      status: 'text-xs',
+    },
+    md: {
+      container: 'px-3 py-2',
+      icon: 'text-2xl',
+      label: 'text-xs',
+      status: 'text-sm',
+    },
+    lg: {
+      container: 'px-4 py-3',
+      icon: 'text-3xl',
+      label: 'text-sm',
+      status: 'text-base',
+    },
+  };
+
+  const classes = sizeClasses[size];
+
+  return (
+    <div className={`
+      flex items-center gap-2 ${classes.container}
+      bg-gradient-to-r from-red-900/90 to-orange-900/90
+      border-2 border-red-400/50
+      rounded-xl shadow-lg shadow-red-500/20
+    `}>
+      {/* Solo icon */}
+      <div className={`${classes.icon}`}>
+        🎯
+      </div>
+
+      {/* Label */}
+      <div className="flex flex-col">
+        <span className={`${classes.label} text-red-300 font-medium uppercase tracking-wide`}>
+          Going Alone
+        </span>
+        <span className={`${classes.status} text-orange-300 font-bold`}>
+          No Partner
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Compact badge version for going alone
+export function GoingAloneBadge() {
+  return (
+    <div className={`
+      inline-flex items-center gap-1.5 px-2.5 py-1.5
+      bg-red-800/90 border border-red-500/50
+      rounded-lg shadow-md
+    `}>
+      <span className="text-base">🎯</span>
+      <div className="flex flex-col leading-tight">
+        <span className="text-[10px] text-red-300 font-medium">SOLO</span>
+        <span className="text-[10px] font-bold text-orange-300">Alone</span>
+      </div>
+    </div>
+  );
+}
 
 interface CalledAceIndicatorProps {
   suit: Suit;

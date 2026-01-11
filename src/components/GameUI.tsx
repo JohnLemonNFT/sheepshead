@@ -14,7 +14,7 @@ import { InfoDrawer } from './InfoDrawer';
 import { Announcement } from './Announcement';
 import { ExplanationModal } from './ExplanationModal';
 import { SuitHint } from './SuitHint';
-import { CalledAceBadge, CalledAceIndicator } from './CalledAceIndicator';
+import { CalledAceBadge, CalledAceIndicator, GoingAloneBadge, GoingAloneIndicator } from './CalledAceIndicator';
 import { CoachingToast, HandSummaryModal } from './CoachingToast';
 import type { Card as CardType, PlayerPosition, Suit, GamePhase, Trick } from '../game/types';
 import { getCardPoints, isTrump } from '../game/types';
@@ -550,9 +550,11 @@ export function GameUI({ state, actions, config }: GameUIProps) {
               Trick {trickNumber}/6
             </span>
           )}
-          {calledAce && (
+          {calledAce ? (
             <CalledAceBadge suit={calledAce.suit} revealed={calledAce.revealed} />
-          )}
+          ) : pickerPosition !== null && phase === 'playing' ? (
+            <GoingAloneBadge />
+          ) : null}
         </div>
       </div>
 
@@ -569,13 +571,16 @@ export function GameUI({ state, actions, config }: GameUIProps) {
           {/* Center game area */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 max-w-lg px-4">
-              {/* Called Ace indicator - always visible during play */}
+              {/* Called Ace or Going Alone indicator - always visible during play */}
               {phase === 'playing' && calledAce && (
                 <CalledAceIndicator suit={calledAce.suit} revealed={calledAce.revealed} size="sm" />
               )}
+              {phase === 'playing' && !calledAce && pickerPosition !== null && (
+                <GoingAloneIndicator size="sm" />
+              )}
 
-              {/* Running score - only after partner revealed */}
-              {phase === 'playing' && pickerPosition !== null && calledAce?.revealed && (
+              {/* Running score - show after partner revealed OR when going alone */}
+              {phase === 'playing' && pickerPosition !== null && (calledAce?.revealed || !calledAce) && (
                 <div className="flex gap-2">
                   <span className="bg-yellow-700/90 px-3 py-1 rounded-full text-sm font-bold">
                     👑 {pickerTeamPoints}/61
