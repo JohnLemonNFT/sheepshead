@@ -2,101 +2,80 @@
 // SERVER TYPES FOR ONLINE MULTIPLAYER
 // ============================================
 
-// Core types (shared with client)
-export type Suit = 'clubs' | 'spades' | 'hearts' | 'diamonds';
-export type Rank = '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
+// Import and re-export core types from shared game engine
+// Import for local use
+import type {
+  Suit as SuitType,
+  Rank as RankType,
+  Card as CardType,
+  PlayerPosition as PlayerPositionType,
+  PlayerType as PlayerTypeType,
+  Player as PlayerType,
+  GamePhase as GamePhaseType,
+  Trick as TrickType,
+  CalledAce as CalledAceType,
+  CrackState as CrackStateType,
+  GameConfig as GameConfigType,
+  GameState as GameStateType,
+  GameAction as GameActionType,
+  HandScore as HandScoreType,
+} from '@sheepshead/game-engine';
 
-export interface Card {
-  suit: Suit;
-  rank: Rank;
-  id: string;
-}
+// Re-export for external use
+export type {
+  Suit,
+  Rank,
+  Card,
+  PlayerPosition,
+  PlayerType,
+  Player,
+  GamePhase,
+  Trick,
+  CalledAce,
+  CrackState,
+  GameConfig,
+  GameState,
+  GameAction,
+  HandScore,
+} from '@sheepshead/game-engine';
 
-export type PlayerPosition = 0 | 1 | 2 | 3 | 4;
-export type PlayerType = 'human' | 'ai';
+// Type aliases for local use
+type Suit = SuitType;
+type Rank = RankType;
+type Card = CardType;
+type PlayerPosition = PlayerPositionType;
+type GamePhase = GamePhaseType;
+type Trick = TrickType;
+type CalledAce = CalledAceType;
+type CrackState = CrackStateType;
+type HandScore = HandScoreType;
+type GameAction = GameActionType;
 
-export interface Player {
-  position: PlayerPosition;
-  type: PlayerType;
-  hand: Card[];
-  tricksWon: Card[][];
-  isDealer: boolean;
-  isPicker: boolean;
-  isPartner: boolean;
-}
-
-export type GamePhase =
-  | 'dealing'
-  | 'picking'
-  | 'cracking'
-  | 'burying'
-  | 'calling'
-  | 'playing'
-  | 'scoring'
-  | 'gameOver';
-
-export interface Trick {
-  cards: { card: Card; playedBy: PlayerPosition }[];
-  leadPlayer: PlayerPosition;
-  winningPlayer?: PlayerPosition;
-  leadSuit?: Suit | 'trump';
-}
-
-export interface CalledAce {
-  suit: Suit;
-  revealed: boolean;
-  isTen?: boolean; // True if calling a 10 (picker has all 3 aces)
-}
-
-export interface CrackState {
-  cracked: boolean;
-  crackedBy: PlayerPosition | null;
-  recracked: boolean;
-  blitzed: boolean;
-  multiplier: number;
-}
-
-export interface GameConfig {
-  playerCount: number;
-  partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
-  noPickVariant: 'leaster' | 'doubler' | 'forcedPick';
-  doubleOnBump: boolean;
-  cracking: boolean;
-  blitzes: boolean;
-  callTen: boolean; // Allow calling a 10 when picker has all 3 fail aces
-}
-
-export interface GameState {
-  config: GameConfig;
-  phase: GamePhase;
-  players: Player[];
-  deck: Card[];
-  blind: Card[];
-  buried: Card[];
-  currentTrick: Trick;
-  completedTricks: Trick[];
-  currentPlayer: PlayerPosition;
-  dealerPosition: PlayerPosition;
-  pickerPosition: PlayerPosition | null;
-  calledAce: CalledAce | null;
-  passCount: number;
-  trickNumber: number;
-  seed?: string;
-  crackState?: CrackState;
-}
-
-export type GameAction =
-  | { type: 'pick' }
-  | { type: 'pass' }
-  | { type: 'bury'; cards: [Card, Card] }
-  | { type: 'callAce'; suit: Suit }
-  | { type: 'callTen'; suit: Suit } // Call a 10 when picker has all 3 aces
-  | { type: 'goAlone' }
-  | { type: 'playCard'; card: Card }
-  | { type: 'crack' } // Defender doubles the stakes
-  | { type: 'recrack' } // Picker re-doubles after being cracked
-  | { type: 'noCrack' } // Pass on cracking opportunity
-  | { type: 'blitz' }; // Picker doubles before seeing blind
+// Re-export constants and functions
+export {
+  POINT_VALUES,
+  TRUMP_ORDER,
+  FAIL_ORDER,
+  FAIL_SUITS,
+  DEFAULT_CONFIG,
+  isTrump,
+  getTrumpPower,
+  getFailPower,
+  getCardPoints,
+  getCardId,
+  getTotalPoints,
+  createDeck,
+  shuffleDeck,
+  dealCards,
+  sortHand,
+  generateSeed,
+  getLegalPlays,
+  getEffectiveSuit,
+  determineTrickWinner,
+  getCallableSuits,
+  getCallableTens,
+  mustGoAlone,
+} from '@sheepshead/game-engine';
 
 // ============================================
 // MULTIPLAYER TYPES
@@ -171,17 +150,6 @@ export type ServerMessage =
   | { type: 'play_again_vote'; position: PlayerPosition; playerName: string; votesNeeded: number; currentVotes: number }
   | { type: 'game_restarting' }
   | { type: 'error'; message: string };
-
-// Hand score for end-of-hand display
-export interface HandScore {
-  pickerTeamPoints: number;
-  defenderTeamPoints: number;
-  pickerWins: boolean;
-  isSchneider: boolean;
-  isSchwarz: boolean;
-  multiplier: number;
-  playerScores: { position: PlayerPosition; points: number }[];
-}
 
 // Game state sent to clients (with hidden cards)
 export interface ClientGameState {

@@ -164,19 +164,34 @@ npm run test:ai  # Run AI simulation tests
 
 ## Architecture Notes
 
-### Local vs Online Game Engines
-Currently there are TWO separate game implementations:
-- **Local**: `src/game/` + `src/store/gameStore.ts` (runs client-side)
-- **Online**: `server/src/game.ts` (runs on server)
+### Shared Game Engine (Monorepo)
+The project uses npm workspaces to share core game logic between client and server.
 
-This creates maintenance burden - changes must be made in both places.
+**Package structure:**
+```
+packages/
+  game-engine/       # @sheepshead/game-engine - shared types, rules, deck, scoring
+src/
+  game/              # Re-exports from @sheepshead/game-engine (backwards compatibility)
+server/
+  src/
+    types.ts         # Re-exports shared types + server-specific types
+    game.ts          # Server game state management (uses shared rules)
+```
+
+**What's shared:**
+- Type definitions (Card, GameState, PlayerPosition, etc.)
+- Constants (TRUMP_ORDER, FAIL_ORDER, POINT_VALUES, etc.)
+- Rule enforcement (getLegalPlays, determineTrickWinner, etc.)
+- Deck operations (createDeck, shuffleDeck, dealCards, sortHand)
+- Scoring functions (calculateHandScore)
+
+**What's NOT shared (separate implementations):**
+- AI decision logic (server has own AI for online games)
+- Game state management (applyAction, createGameState)
+- Timing/pacing (controlled separately for local vs online)
 
 **Timing constants that must stay in sync:**
 - Server: `server/src/index.ts` lines 73-77 (AI_MOVE_DELAY_MS, TRICK_DISPLAY_MS, NEW_HAND_DELAY_MS)
 - Client: `src/components/GameUI.tsx` line 286 (trick display timeout)
 - Client: `src/store/gameStore.ts` lines 116-120 (SPEED_DELAYS)
-
-**Future improvement**: Consider unifying the game engine so both local and online use the same code path. Options:
-1. Run local games through WebSocket to localhost server
-2. Bundle server game logic for browser use
-3. Create shared npm package for game rules

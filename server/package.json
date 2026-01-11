@@ -7,10 +7,12 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "npm run build:engine && tsc",
+    "build:engine": "cd ../packages/game-engine && npm run build",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@sheepshead/game-engine": "*",
     "ws": "^8.16.0"
   },
   "devDependencies": {

@@ -1,0 +1,25 @@
+{
+  "name": "@sheepshead/game-engine",
+  "version": "1.0.0",
+  "description": "Shared game logic for Sheepshead - types, rules, scoring, deck",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

@@ -2,9 +2,14 @@
   "name": "sheepshead",
   "private": true,
   "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "server"
+  ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:engine && next build",
+    "build:engine": "cd packages/game-engine && npm run build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
@@ -15,6 +20,7 @@
     "cap:android": "npm run build && npx cap sync android && npx cap open android"
   },
   "dependencies": {
+    "@sheepshead/game-engine": "*",
     "@capacitor/android": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
