@@ -88,15 +88,15 @@ export function GameLog({ entries, onClear }: GameLogProps) {
   };
 
   return (
-    <div className="hidden lg:block bg-black/40 rounded-lg overflow-hidden">
-      {/* Collapsed header - always visible */}
+    <div className="bg-black/40 rounded-lg overflow-hidden">
+      {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex justify-between items-center p-3 hover:bg-white/5 transition-colors"
       >
         <h3 className="text-green-300 font-bold text-sm flex items-center gap-2">
           <span>📜</span>
-          <span>History</span>
+          <span>Game History</span>
           {entries.length > 0 && (
             <span className="text-xs text-gray-500">({entries.length})</span>
           )}

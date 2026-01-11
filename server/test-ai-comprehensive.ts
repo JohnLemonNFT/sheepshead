@@ -544,7 +544,7 @@ function analyzeHand(room: Room, handNum: number): void {
 // MAIN EXECUTION
 // ============================================
 
-const NUM_HANDS = 100;
+const NUM_HANDS = 200;
 console.log('╔════════════════════════════════════════════════════════════╗');
 console.log('║     SHEEPSHEAD COMPREHENSIVE RULE VERIFICATION TEST        ║');
 console.log(`║                    ${NUM_HANDS} HANDS                                 ║`);
