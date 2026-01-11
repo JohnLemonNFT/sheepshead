@@ -59,24 +59,10 @@ export function decideCall(
     };
   }
 
-  // Check if we SHOULD go alone (extremely strong hand - should be RARE)
-  // Only go alone if we have overwhelming trump strength
-  const trumpCount = hand.filter(c => isTrump(c)).length;
-  const queens = hand.filter(c => c.rank === 'Q').length;
-  const jacks = hand.filter(c => c.rank === 'J').length;
-  const topTrump = queens + jacks; // Queens and Jacks are the top 8 trump
-
-  // Only go alone with: 7+ trump, OR 6 trump with 4+ queens/jacks
-  // This is much stricter - going alone should be rare
-  const shouldGoAlone = trumpCount >= 7 || (trumpCount >= 6 && topTrump >= 4);
-
-  if (shouldGoAlone && failAces.length >= 1) {
-    return {
-      suit: null,
-      goAlone: true,
-      reason: `Going alone with ${trumpCount} trump (${queens}Q, ${jacks}J)`,
-    };
-  }
+  // AI never voluntarily goes alone - the risk/reward isn't worth it
+  // In real Sheepshead, going alone is very rare because losing alone
+  // results in a huge penalty (-4 to -8 points)
+  // AI only goes alone when FORCED (no valid suit to call)
 
   if (callableSuits.length === 0) {
     // No valid suits to call - must go alone
