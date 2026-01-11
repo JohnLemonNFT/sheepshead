@@ -223,6 +223,14 @@ export function HomePage() {
           <p className="mt-1 sm:mt-2 flex items-center justify-center gap-1">
             Built with <span className="text-rose-400">❤️</span> for Sheepshead fans everywhere
           </p>
+          <p className="mt-2 sm:mt-3">
+            <a
+              href="mailto:contact@playsheepshead.org"
+              className="text-emerald-300/50 hover:text-emerald-300 transition-colors"
+            >
+              Questions or feedback? contact@playsheepshead.org
+            </a>
+          </p>
         </footer>
       </div>
     </div>

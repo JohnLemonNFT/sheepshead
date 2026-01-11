@@ -314,7 +314,13 @@ export function SettingsModal() {
         </div>
 
         {/* Footer */}
-        <div className="p-3 sm:p-4 border-t border-gray-700 flex justify-end">
+        <div className="p-3 sm:p-4 border-t border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <a
+            href="mailto:contact@playsheepshead.org"
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            Feedback? contact@playsheepshead.org
+          </a>
           <button
             onClick={closeSettings}
             className="bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-2.5 sm:py-2 px-5 sm:px-6 rounded-lg transition-colors min-h-[44px] text-sm sm:text-base"
