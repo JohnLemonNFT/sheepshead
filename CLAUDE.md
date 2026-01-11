@@ -161,3 +161,22 @@ npm run test:ai  # Run AI simulation tests
 
 ## Production TODOs
 - **Disable game log for online play**: Currently the game log shows all cards played by each player. This helps with debugging AI decisions but in real Sheepshead you can't look back at what was played. Should be disabled for online competitive play in final production. (Local play can keep it as a learning aid.)
+
+## Architecture Notes
+
+### Local vs Online Game Engines
+Currently there are TWO separate game implementations:
+- **Local**: `src/game/` + `src/store/gameStore.ts` (runs client-side)
+- **Online**: `server/src/game.ts` (runs on server)
+
+This creates maintenance burden - changes must be made in both places.
+
+**Timing constants that must stay in sync:**
+- Server: `server/src/index.ts` lines 73-77 (AI_MOVE_DELAY_MS, TRICK_DISPLAY_MS, NEW_HAND_DELAY_MS)
+- Client: `src/components/GameUI.tsx` line 286 (trick display timeout)
+- Client: `src/store/gameStore.ts` lines 116-120 (SPEED_DELAYS)
+
+**Future improvement**: Consider unifying the game engine so both local and online use the same code path. Options:
+1. Run local games through WebSocket to localhost server
+2. Bundle server game logic for browser use
+3. Create shared npm package for game rules

@@ -70,6 +70,12 @@ const RATE_LIMIT_WINDOW_MS = 1000; // 1 second window
 const HEARTBEAT_INTERVAL_MS = 30000; // 30 second ping interval
 const CONNECTION_TIMEOUT_MS = 60000; // 60 seconds without pong = dead
 
+// Game pacing - KEEP IN SYNC with client (src/components/GameUI.tsx)
+// These values should match the local game experience
+const AI_MOVE_DELAY_MS = 1500; // Delay before AI makes a move
+const TRICK_DISPLAY_MS = 3000; // How long to show completed trick (matches GameUI.tsx:286)
+const NEW_HAND_DELAY_MS = 3000; // Delay before dealing next hand
+
 // ============================================
 // CONNECTION TRACKING
 // ============================================
@@ -541,7 +547,7 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
               roomTimers.set(room.code, new Set());
             }
             roomTimers.get(room.code)?.delete(pauseTimer);
-          }, 2000); // 2 second pause to see trick winner
+          }, TRICK_DISPLAY_MS);
           if (!roomTimers.has(room.code)) {
             roomTimers.set(room.code, new Set());
           }
@@ -733,7 +739,7 @@ function scheduleNewHand(room: import('./room.js').Room): void {
     }
     // Remove timer from tracking
     roomTimers.get(room.code)?.delete(timer);
-  }, 3000);
+  }, NEW_HAND_DELAY_MS);
 
   // Track timer for cleanup
   if (!roomTimers.has(room.code)) {
@@ -810,7 +816,7 @@ function runAILoop(room: import('./room.js').Room): void {
             }
             runAILoop(room);
             roomTimers.get(room.code)?.delete(pauseTimer);
-          }, 2000); // 2 second pause to see trick winner
+          }, TRICK_DISPLAY_MS);
           if (!roomTimers.has(room.code)) {
             roomTimers.set(room.code, new Set());
           }
@@ -822,7 +828,7 @@ function runAILoop(room: import('./room.js').Room): void {
       }
 
       roomTimers.get(room.code)?.delete(timer);
-    }, 1500); // 1.5 second delay for readable pace
+    }, AI_MOVE_DELAY_MS);
 
     if (!roomTimers.has(room.code)) {
       roomTimers.set(room.code, new Set());
