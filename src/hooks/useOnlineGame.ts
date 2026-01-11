@@ -495,7 +495,23 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     const ws = new WebSocket(serverUrl);
     const savedSession = loadSession();
 
+    // Connection timeout - if not connected in 15 seconds, abort and retry
+    const connectionTimeout = setTimeout(() => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        console.log('Connection timeout - aborting');
+        ws.close();
+        // Clear any stale session that might be causing issues
+        clearSession();
+        setState(prev => ({
+          ...prev,
+          connecting: false,
+          error: 'Connection timed out. Please try again.',
+        }));
+      }
+    }, 15000);
+
     ws.onopen = () => {
+      clearTimeout(connectionTimeout);
       setState(prev => ({ ...prev, connected: true, connecting: false }));
       reconnectAttempts.current = 0;
 
@@ -506,6 +522,7 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     };
 
     ws.onclose = () => {
+      clearTimeout(connectionTimeout);
       wsRef.current = null;
 
       // Try to reconnect if not intentional
@@ -546,6 +563,7 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
     };
 
     ws.onerror = () => {
+      clearTimeout(connectionTimeout);
       setState(prev => ({
         ...prev,
         connecting: false,
