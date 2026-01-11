@@ -971,9 +971,9 @@ export function applyAction(state: GameState, position: PlayerPosition, action: 
         if (state.trickNumber >= 6) {
           state.phase = 'scoring';
         } else {
-          state.trickNumber++;
+          // DON'T clear trick yet - leave it visible with winningPlayer set
+          // clearCompletedTrick() will be called after a delay to start next trick
           state.currentPlayer = winner;
-          state.currentTrick = { cards: [], leadPlayer: winner };
         }
       } else {
         state.currentPlayer = ((position + 1) % 5) as PlayerPosition;
@@ -1137,6 +1137,15 @@ export function calculateScores(state: GameState, room: Room): void {
   }
 
   room.handsPlayed++;
+}
+
+// Clear a completed trick and start the next one (called after delay to show trick result)
+export function clearCompletedTrick(state: GameState): void {
+  if (state.currentTrick.cards.length === 5 && state.currentTrick.winningPlayer !== undefined) {
+    const winner = state.currentTrick.winningPlayer;
+    state.trickNumber++;
+    state.currentTrick = { cards: [], leadPlayer: winner };
+  }
 }
 
 // Calculate hand score for display (doesn't modify room scores)

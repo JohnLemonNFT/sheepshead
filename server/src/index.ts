@@ -42,6 +42,7 @@ import {
   calculateScores,
   getClientGameState,
   getAIAction,
+  clearCompletedTrick,
 } from './game.js';
 import {
   saveRoomState,
@@ -512,21 +513,43 @@ function handleMessage(ws: WebSocket, message: ClientMessage): void {
           });
         }
 
+        const prevCompletedTricks = room.gameState.completedTricks.length;
         const success = applyAction(room.gameState, info.position, message.action);
         if (!success) {
           sendTo(ws, { type: 'error', message: 'Invalid action' });
           return;
         }
 
+        const trickJustCompleted = room.gameState.completedTricks.length > prevCompletedTricks;
+
         if (room.gameState.phase === 'scoring') {
           calculateScores(room.gameState, room);
           // Save game state after scoring
           saveRoomState(room);
           scheduleNewHand(room);
+          broadcastGameState(room);
+        } else if (trickJustCompleted) {
+          // Trick just completed - broadcast with all 5 cards visible, then pause
+          broadcastGameState(room);
+          const pauseTimer = setTimeout(() => {
+            if (room.gameState) {
+              clearCompletedTrick(room.gameState);
+              broadcastGameState(room);
+            }
+            runAILoop(room);
+            if (!roomTimers.has(room.code)) {
+              roomTimers.set(room.code, new Set());
+            }
+            roomTimers.get(room.code)?.delete(pauseTimer);
+          }, 2000); // 2 second pause to see trick winner
+          if (!roomTimers.has(room.code)) {
+            roomTimers.set(room.code, new Set());
+          }
+          roomTimers.get(room.code)!.add(pauseTimer);
+        } else {
+          broadcastGameState(room);
+          runAILoop(room);
         }
-
-        broadcastGameState(room);
-        runAILoop(room);
         break;
       }
 
@@ -764,15 +787,34 @@ function runAILoop(room: import('./room.js').Room): void {
       if (!room.gameState) return;
       if (room.gameState.currentPlayer !== currentPlayer) return;
 
+      const prevCompletedTricks = room.gameState.completedTricks.length;
       const position = room.gameState.currentPlayer;
       const action = getAIAction(room.gameState, position);
       const success = applyAction(room.gameState, position, action);
 
       if (success) {
+        const trickJustCompleted = room.gameState.completedTricks.length > prevCompletedTricks;
+
         if (room.gameState.phase === 'scoring') {
           calculateScores(room.gameState, room);
           broadcastGameState(room);
           scheduleNewHand(room);
+        } else if (trickJustCompleted) {
+          // Trick just completed - broadcast with all 5 cards visible, then pause
+          broadcastGameState(room);
+          const pauseTimer = setTimeout(() => {
+            if (room.gameState) {
+              // Now clear the trick and start the next one
+              clearCompletedTrick(room.gameState);
+              broadcastGameState(room);
+            }
+            runAILoop(room);
+            roomTimers.get(room.code)?.delete(pauseTimer);
+          }, 2000); // 2 second pause to see trick winner
+          if (!roomTimers.has(room.code)) {
+            roomTimers.set(room.code, new Set());
+          }
+          roomTimers.get(room.code)!.add(pauseTimer);
         } else {
           broadcastGameState(room);
           runAILoop(room);
