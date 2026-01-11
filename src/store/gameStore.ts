@@ -78,6 +78,8 @@ export interface GameSettings {
   gameSpeed: GameSpeed;
   partnerVariant: PartnerVariant;
   noPickRule: NoPickRule;
+  // Game Length
+  maxHands: number; // 0 = unlimited, otherwise play this many hands
   // Game Variants
   crackingEnabled: boolean; // Allow doubling stakes after pick
   blitzEnabled: boolean; // Black queens can blitz for double stakes
@@ -95,6 +97,8 @@ export const DEFAULT_SETTINGS: GameSettings = {
   gameSpeed: 'normal',
   partnerVariant: 'calledAce',
   noPickRule: 'leaster',
+  // Game length
+  maxHands: 10, // Default to 10 hands per game
   // Game variants - off by default for standard play
   crackingEnabled: false,
   blitzEnabled: false,

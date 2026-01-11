@@ -619,6 +619,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
     // Scores and history
     playerScores,
     handsPlayed,
+    maxHands: onlineState.roomSettings?.maxHands ?? 0,
     gameLog,
     shuffleSeed: gameState?.shuffleSeed || null,
 

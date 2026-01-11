@@ -28,6 +28,9 @@ interface GameControlsProps {
   isCracked?: boolean;
   isPicker?: boolean;
   multiplier?: number;
+  // Game length tracking
+  handsPlayed?: number;
+  maxHands?: number;
 }
 
 const SUIT_DISPLAY: Record<Suit, { symbol: string; color: string }> = {
@@ -61,6 +64,8 @@ export function GameControls({
   isCracked,
   isPicker,
   multiplier = 1,
+  handsPlayed = 0,
+  maxHands = 0,
 }: GameControlsProps) {
   // Multiplier display
   const MultiplierBadge = () => multiplier > 1 ? (
@@ -271,6 +276,24 @@ export function GameControls({
 
   // Scoring phase
   if (phase === 'scoring') {
+    // Check if game is complete (maxHands reached)
+    const isGameComplete = maxHands > 0 && handsPlayed >= maxHands;
+
+    if (isGameComplete) {
+      return (
+        <div className="flex flex-col items-center gap-2 sm:gap-3">
+          <p className="text-yellow-400 font-bold text-lg sm:text-xl">Game Complete!</p>
+          <p className="text-gray-400 text-sm">{handsPlayed} hands played</p>
+          <button
+            onClick={onNewGame}
+            className="bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-2.5 px-4 sm:py-3 sm:px-6 md:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors min-h-[44px]"
+          >
+            New Game
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center gap-2 sm:gap-3">
         <div className="flex gap-2 sm:gap-3 md:gap-4 flex-wrap justify-center">

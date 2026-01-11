@@ -347,6 +347,7 @@ export function LocalGame() {
     // Scores and history
     playerScores,
     handsPlayed,
+    maxHands: gameSettings.maxHands,
     gameLog,
     statistics,
     shuffleSeed: currentShuffleSeed,

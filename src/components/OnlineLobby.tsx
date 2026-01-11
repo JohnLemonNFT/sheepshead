@@ -73,6 +73,7 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
       const settings: RoomSettings = {
         partnerVariant: gameSettings.partnerVariant,
         noPickRule: gameSettings.noPickRule,
+        maxHands: gameSettings.maxHands,
         callTen: gameSettings.callTenEnabled,
       };
       onlineActions.createRoom(playerName.trim(), isPublic, settings);
@@ -347,6 +348,33 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                         `}
                       >
                         <div className="font-semibold">{option.label}</div>
+                        <div className="text-[9px] sm:text-[10px] opacity-70">{option.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Game Length */}
+                <div>
+                  <label className="block text-xs sm:text-sm text-gray-400 mb-2">Game Length</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { value: 5, label: '5', desc: 'Quick' },
+                      { value: 10, label: '10', desc: 'Standard' },
+                      { value: 15, label: '15', desc: 'Long' },
+                      { value: 0, label: '∞', desc: 'Unlimited' },
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => updateSettings({ maxHands: option.value })}
+                        className={`
+                          px-2 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all min-h-[50px]
+                          ${gameSettings.maxHands === option.value
+                            ? 'bg-green-600 text-white ring-2 ring-green-400'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+                        `}
+                      >
+                        <div className="font-semibold text-base">{option.label}</div>
                         <div className="text-[9px] sm:text-[10px] opacity-70">{option.desc}</div>
                       </button>
                     ))}

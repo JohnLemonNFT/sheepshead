@@ -41,7 +41,7 @@ export interface CalledAce {
 export interface RoomSettings {
   partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
   noPickRule: 'leaster' | 'forcedPick';
-  maxHands?: 10 | 15 | 25;
+  maxHands?: number; // 0 = unlimited, 5/10/15 = fixed game length
   callTen?: boolean; // Allow calling a 10 when picker has all 3 fail aces
   cracking?: boolean; // Allow defenders to double stakes
   blitzes?: boolean; // Allow picker to double before seeing blind
@@ -590,6 +590,7 @@ export function useOnlineGame(): [OnlineGameState, OnlineGameActions] {
   const DEFAULT_SETTINGS: RoomSettings = {
     partnerVariant: 'calledAce',
     noPickRule: 'leaster',
+    maxHands: 10,
   };
 
   // Create a new room

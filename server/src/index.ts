@@ -695,8 +695,8 @@ const roomTimers = new Map<string, Set<NodeJS.Timeout>>();
 const GAME_END_TIMEOUT_MS = 2 * 60 * 1000;
 
 function scheduleNewHand(room: import('./room.js').Room): void {
-  // Check if game is over (maxHands reached)
-  if (room.handsPlayed >= room.settings.maxHands) {
+  // Check if game is over (maxHands reached, 0 = unlimited)
+  if (room.settings.maxHands > 0 && room.handsPlayed >= room.settings.maxHands) {
     endGame(room);
     return;
   }

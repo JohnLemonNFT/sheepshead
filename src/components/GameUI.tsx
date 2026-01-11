@@ -87,6 +87,7 @@ export interface GameUIConfig {
   // Scores and history
   playerScores: number[];
   handsPlayed: number;
+  maxHands: number; // 0 = unlimited
   gameLog: LogEntry[];
   statistics?: GameStatistics;
   shuffleSeed?: string | null;
@@ -175,6 +176,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
     showStrategyTips,
     playerScores,
     handsPlayed,
+    maxHands,
     gameLog,
     statistics,
     shuffleSeed,
@@ -756,6 +758,8 @@ export function GameUI({ state, actions, config }: GameUIProps) {
             isCracked={crackState?.cracked ?? false}
             isPicker={activePlayer?.isPicker ?? false}
             multiplier={multiplier}
+            handsPlayed={handsPlayed}
+            maxHands={maxHands}
           />
         </div>
 

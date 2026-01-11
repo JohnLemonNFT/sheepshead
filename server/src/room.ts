@@ -75,8 +75,8 @@ function generateRoomCode(): string {
 const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   partnerVariant: 'calledAce',
   noPickRule: 'leaster',
-  maxHands: 15, // Standard game
-  callTen: true, // Allow calling a 10 when picker has all 3 aces
+  maxHands: 10, // Standard game
+  callTen: false, // Off by default
   cracking: false, // Disabled by default
   blitzes: false, // Disabled by default
 };

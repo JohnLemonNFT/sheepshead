@@ -178,6 +178,33 @@ export function GameSetup() {
                 ))}
               </div>
             </div>
+
+            {/* Game Length */}
+            <div>
+              <label className="block text-sm font-medium text-emerald-200/80 mb-2">Game Length</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { value: 5, label: '5', desc: 'Quick' },
+                  { value: 10, label: '10', desc: 'Standard' },
+                  { value: 15, label: '15', desc: 'Long' },
+                  { value: 0, label: '∞', desc: 'Unlimited' },
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => updateSettings({ maxHands: option.value })}
+                    className={`
+                      px-2 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[60px]
+                      ${gameSettings.maxHands === option.value
+                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-lg'
+                        : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60'}
+                    `}
+                  >
+                    <div className="font-semibold text-lg">{option.label}</div>
+                    <div className="text-[10px] opacity-70">{option.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
