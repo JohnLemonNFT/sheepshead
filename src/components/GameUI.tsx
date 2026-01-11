@@ -632,31 +632,66 @@ export function GameUI({ state, actions, config }: GameUIProps) {
                 </div>
               )}
 
-              {/* Current trick */}
+              {/* Current trick - Radial layout (cards in front of each player) */}
               {phase === 'playing' && (
-                <div className="flex flex-col items-center min-h-[100px] sm:min-h-[120px]">
+                <div className="relative w-[380px] h-[280px] sm:w-[440px] sm:h-[320px]">
                   {currentTrick.cards.length === 0 ? (
-                    <span className="text-white/40 text-lg">
-                      {isMyTurn ? 'Lead a card' : 'Waiting...'}
-                    </span>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white/40 text-lg">
+                        {isMyTurn ? 'Lead a card' : 'Waiting...'}
+                      </span>
+                    </div>
                   ) : (
-                    <div className="flex gap-2 sm:gap-3 items-end justify-center">
+                    <>
                       {currentTrick.cards.map((play, i) => {
                         const isWinner = trickResult && play.playedBy === trickResult.winner;
                         const isLastPlayed = i === currentTrick.cards.length - 1;
+
+                        // Calculate position relative to active player
+                        // activePlayerPosition is always "you" at the bottom
+                        const relativePos = ((play.playedBy as number) - activePlayerPosition + 5) % 5;
+
+                        // Position cards using inline styles to avoid transform conflicts with animations
+                        // 0 = you (bottom), 1 = left, 2 = top-left, 3 = top-right, 4 = right
+                        const positionStyles: Record<number, React.CSSProperties> = {
+                          0: { bottom: '8px', left: '50%', marginLeft: '-32px' }, // You - bottom center
+                          1: { left: '8px', top: '45%', marginTop: '-48px' }, // Left player
+                          2: { top: '8px', left: '18%' }, // Top-left player
+                          3: { top: '8px', right: '18%' }, // Top-right player
+                          4: { right: '8px', top: '45%', marginTop: '-48px' }, // Right player
+                        };
+
+                        // Slide animation direction based on player position
+                        const slideAnimations: Record<number, string> = {
+                          0: 'animate-slide-from-bottom',
+                          1: 'animate-slide-from-left',
+                          2: 'animate-slide-from-top-left',
+                          3: 'animate-slide-from-top-right',
+                          4: 'animate-slide-from-right',
+                        };
+
                         return (
-                          <div key={i} className={`relative flex flex-col items-center animate-card-slide-in ${isWinner ? 'scale-110' : ''}`}>
+                          <div
+                            key={`${play.card.id}-${i}`}
+                            className={`absolute flex flex-col items-center ${slideAnimations[relativePos]} ${isWinner ? 'z-10' : ''}`}
+                            style={{
+                              ...positionStyles[relativePos],
+                              transform: isWinner ? 'scale(1.1)' : undefined,
+                            }}
+                          >
                             {isLastPlayed && !trickResult && (
                               <div className="absolute -inset-1 bg-yellow-400/20 rounded-lg animate-pulse" />
                             )}
-                            <Card card={play.card} size="large" />
-                            <span className={`text-xs mt-1 ${isWinner ? 'text-green-400 font-bold' : 'text-white/70'}`}>
+                            <div className="shadow-lg rounded-lg">
+                              <Card card={play.card} size="medium" />
+                            </div>
+                            <span className={`text-[10px] sm:text-xs mt-0.5 whitespace-nowrap ${isWinner ? 'text-green-400 font-bold' : 'text-white/70'}`}>
                               {play.playedBy === activePlayerPosition ? 'You' : getPlayerName(play.playedBy as PlayerPosition)}
                             </span>
                           </div>
                         );
                       })}
-                    </div>
+                    </>
                   )}
                 </div>
               )}

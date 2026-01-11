@@ -31,12 +31,37 @@ module.exports = {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 3s ease-in-out infinite',
         'trick-winner': 'trickWinner 0.5s ease-out',
+        'slide-from-bottom': 'slideFromBottom 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        'slide-from-left': 'slideFromLeft 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        'slide-from-right': 'slideFromRight 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        'slide-from-top-left': 'slideFromTopLeft 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        'slide-from-top-right': 'slideFromTopRight 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
       },
       keyframes: {
         trickWinner: {
           '0%': { transform: 'scale(0.8)', opacity: '0' },
           '50%': { transform: 'scale(1.1)' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        slideFromBottom: {
+          '0%': { transform: 'translateY(50px) scale(0.85)', opacity: '0' },
+          '100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+        },
+        slideFromLeft: {
+          '0%': { transform: 'translateX(-50px) scale(0.85)', opacity: '0' },
+          '100%': { transform: 'translateX(0) scale(1)', opacity: '1' },
+        },
+        slideFromRight: {
+          '0%': { transform: 'translateX(50px) scale(0.85)', opacity: '0' },
+          '100%': { transform: 'translateX(0) scale(1)', opacity: '1' },
+        },
+        slideFromTopLeft: {
+          '0%': { transform: 'translate(-30px, -30px) scale(0.85)', opacity: '0' },
+          '100%': { transform: 'translate(0, 0) scale(1)', opacity: '1' },
+        },
+        slideFromTopRight: {
+          '0%': { transform: 'translate(30px, -30px) scale(0.85)', opacity: '0' },
+          '100%': { transform: 'translate(0, 0) scale(1)', opacity: '1' },
         },
       },
       ringWidth: {
