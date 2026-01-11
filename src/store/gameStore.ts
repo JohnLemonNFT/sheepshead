@@ -57,6 +57,7 @@ interface LogEntry {
   timestamp: number;
   isHuman: boolean;
   phase: string;
+  trickNumber?: number;
 }
 
 interface TrickResult {
@@ -97,7 +98,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   // Game variants - off by default for standard play
   crackingEnabled: false,
   blitzEnabled: false,
-  callTenEnabled: true, // On by default - standard rule
+  callTenEnabled: false, // Off by default - optional rule
   // Learning
   showStrategyTips: true,
   showAIExplanations: true,
@@ -1436,8 +1437,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ showExplanation: false });
   },
 
-  addLogEntry: (player: string, action: string, reason: string, isHuman: boolean, phase: string) => {
-    const { gameLog, logIdCounter } = get();
+  addLogEntry: (player: string, action: string, reason: string, isHuman: boolean, phase: string, trickNumber?: number) => {
+    const { gameLog, logIdCounter, gameState } = get();
     const newEntry: LogEntry = {
       id: logIdCounter,
       player,
@@ -1446,6 +1447,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       timestamp: Date.now(),
       isHuman,
       phase,
+      trickNumber: trickNumber ?? (phase === 'playing' ? gameState.trickNumber : undefined),
     };
     set({
       gameLog: [...gameLog, newEntry],

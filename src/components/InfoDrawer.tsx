@@ -2,7 +2,7 @@
 
 // InfoDrawer - Side panel for scores, tips, game log, and statistics
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ScoreBoard } from './ScoreBoard';
 import { GameLog } from './GameLog';
 import { StrategyTips } from './StrategyTips';
@@ -71,25 +71,138 @@ export function InfoDrawer({
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'scores' | 'tips' | 'log' | 'stats'>('scores');
 
+  // Draggable toggle position (stored as percentage from top, 0-100)
+  const [toggleY, setToggleY] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasMoved, setHasMoved] = useState(false);
+  const dragStartY = useRef(0);
+  const dragStartToggleY = useRef(0);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  // Load saved position from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('infoDrawerToggleY');
+    if (saved) {
+      setToggleY(parseFloat(saved));
+    }
+  }, []);
+
+  // Save position to localStorage when it changes
+  useEffect(() => {
+    if (!isDragging) {
+      localStorage.setItem('infoDrawerToggleY', toggleY.toString());
+    }
+  }, [toggleY, isDragging]);
+
+  // Handle drag start
+  const handleDragStart = useCallback((clientY: number) => {
+    setIsDragging(true);
+    setHasMoved(false);
+    dragStartY.current = clientY;
+    dragStartToggleY.current = toggleY;
+  }, [toggleY]);
+
+  // Handle drag move
+  const handleDragMove = useCallback((clientY: number) => {
+    if (!isDragging) return;
+
+    const deltaY = clientY - dragStartY.current;
+
+    // Only count as "moved" if moved more than 5 pixels
+    if (Math.abs(deltaY) > 5) {
+      setHasMoved(true);
+    }
+
+    const windowHeight = window.innerHeight;
+    const deltaPercent = (deltaY / windowHeight) * 100;
+
+    // Clamp between 15% and 85% to keep button visible
+    const newY = Math.max(15, Math.min(85, dragStartToggleY.current + deltaPercent));
+    setToggleY(newY);
+  }, [isDragging]);
+
+  // Handle drag end
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch event handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    handleDragStart(e.touches[0].clientY);
+  }, [handleDragStart]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    handleDragMove(e.touches[0].clientY);
+  }, [handleDragMove]);
+
+  // Mouse event handlers (for desktop testing)
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    handleDragStart(e.clientY);
+  }, [handleDragStart]);
+
+  // Global mouse move/up handlers
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleDragMove(e.clientY);
+    };
+
+    const handleMouseUp = () => {
+      handleDragEnd();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', (e) => handleDragMove(e.touches[0].clientY));
+    window.addEventListener('touchend', handleDragEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', (e) => handleDragMove(e.touches[0].clientY));
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
   return (
     <>
-      {/* Toggle Tab - Fixed on left side */}
+      {/* Toggle Tab - Fixed on left side, draggable vertically */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={toggleRef}
+        onClick={() => {
+          // Only toggle if user didn't drag (just clicked)
+          if (!hasMoved) {
+            setIsOpen(!isOpen);
+          }
+        }}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleDragEnd}
         className={`
-          fixed left-0 top-1/2 -translate-y-1/2 z-40
+          fixed left-0 z-40
           bg-gray-800/95 backdrop-blur-sm border-2 border-l-0 border-gray-600
           py-4 px-1.5 flex flex-col items-center gap-2
           text-xs font-medium text-white rounded-r-lg
-          transition-all active:bg-gray-700 hover:bg-gray-700
+          active:bg-gray-700 hover:bg-gray-700
           ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+          ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
         `}
+        style={{
+          top: `${toggleY}%`,
+          transform: 'translateY(-50%)',
+          transition: isDragging ? 'none' : 'opacity 0.2s',
+        }}
       >
+        <span className="text-[8px] text-gray-400">⋮</span>
         <span className="text-base">▶</span>
         <span className="writing-vertical text-[10px] tracking-wider">SCORES</span>
         <span className="bg-yellow-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
           {scores.reduce((a, b) => a + b, 0)}
         </span>
+        <span className="text-[8px] text-gray-400">⋮</span>
       </button>
 
       {/* Side Panel */}

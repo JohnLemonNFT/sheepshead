@@ -653,12 +653,14 @@ export function GameUI({ state, actions, config }: GameUIProps) {
 
                         // Position cards using inline styles to avoid transform conflicts with animations
                         // 0 = you (bottom), 1 = left, 2 = top-left, 3 = top-right, 4 = right
+                        // Mobile gets more inward positions to avoid avatar overlap
+                        const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
                         const positionStyles: Record<number, React.CSSProperties> = {
                           0: { bottom: '8px', left: '50%', marginLeft: '-32px' }, // You - bottom center
-                          1: { left: '8px', top: '45%', marginTop: '-48px' }, // Left player
-                          2: { top: '8px', left: '18%' }, // Top-left player
-                          3: { top: '8px', right: '18%' }, // Top-right player
-                          4: { right: '8px', top: '45%', marginTop: '-48px' }, // Right player
+                          1: { left: isMobile ? '50px' : '8px', top: '45%', marginTop: '-48px' }, // Left player - pushed inward on mobile
+                          2: { top: '8px', left: isMobile ? '22%' : '18%' }, // Top-left player
+                          3: { top: '8px', right: isMobile ? '22%' : '18%' }, // Top-right player
+                          4: { right: isMobile ? '50px' : '8px', top: '45%', marginTop: '-48px' }, // Right player - pushed inward on mobile
                         };
 
                         // Slide animation direction based on player position

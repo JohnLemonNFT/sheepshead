@@ -104,7 +104,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   doubleOnBump: true,
   cracking: false,
   blitzes: false,
-  callTen: true,
+  callTen: false,
 };
 
 // Called ace/ten info (when using called ace partner variant)
