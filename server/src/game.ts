@@ -188,13 +188,20 @@ function determineTrickWinner(trick: Trick): PlayerPosition {
 }
 
 // Get callable suits
+// Picker can only call a suit where they:
+// 1. Don't have the ace (someone else has it to be partner)
+// 2. Have at least one fail card of that suit (hold card to receive lead)
 function getCallableSuits(hand: Card[]): Suit[] {
   const callable: Suit[] = [];
   const failSuits: Suit[] = ['clubs', 'spades', 'hearts'];
 
   for (const suit of failSuits) {
-    const hasAce = hand.some(c => c.suit === suit && c.rank === 'A' && !isTrump(c));
-    if (!hasAce) {
+    const failCardsOfSuit = hand.filter(c => c.suit === suit && !isTrump(c));
+    const hasAce = failCardsOfSuit.some(c => c.rank === 'A');
+    const hasHoldCard = failCardsOfSuit.length > 0;
+
+    // Can call this suit if: don't have the ace AND have a hold card
+    if (!hasAce && hasHoldCard) {
       callable.push(suit);
     }
   }
@@ -713,6 +720,13 @@ export function applyAction(state: GameState, position: PlayerPosition, action: 
       if (state.pickerPosition !== position) return false;
 
       const suit = action.suit;
+
+      // Validate: picker must have a hold card of this suit (and not the ace)
+      const callableSuits = getCallableSuits(player.hand);
+      if (!callableSuits.includes(suit)) {
+        return false; // Can't call a suit without a hold card
+      }
+
       // Find partner
       const partnerPos = state.players.findIndex(p =>
         p.hand.some(c => c.suit === suit && c.rank === 'A' && !isTrump(c)) &&
