@@ -181,13 +181,13 @@ export function GameSetup() {
 
             {/* Game Length */}
             <div>
-              <label className="block text-sm font-medium text-emerald-200/80 mb-2">Game Length</label>
+              <label className="block text-sm font-medium text-emerald-200/80 mb-2">Game Length (hands)</label>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { value: 5, label: '5', desc: 'Quick' },
-                  { value: 10, label: '10', desc: 'Standard' },
-                  { value: 15, label: '15', desc: 'Long' },
-                  { value: 0, label: '∞', desc: 'Unlimited' },
+                  { value: 5, label: '5', desc: '1 round' },
+                  { value: 10, label: '10', desc: '2 rounds' },
+                  { value: 15, label: '15', desc: '3 rounds' },
+                  { value: 0, label: '∞', desc: 'No limit' },
                 ].map(option => (
                   <button
                     key={option.value}
