@@ -15,6 +15,7 @@ import type {
   ClientGameState,
   ClientPlayer,
   GameConfig,
+  CrackState,
 } from './types.js';
 
 // Constants
@@ -720,12 +721,33 @@ function selectFollowCard(
 // GAME STATE MANAGEMENT
 // ============================================
 
+// Generate a random seed for shuffle verification
+function generateShuffleSeed(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let seed = '';
+  for (let i = 0; i < 8; i++) {
+    seed += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return seed;
+}
+
 export function createGameState(room: Room): GameState {
+  const seed = generateShuffleSeed();
   const deck = shuffleDeck(createDeck());
   const { hands, blind } = dealCards(deck);
 
   const dealerPosition = (room.handsPlayed % 5) as PlayerPosition;
   const firstPicker = ((dealerPosition + 1) % 5) as PlayerPosition;
+
+  // Build config from room settings
+  const config: GameConfig = {
+    ...DEFAULT_CONFIG,
+    cracking: room.settings.cracking,
+    blitzes: room.settings.blitzes,
+    callTen: room.settings.callTen,
+    noPickVariant: room.settings.noPickRule,
+    partnerVariant: room.settings.partnerVariant,
+  };
 
   const players: Player[] = [];
   for (let i = 0; i < 5; i++) {
@@ -743,7 +765,7 @@ export function createGameState(room: Room): GameState {
   }
 
   return {
-    config: DEFAULT_CONFIG,
+    config,
     phase: 'picking',
     players,
     deck: [],
@@ -757,6 +779,7 @@ export function createGameState(room: Room): GameState {
     calledAce: null,
     passCount: 0,
     trickNumber: 1,
+    seed,
   };
 }
 
@@ -778,12 +801,27 @@ export function applyAction(state: GameState, position: PlayerPosition, action: 
       state.blind = [];
       state.pickerPosition = position;
 
+      // Initialize crack state if cracking is enabled
+      if (state.config.cracking) {
+        state.crackState = {
+          cracked: false,
+          crackedBy: null,
+          recracked: false,
+          blitzed: false,
+          multiplier: 1,
+        };
+      }
+
       // Check if must go alone
       if (mustGoAlone(player.hand)) {
         state.phase = 'playing';
         const firstPlayer = ((state.dealerPosition + 1) % 5) as PlayerPosition;
         state.currentPlayer = firstPlayer;
         state.currentTrick = { cards: [], leadPlayer: firstPlayer };
+      } else if (state.config.cracking) {
+        // Go to cracking phase - start with player after picker
+        state.phase = 'cracking';
+        state.currentPlayer = ((position + 1) % 5) as PlayerPosition;
       } else {
         state.phase = 'burying';
       }
@@ -942,6 +980,103 @@ export function applyAction(state: GameState, position: PlayerPosition, action: 
       }
       return true;
     }
+
+    // ============================================
+    // CRACKING ACTIONS
+    // ============================================
+
+    case 'crack': {
+      if (state.phase !== 'cracking') return false;
+      if (!state.crackState) return false;
+      // Only non-picker can crack
+      if (position === state.pickerPosition) return false;
+
+      // Double the stakes
+      state.crackState.cracked = true;
+      state.crackState.crackedBy = position;
+      state.crackState.multiplier *= 2;
+
+      // Move to picker for potential recrack
+      state.currentPlayer = state.pickerPosition!;
+      return true;
+    }
+
+    case 'recrack': {
+      if (state.phase !== 'cracking') return false;
+      if (!state.crackState || !state.crackState.cracked) return false;
+      // Only picker can recrack
+      if (position !== state.pickerPosition) return false;
+
+      // Double again and move to burying
+      state.crackState.recracked = true;
+      state.crackState.multiplier *= 2;
+      state.phase = 'burying';
+      state.currentPlayer = state.pickerPosition!;
+      return true;
+    }
+
+    case 'noCrack': {
+      if (state.phase !== 'cracking') return false;
+      if (!state.crackState) return false;
+
+      const pickerPosition = state.pickerPosition!;
+
+      // If picker is deciding on recrack, move to burying
+      if (position === pickerPosition) {
+        state.phase = 'burying';
+        state.currentPlayer = pickerPosition;
+        return true;
+      }
+
+      // Otherwise, check if we should move to next player or to burying
+      const nextPlayer = ((position + 1) % 5) as PlayerPosition;
+
+      // If we've gone around back to picker without anyone cracking, move to burying
+      if (nextPlayer === pickerPosition) {
+        state.phase = 'burying';
+        state.currentPlayer = pickerPosition;
+      } else {
+        state.currentPlayer = nextPlayer;
+      }
+      return true;
+    }
+
+    case 'blitz': {
+      // Blitz can only be done during picking phase before seeing cards
+      // This is when the picker doubles before taking the blind
+      if (state.phase !== 'picking') return false;
+      if (!state.config.blitzes) return false;
+
+      // Initialize crack state for blitz
+      state.crackState = {
+        cracked: false,
+        crackedBy: null,
+        recracked: false,
+        blitzed: true,
+        multiplier: 2, // Blitz doubles
+      };
+
+      // Now player picks (add blind to hand)
+      player.hand = sortHand([...player.hand, ...state.blind]);
+      player.isPicker = true;
+      state.blind = [];
+      state.pickerPosition = position;
+
+      // Check if must go alone
+      if (mustGoAlone(player.hand)) {
+        state.phase = 'playing';
+        const firstPlayer = ((state.dealerPosition + 1) % 5) as PlayerPosition;
+        state.currentPlayer = firstPlayer;
+        state.currentTrick = { cards: [], leadPlayer: firstPlayer };
+      } else if (state.config.cracking) {
+        // Go to cracking phase even after blitz
+        state.phase = 'cracking';
+        state.currentPlayer = ((position + 1) % 5) as PlayerPosition;
+      } else {
+        state.phase = 'burying';
+      }
+      return true;
+    }
   }
 
   return false;
@@ -981,6 +1116,10 @@ export function calculateScores(state: GameState, room: Room): void {
   let basePoints = 1;
   if (isSchneider) basePoints = 2;
   if (isSchwarz) basePoints = 3;
+
+  // Apply crack multiplier if applicable
+  const crackMultiplier = state.crackState?.multiplier ?? 1;
+  basePoints *= crackMultiplier;
 
   // Partner gets half points, picker gets 2x, defenders split
   const partnerPos = state.players.findIndex(p => p.isPartner);
@@ -1028,6 +1167,10 @@ function getHandScore(state: GameState): import('./types.js').HandScore | undefi
   let multiplier = 1;
   if (isSchneider) multiplier = 2;
   if (isSchwarz) multiplier = 3;
+
+  // Apply crack multiplier if applicable
+  const crackMultiplier = state.crackState?.multiplier ?? 1;
+  multiplier *= crackMultiplier;
 
   const partnerPos = state.players.findIndex(p => p.isPartner);
   const hasPartner = partnerPos !== -1;
@@ -1090,6 +1233,8 @@ export function getClientGameState(state: GameState, position: PlayerPosition, r
     playerScores: room.playerScores,
     handsPlayed: room.handsPlayed,
     handScore: getHandScore(state),
+    shuffleSeed: state.seed,
+    crackState: state.crackState,
   };
 }
 
@@ -1106,6 +1251,44 @@ export function getAIAction(state: GameState, position: PlayerPosition): GameAct
   const player = state.players[position];
 
   switch (state.phase) {
+    case 'cracking': {
+      // AI cracking logic - generally conservative
+      // Cracking is risky - only crack with very strong defensive hands
+      if (!state.crackState) {
+        return { type: 'noCrack' };
+      }
+
+      // If we're the picker (deciding on recrack)
+      if (position === state.pickerPosition) {
+        // Recracking is even riskier - only with monster hands
+        const hand = player.hand;
+        const trumpCards = hand.filter(c => isTrump(c));
+        const queens = trumpCards.filter(c => c.rank === 'Q').length;
+        const jacks = trumpCards.filter(c => c.rank === 'J').length;
+
+        // Only recrack with truly dominant hands
+        if (queens >= 3 || (queens >= 2 && jacks >= 2 && trumpCards.length >= 6)) {
+          return { type: 'recrack' };
+        }
+        return { type: 'noCrack' };
+      }
+
+      // As a defender, only crack with strong defensive hands
+      // This is rare - we want trump depth to stop the picker
+      const hand = player.hand;
+      const trumpCards = hand.filter(c => isTrump(c));
+      const queens = trumpCards.filter(c => c.rank === 'Q').length;
+      const jacks = trumpCards.filter(c => c.rank === 'J').length;
+      const failAces = hand.filter(c => c.rank === 'A' && !isTrump(c)).length;
+
+      // Crack with: 3+ trump including multiple high trump, AND fail aces
+      if (trumpCards.length >= 3 && (queens + jacks) >= 2 && failAces >= 2) {
+        return { type: 'crack' };
+      }
+
+      return { type: 'noCrack' };
+    }
+
     case 'picking': {
       // Evaluate hand strength for picking
       const hand = player.hand;

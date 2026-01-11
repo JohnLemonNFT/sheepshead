@@ -28,6 +28,7 @@ export interface Player {
 export type GamePhase =
   | 'dealing'
   | 'picking'
+  | 'cracking'
   | 'burying'
   | 'calling'
   | 'playing'
@@ -45,6 +46,14 @@ export interface CalledAce {
   suit: Suit;
   revealed: boolean;
   isTen?: boolean; // True if calling a 10 (picker has all 3 aces)
+}
+
+export interface CrackState {
+  cracked: boolean;
+  crackedBy: PlayerPosition | null;
+  recracked: boolean;
+  blitzed: boolean;
+  multiplier: number;
 }
 
 export interface GameConfig {
@@ -73,6 +82,7 @@ export interface GameState {
   passCount: number;
   trickNumber: number;
   seed?: string;
+  crackState?: CrackState;
 }
 
 export type GameAction =
@@ -82,7 +92,11 @@ export type GameAction =
   | { type: 'callAce'; suit: Suit }
   | { type: 'callTen'; suit: Suit } // Call a 10 when picker has all 3 aces
   | { type: 'goAlone' }
-  | { type: 'playCard'; card: Card };
+  | { type: 'playCard'; card: Card }
+  | { type: 'crack' } // Defender doubles the stakes
+  | { type: 'recrack' } // Picker re-doubles after being cracked
+  | { type: 'noCrack' } // Pass on cracking opportunity
+  | { type: 'blitz' }; // Picker doubles before seeing blind
 
 // ============================================
 // MULTIPLAYER TYPES
@@ -100,6 +114,8 @@ export interface RoomSettings {
   noPickRule: 'leaster' | 'forcedPick';
   maxHands: 10 | 15 | 25; // Quick (10), Standard (15), Full (25)
   callTen: boolean; // Allow calling a 10 when picker has all 3 fail aces
+  cracking: boolean; // Allow defenders to double stakes
+  blitzes: boolean; // Allow picker to double before seeing blind
 }
 
 // Public room info for lobby browser
@@ -185,6 +201,10 @@ export interface ClientGameState {
   handsPlayed: number;
   // Hand result (only when phase is 'scoring')
   handScore?: HandScore;
+  // Shuffle verification seed (for fair play)
+  shuffleSeed?: string;
+  // Cracking state (when cracking is enabled)
+  crackState?: CrackState;
 }
 
 // Player info sent to clients

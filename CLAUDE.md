@@ -158,3 +158,6 @@ npm run test:ai  # Run AI simulation tests
 5. Implement AI engine
 6. Connect UI to game state
 7. Playtest and iterate
+
+## Production TODOs
+- **Disable game log for online play**: Currently the game log shows all cards played by each player. This helps with debugging AI decisions but in real Sheepshead you can't look back at what was played. Should be disabled for online competitive play in final production. (Local play can keep it as a learning aid.)

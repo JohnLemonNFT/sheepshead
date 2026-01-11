@@ -43,6 +43,8 @@ export interface RoomSettings {
   noPickRule: 'leaster' | 'forcedPick';
   maxHands?: 10 | 15 | 25;
   callTen?: boolean; // Allow calling a 10 when picker has all 3 fail aces
+  cracking?: boolean; // Allow defenders to double stakes
+  blitzes?: boolean; // Allow picker to double before seeing blind
 }
 
 // Final standings for game over
@@ -74,6 +76,14 @@ export interface PublicRoomInfo {
   createdAt: number;
 }
 
+export interface CrackState {
+  cracked: boolean;
+  crackedBy: PlayerPosition | null;
+  recracked: boolean;
+  blitzed: boolean;
+  multiplier: number;
+}
+
 export interface ClientGameState {
   phase: GamePhase;
   players: ClientPlayer[];
@@ -89,6 +99,8 @@ export interface ClientGameState {
   playerScores: number[];
   handsPlayed: number;
   handScore?: HandScore; // Only when phase is 'scoring'
+  shuffleSeed?: string; // For fair play verification
+  crackState?: CrackState; // When cracking is enabled
 }
 
 // Server message types

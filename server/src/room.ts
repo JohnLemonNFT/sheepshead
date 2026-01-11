@@ -77,6 +77,8 @@ const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   noPickRule: 'leaster',
   maxHands: 15, // Standard game
   callTen: true, // Allow calling a 10 when picker has all 3 aces
+  cracking: false, // Disabled by default
+  blitzes: false, // Disabled by default
 };
 
 // Create a new room
