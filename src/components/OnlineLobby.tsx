@@ -75,6 +75,8 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
         noPickRule: gameSettings.noPickRule,
         maxHands: gameSettings.maxHands,
         callTen: gameSettings.callTenEnabled,
+        cracking: gameSettings.crackingEnabled,
+        blitzes: gameSettings.blitzEnabled,
       };
       onlineActions.createRoom(playerName.trim(), isPublic, settings);
     }
@@ -379,6 +381,46 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Cracking */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs sm:text-sm text-white font-medium">Cracking</div>
+                    <div className="text-[10px] text-gray-400">Defenders can double the stakes</div>
+                  </div>
+                  <button
+                    onClick={() => updateSettings({ crackingEnabled: !gameSettings.crackingEnabled })}
+                    className={`
+                      w-11 h-6 rounded-full p-0.5 transition-colors flex-shrink-0
+                      ${gameSettings.crackingEnabled ? 'bg-red-500' : 'bg-gray-600'}
+                    `}
+                  >
+                    <div className={`
+                      w-5 h-5 rounded-full bg-white transition-transform shadow
+                      ${gameSettings.crackingEnabled ? 'translate-x-5' : 'translate-x-0'}
+                    `} />
+                  </button>
+                </div>
+
+                {/* Blitz */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs sm:text-sm text-white font-medium">Blitz</div>
+                    <div className="text-[10px] text-gray-400">Picker can double before seeing blind</div>
+                  </div>
+                  <button
+                    onClick={() => updateSettings({ blitzEnabled: !gameSettings.blitzEnabled })}
+                    className={`
+                      w-11 h-6 rounded-full p-0.5 transition-colors flex-shrink-0
+                      ${gameSettings.blitzEnabled ? 'bg-purple-500' : 'bg-gray-600'}
+                    `}
+                  >
+                    <div className={`
+                      w-5 h-5 rounded-full bg-white transition-transform shadow
+                      ${gameSettings.blitzEnabled ? 'translate-x-5' : 'translate-x-0'}
+                    `} />
+                  </button>
                 </div>
 
                 {/* Call a 10 - only show when Called Ace is selected */}
