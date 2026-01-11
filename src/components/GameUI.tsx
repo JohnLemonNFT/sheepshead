@@ -767,7 +767,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
               <div className="text-center mb-1">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 border border-amber-500/50 rounded-full text-amber-400 text-xs font-medium">
                   <span className="w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">D</span>
-                  You are dealing
+                  You dealing
                 </span>
               </div>
             )}
