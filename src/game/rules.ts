@@ -77,15 +77,23 @@ function getLeadOptions(
   isPicker: boolean,
   isPartner: boolean
 ): Card[] {
-  // Partner cannot lead the called ace until called suit has been led by someone else
-  // (This is a common house rule - partner holds the ace)
-  // Actually, partner CAN lead any card including the ace suit
-  // But they must play the ACE when that suit is led by others
-  
-  // Picker must keep at least one card of the called suit (hold card)
-  // But can lead any card including other cards of that suit
-  
-  // For MVP: all cards are legal to lead
+  // Partner with called ace cannot lead OTHER fail cards of that suit
+  // They can lead the ace itself, or any other suit - but not "hide" behind small cards
+  if (isPartner && calledAce && !calledAce.revealed) {
+    const calledSuit = calledAce.suit;
+    const hasCalledAce = hand.some(c => c.suit === calledSuit && c.rank === 'A' && !isTrump(c));
+
+    if (hasCalledAce) {
+      // Filter out non-ace cards of the called suit
+      return hand.filter(c => {
+        if (isTrump(c)) return true; // Trump is always ok
+        if (c.suit !== calledSuit) return true; // Other suits are ok
+        if (c.rank === 'A') return true; // The ace itself is ok to lead
+        return false; // Other fail cards of called suit are NOT ok
+      });
+    }
+  }
+
   return [...hand];
 }
 
