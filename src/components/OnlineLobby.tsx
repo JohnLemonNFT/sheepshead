@@ -120,8 +120,8 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
           </p>
         </header>
 
-        {/* Connection Status - only show if connecting or error */}
-        {(connecting || error) && (
+        {/* Connection Status - show if connecting, error, or not connected */}
+        {(connecting || error || !connected) && (
           <section className="mb-4 sm:mb-6">
             {connecting && (
               <div className="bg-gray-800 rounded-xl p-5 sm:p-6 text-center">
@@ -181,6 +181,18 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                     Retry
                   </button>
                 </div>
+              </div>
+            )}
+            {/* Fallback: not connecting, no error, not connected */}
+            {!connecting && !error && !connected && (
+              <div className="bg-gray-800 rounded-xl p-5 sm:p-6 text-center">
+                <p className="text-gray-400 mb-4">Not connected to server</p>
+                <button
+                  onClick={() => onlineActions.connect(SERVER_URL)}
+                  className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-xl transition-colors"
+                >
+                  Connect
+                </button>
               </div>
             )}
           </section>
