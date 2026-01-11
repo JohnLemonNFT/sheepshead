@@ -41,11 +41,21 @@ export function getLegalPlays(
   const leadCard = currentTrick.cards[0].card;
   const leadSuit = getEffectiveSuit(leadCard);
 
-  // Called ace rule: partner can ONLY play the called ace when the called suit is led
-  // The ace is "locked" until that suit is played
+  // Called ace rules:
+  // - Partner can ONLY play the called ace when the called suit is led
+  // - Picker must reserve hold card until called suit is led (can't discard it early)
   const isCalledAce = (c: Card) =>
     calledAce && !calledAce.revealed && isPartner &&
     c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c);
+
+  // Check if this is the picker's last card of the called suit (hold card)
+  const isPickerHoldCard = (c: Card) => {
+    if (!calledAce || calledAce.revealed || !isPicker) return false;
+    if (isTrump(c) || c.suit !== calledAce.suit) return false;
+    // It's the hold card if it's the picker's only remaining card of this suit
+    const cardsOfCalledSuit = hand.filter(card => card.suit === calledAce.suit && !isTrump(card));
+    return cardsOfCalledSuit.length === 1 && cardsOfCalledSuit[0].id === c.id;
+  };
 
   // Check if called suit is led - partner MUST play the ace
   if (calledAce && !calledAce.revealed && leadSuit !== 'trump') {
@@ -66,10 +76,12 @@ export function getLegalPlays(
     return followCards;
   }
 
-  // Cannot follow suit - can play any card EXCEPT the locked called ace
+  // Cannot follow suit - can play any card EXCEPT:
+  // - Partner's locked called ace
+  // - Picker's hold card (last card of called suit)
   const offSuitOptions = getOffSuitOptions(hand, calledAce, isPicker);
-  const playable = offSuitOptions.filter(c => !isCalledAce(c));
-  return playable.length > 0 ? playable : offSuitOptions; // Edge case: only card left is the ace
+  const playable = offSuitOptions.filter(c => !isCalledAce(c) && !isPickerHoldCard(c));
+  return playable.length > 0 ? playable : offSuitOptions; // Edge case: only card(s) left are restricted
 }
 
 /**

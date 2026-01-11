@@ -140,11 +140,21 @@ function getLegalPlays(
   const leadIsTrump = isTrump(leadCard);
   const leadSuit = leadCard.suit;
 
-  // Called ace rule: partner can ONLY play the called ace when the called suit is led
-  // The ace is "locked" until that suit is played
+  // Called ace rules:
+  // - Partner can ONLY play the called ace when the called suit is led
+  // - Picker must reserve hold card until called suit is led (can't discard it early)
   const isCalledAce = (c: Card) =>
     calledAce && !calledAce.revealed && isPartner &&
     c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c);
+
+  // Check if this is the picker's last card of the called suit (hold card)
+  const isPickerHoldCard = (c: Card) => {
+    if (!calledAce || calledAce.revealed || !isPicker) return false;
+    if (isTrump(c) || c.suit !== calledAce.suit) return false;
+    // It's the hold card if it's the picker's only remaining card of this suit
+    const cardsOfCalledSuit = hand.filter(card => card.suit === calledAce.suit && !isTrump(card));
+    return cardsOfCalledSuit.length === 1 && cardsOfCalledSuit[0].id === c.id;
+  };
 
   // Check if called suit is led - partner MUST play the ace
   if (calledAce && !calledAce.revealed && isPartner && !leadIsTrump && leadSuit === calledAce.suit) {
@@ -159,9 +169,9 @@ function getLegalPlays(
     if (trumpInHand.length > 0) {
       return trumpInHand;
     }
-    // No trump - can play any card EXCEPT the called ace (it's locked)
-    const playable = hand.filter(c => !isCalledAce(c));
-    return playable.length > 0 ? playable : hand; // Edge case: only card left is the ace
+    // No trump - can play any card EXCEPT locked cards (called ace, picker's hold card)
+    const playable = hand.filter(c => !isCalledAce(c) && !isPickerHoldCard(c));
+    return playable.length > 0 ? playable : hand; // Edge case: only card(s) left are restricted
   }
 
   const suitInHand = hand.filter(c => c.suit === leadSuit && !isTrump(c));
@@ -169,9 +179,9 @@ function getLegalPlays(
     return suitInHand; // Must follow suit
   }
 
-  // Can't follow suit - can play any card EXCEPT the called ace (it's locked)
-  const playable = hand.filter(c => !isCalledAce(c));
-  return playable.length > 0 ? playable : hand; // Edge case: only card left is the ace
+  // Can't follow suit - can play any card EXCEPT locked cards (called ace, picker's hold card)
+  const playable = hand.filter(c => !isCalledAce(c) && !isPickerHoldCard(c));
+  return playable.length > 0 ? playable : hand; // Edge case: only card(s) left are restricted
 }
 
 // Determine trick winner
