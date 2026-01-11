@@ -4,17 +4,22 @@
 // STATS & ACHIEVEMENTS SCREEN
 // ============================================
 
-import { useStatsStore, ACHIEVEMENTS } from '../store/statsStore';
+import { useState } from 'react';
+import { useStatsStore, ACHIEVEMENTS, type StatsMode } from '../store/statsStore';
 
 interface StatsScreenProps {
   onBack: () => void;
 }
 
-export function StatsScreen({ onBack }: StatsScreenProps) {
-  const { stats, unlockedAchievements, getWinRate, getPickerWinRate, resetStats } = useStatsStore();
+type TabMode = 'local' | 'online' | 'combined';
 
-  const winRate = getWinRate();
-  const pickerWinRate = getPickerWinRate();
+export function StatsScreen({ onBack }: StatsScreenProps) {
+  const [activeTab, setActiveTab] = useState<TabMode>('combined');
+  const { unlockedAchievements, getStats, getWinRate, getPickerWinRate, resetStats } = useStatsStore();
+
+  const stats = getStats(activeTab);
+  const winRate = getWinRate(activeTab);
+  const pickerWinRate = getPickerWinRate(activeTab);
   const unlockedCount = unlockedAchievements.size;
   const totalAchievements = ACHIEVEMENTS.length;
 
@@ -27,6 +32,12 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
     return 0;
   });
 
+  const tabs: { key: TabMode; label: string }[] = [
+    { key: 'combined', label: 'All' },
+    { key: 'local', label: 'Local' },
+    { key: 'online', label: 'Online' },
+  ];
+
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-8 text-white">
       <div className="max-w-lg mx-auto">
@@ -35,6 +46,25 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Your Stats</h1>
           <p className="text-gray-400 text-sm">Track your Sheepshead journey</p>
         </header>
+
+        {/* Tab Selector */}
+        <div className="flex bg-gray-800 rounded-lg p-1 mb-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`
+                flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all
+                ${activeTab === tab.key
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }
+              `}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         {/* Stats Overview */}
         <section className="bg-gray-800 rounded-xl p-4 sm:p-5 mb-4">
@@ -128,6 +158,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
           <div className="grid grid-cols-1 gap-2">
             {sortedAchievements.map((achievement) => {
               const isUnlocked = unlockedAchievements.has(achievement.id);
+              const modeLabel = achievement.mode === 'online' ? '(Online)' : achievement.mode === 'local' ? '(Local)' : '';
               return (
                 <div
                   key={achievement.id}
@@ -144,7 +175,7 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className={`font-medium text-sm ${isUnlocked ? 'text-white' : 'text-gray-500'}`}>
-                      {achievement.name}
+                      {achievement.name} {modeLabel && <span className="text-xs text-gray-500">{modeLabel}</span>}
                     </div>
                     <div className="text-xs text-gray-500 truncate">
                       {achievement.description}
@@ -174,13 +205,15 @@ export function StatsScreen({ onBack }: StatsScreenProps) {
           </p>
           <button
             onClick={() => {
-              if (confirm('Are you sure you want to reset all stats and achievements? This cannot be undone.')) {
-                resetStats();
+              const resetMode = activeTab === 'combined' ? undefined : activeTab as StatsMode;
+              const modeText = activeTab === 'combined' ? 'all stats and achievements' : `${activeTab} stats`;
+              if (confirm(`Are you sure you want to reset ${modeText}? This cannot be undone.`)) {
+                resetStats(resetMode);
               }
             }}
             className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
           >
-            Reset Stats
+            Reset {activeTab === 'combined' ? 'All Stats' : `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Stats`}
           </button>
         </div>
       </div>

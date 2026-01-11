@@ -10,6 +10,8 @@ import { persist } from 'zustand/middleware';
 // TYPES
 // ============================================
 
+export type StatsMode = 'local' | 'online';
+
 export interface PlayerStats {
   // Basic stats
   gamesPlayed: number;
@@ -44,6 +46,7 @@ export interface Achievement {
   icon: string;
   unlockedAt: number | null;  // timestamp or null if locked
   requirement: (stats: PlayerStats) => boolean;
+  mode?: 'local' | 'online' | 'combined';  // Which stats to check (default: combined)
 }
 
 // ============================================
@@ -51,7 +54,9 @@ export interface Achievement {
 // ============================================
 
 export const ACHIEVEMENTS: Omit<Achievement, 'unlockedAt'>[] = [
-  // Getting started
+  // ============================================
+  // GETTING STARTED (Any mode)
+  // ============================================
   {
     id: 'first_game',
     name: 'First Hand',
@@ -67,133 +72,188 @@ export const ACHIEVEMENTS: Omit<Achievement, 'unlockedAt'>[] = [
     requirement: (s) => s.gamesWon >= 1,
   },
 
-  // Games played milestones
+  // ============================================
+  // LOCAL PRACTICE
+  // ============================================
   {
-    id: 'games_10',
-    name: 'Getting Started',
-    description: 'Play 10 games',
-    icon: '🃏',
-    requirement: (s) => s.gamesPlayed >= 10,
-  },
-  {
-    id: 'games_50',
-    name: 'Regular',
-    description: 'Play 50 games',
+    id: 'local_practice_10',
+    name: 'Practice Makes Perfect',
+    description: 'Play 10 local games',
     icon: '🎯',
-    requirement: (s) => s.gamesPlayed >= 50,
+    requirement: (s) => s.gamesPlayed >= 10,
+    mode: 'local',
   },
   {
-    id: 'games_100',
+    id: 'local_first_win',
+    name: 'AI Slayer',
+    description: 'Win your first local game',
+    icon: '🤖',
+    requirement: (s) => s.gamesWon >= 1,
+    mode: 'local',
+  },
+
+  // ============================================
+  // ONLINE MILESTONES
+  // ============================================
+  {
+    id: 'online_first',
+    name: 'Going Online',
+    description: 'Play your first online game',
+    icon: '🌐',
+    requirement: (s) => s.gamesPlayed >= 1,
+    mode: 'online',
+  },
+  {
+    id: 'online_10',
+    name: 'Getting Serious',
+    description: 'Play 10 online games',
+    icon: '📡',
+    requirement: (s) => s.gamesPlayed >= 10,
+    mode: 'online',
+  },
+  {
+    id: 'online_50',
+    name: 'Regular',
+    description: 'Play 50 online games',
+    icon: '🃏',
+    requirement: (s) => s.gamesPlayed >= 50,
+    mode: 'online',
+  },
+  {
+    id: 'online_100',
     name: 'Veteran',
-    description: 'Play 100 games',
+    description: 'Play 100 online games',
     icon: '⭐',
     requirement: (s) => s.gamesPlayed >= 100,
+    mode: 'online',
   },
   {
-    id: 'games_500',
+    id: 'online_500',
     name: 'Sheepshead Master',
-    description: 'Play 500 games',
+    description: 'Play 500 online games',
     icon: '👑',
     requirement: (s) => s.gamesPlayed >= 500,
+    mode: 'online',
   },
 
-  // Win milestones
+  // ============================================
+  // ONLINE WINS
+  // ============================================
   {
-    id: 'wins_10',
+    id: 'online_wins_10',
     name: 'On a Roll',
-    description: 'Win 10 games',
+    description: 'Win 10 online games',
     icon: '🔥',
     requirement: (s) => s.gamesWon >= 10,
+    mode: 'online',
   },
   {
-    id: 'wins_50',
+    id: 'online_wins_50',
     name: 'Champion',
-    description: 'Win 50 games',
+    description: 'Win 50 online games',
     icon: '🏅',
     requirement: (s) => s.gamesWon >= 50,
+    mode: 'online',
   },
   {
-    id: 'wins_100',
+    id: 'online_wins_100',
     name: 'Legend',
-    description: 'Win 100 games',
+    description: 'Win 100 online games',
     icon: '🌟',
     requirement: (s) => s.gamesWon >= 100,
+    mode: 'online',
   },
 
-  // Picker achievements
+  // ============================================
+  // ONLINE PICKER ACHIEVEMENTS
+  // ============================================
   {
-    id: 'picker_10',
+    id: 'online_picker_10',
     name: 'Risk Taker',
-    description: 'Pick up the blind 10 times',
+    description: 'Pick up the blind 10 times online',
     icon: '🎲',
     requirement: (s) => s.timesPicked >= 10,
+    mode: 'online',
   },
   {
-    id: 'picker_wins_10',
+    id: 'online_picker_wins_10',
     name: "Picker's Instinct",
-    description: 'Win 10 games as picker',
+    description: 'Win 10 online games as picker',
     icon: '🧠',
     requirement: (s) => s.pickerWins >= 10,
+    mode: 'online',
   },
   {
-    id: 'picker_50',
+    id: 'online_picker_50',
     name: 'Bold Player',
-    description: 'Pick up the blind 50 times',
+    description: 'Pick up the blind 50 times online',
     icon: '💪',
     requirement: (s) => s.timesPicked >= 50,
+    mode: 'online',
   },
 
-  // Special outcomes
+  // ============================================
+  // ONLINE SPECIAL OUTCOMES
+  // ============================================
   {
-    id: 'first_schneider',
+    id: 'online_schneider',
     name: 'Schneider!',
-    description: 'Win a game by 30+ points',
+    description: 'Win an online game by 30+ points',
     icon: '💥',
     requirement: (s) => s.schneiders >= 1,
+    mode: 'online',
   },
   {
-    id: 'schneider_5',
+    id: 'online_schneider_5',
     name: 'Crushing It',
-    description: 'Schneider opponents 5 times',
+    description: 'Schneider opponents 5 times online',
     icon: '⚡',
     requirement: (s) => s.schneiders >= 5,
+    mode: 'online',
   },
   {
-    id: 'leaster_win',
+    id: 'online_leaster_win',
     name: 'Leaster Master',
-    description: 'Win a leaster',
+    description: 'Win an online leaster',
     icon: '🐑',
     requirement: (s) => s.leastersWon >= 1,
+    mode: 'online',
   },
   {
-    id: 'leaster_wins_5',
+    id: 'online_leaster_wins_5',
     name: 'Reverse Psychology',
-    description: 'Win 5 leasters',
+    description: 'Win 5 online leasters',
     icon: '🔄',
     requirement: (s) => s.leastersWon >= 5,
+    mode: 'online',
   },
 
-  // Streaks
+  // ============================================
+  // ONLINE STREAKS
+  // ============================================
   {
-    id: 'streak_3',
+    id: 'online_streak_3',
     name: 'Hot Streak',
-    description: 'Win 3 games in a row',
+    description: 'Win 3 online games in a row',
     icon: '🔥',
     requirement: (s) => s.bestWinStreak >= 3,
+    mode: 'online',
   },
   {
-    id: 'streak_5',
+    id: 'online_streak_5',
     name: 'Unstoppable',
-    description: 'Win 5 games in a row',
+    description: 'Win 5 online games in a row',
     icon: '🚀',
     requirement: (s) => s.bestWinStreak >= 5,
+    mode: 'online',
   },
   {
-    id: 'streak_10',
+    id: 'online_streak_10',
     name: 'Dominant',
-    description: 'Win 10 games in a row',
+    description: 'Win 10 online games in a row',
     icon: '👊',
     requirement: (s) => s.bestWinStreak >= 10,
+    mode: 'online',
   },
 ];
 
@@ -222,18 +282,20 @@ const DEFAULT_STATS: PlayerStats = {
 // ============================================
 
 interface StatsState {
-  stats: PlayerStats;
+  localStats: PlayerStats;
+  onlineStats: PlayerStats;
   unlockedAchievements: Set<string>;
   newlyUnlocked: string[];  // IDs of achievements just unlocked (for notifications)
 
   // Actions
-  recordGameResult: (result: GameResult) => string[];  // Returns newly unlocked achievement IDs
+  recordGameResult: (result: GameResult, mode: StatsMode) => string[];  // Returns newly unlocked achievement IDs
   clearNewlyUnlocked: () => void;
-  resetStats: () => void;
+  resetStats: (mode?: StatsMode) => void;
 
   // Computed
-  getWinRate: () => number;
-  getPickerWinRate: () => number;
+  getStats: (mode: StatsMode | 'combined') => PlayerStats;
+  getWinRate: (mode: StatsMode | 'combined') => number;
+  getPickerWinRate: (mode: StatsMode | 'combined') => number;
   getAchievements: () => (Achievement & { unlockedAt: number | null })[];
 }
 
@@ -247,6 +309,29 @@ export interface GameResult {
   wasSchneidered: boolean;    // Were you schneidered?
 }
 
+// Helper to combine two stats objects
+function combineStats(a: PlayerStats, b: PlayerStats): PlayerStats {
+  return {
+    gamesPlayed: a.gamesPlayed + b.gamesPlayed,
+    gamesWon: a.gamesWon + b.gamesWon,
+    timesPicked: a.timesPicked + b.timesPicked,
+    pickerWins: a.pickerWins + b.pickerWins,
+    schneiders: a.schneiders + b.schneiders,
+    timesSchneidered: a.timesSchneidered + b.timesSchneidered,
+    leastersPlayed: a.leastersPlayed + b.leastersPlayed,
+    leastersWon: a.leastersWon + b.leastersWon,
+    currentWinStreak: Math.max(a.currentWinStreak, b.currentWinStreak),
+    bestWinStreak: Math.max(a.bestWinStreak, b.bestWinStreak),
+    totalPointsWon: a.totalPointsWon + b.totalPointsWon,
+    firstGameDate: a.firstGameDate && b.firstGameDate
+      ? Math.min(a.firstGameDate, b.firstGameDate)
+      : a.firstGameDate || b.firstGameDate,
+    lastGameDate: a.lastGameDate && b.lastGameDate
+      ? Math.max(a.lastGameDate, b.lastGameDate)
+      : a.lastGameDate || b.lastGameDate,
+  };
+}
+
 // ============================================
 // STORE IMPLEMENTATION
 // ============================================
@@ -254,12 +339,13 @@ export interface GameResult {
 export const useStatsStore = create<StatsState>()(
   persist(
     (set, get) => ({
-      stats: DEFAULT_STATS,
+      localStats: DEFAULT_STATS,
+      onlineStats: DEFAULT_STATS,
       unlockedAchievements: new Set<string>(),
       newlyUnlocked: [],
 
-      recordGameResult: (result: GameResult) => {
-        const currentStats = get().stats;
+      recordGameResult: (result: GameResult, mode: StatsMode) => {
+        const currentStats = mode === 'local' ? get().localStats : get().onlineStats;
         const currentUnlocked = get().unlockedAchievements;
         const now = Date.now();
 
@@ -283,10 +369,30 @@ export const useStatsStore = create<StatsState>()(
           lastGameDate: now,
         };
 
+        // Get the other stats for combined checking
+        const otherStats = mode === 'local' ? get().onlineStats : get().localStats;
+        const combinedStats = combineStats(newStats, otherStats);
+
         // Check for newly unlocked achievements
         const newlyUnlocked: string[] = [];
         for (const achievement of ACHIEVEMENTS) {
-          if (!currentUnlocked.has(achievement.id) && achievement.requirement(newStats)) {
+          if (currentUnlocked.has(achievement.id)) continue;
+
+          // Determine which stats to check based on achievement mode
+          const achievementMode = achievement.mode || 'combined';
+          let statsToCheck: PlayerStats;
+
+          if (achievementMode === 'combined') {
+            statsToCheck = combinedStats;
+          } else if (achievementMode === mode) {
+            // Achievement is for the current mode
+            statsToCheck = newStats;
+          } else {
+            // Achievement is for the other mode, skip
+            continue;
+          }
+
+          if (achievement.requirement(statsToCheck)) {
             newlyUnlocked.push(achievement.id);
           }
         }
@@ -295,11 +401,19 @@ export const useStatsStore = create<StatsState>()(
         const newUnlockedSet = new Set(currentUnlocked);
         newlyUnlocked.forEach(id => newUnlockedSet.add(id));
 
-        set({
-          stats: newStats,
-          unlockedAchievements: newUnlockedSet,
-          newlyUnlocked,
-        });
+        if (mode === 'local') {
+          set({
+            localStats: newStats,
+            unlockedAchievements: newUnlockedSet,
+            newlyUnlocked,
+          });
+        } else {
+          set({
+            onlineStats: newStats,
+            unlockedAchievements: newUnlockedSet,
+            newlyUnlocked,
+          });
+        }
 
         return newlyUnlocked;
       },
@@ -308,24 +422,38 @@ export const useStatsStore = create<StatsState>()(
         set({ newlyUnlocked: [] });
       },
 
-      resetStats: () => {
-        set({
-          stats: DEFAULT_STATS,
-          unlockedAchievements: new Set(),
-          newlyUnlocked: [],
-        });
+      resetStats: (mode?: StatsMode) => {
+        if (mode === 'local') {
+          set({ localStats: DEFAULT_STATS });
+        } else if (mode === 'online') {
+          set({ onlineStats: DEFAULT_STATS });
+        } else {
+          // Reset all
+          set({
+            localStats: DEFAULT_STATS,
+            onlineStats: DEFAULT_STATS,
+            unlockedAchievements: new Set(),
+            newlyUnlocked: [],
+          });
+        }
       },
 
-      getWinRate: () => {
-        const { gamesPlayed, gamesWon } = get().stats;
-        if (gamesPlayed === 0) return 0;
-        return Math.round((gamesWon / gamesPlayed) * 100);
+      getStats: (mode: StatsMode | 'combined') => {
+        if (mode === 'local') return get().localStats;
+        if (mode === 'online') return get().onlineStats;
+        return combineStats(get().localStats, get().onlineStats);
       },
 
-      getPickerWinRate: () => {
-        const { timesPicked, pickerWins } = get().stats;
-        if (timesPicked === 0) return 0;
-        return Math.round((pickerWins / timesPicked) * 100);
+      getWinRate: (mode: StatsMode | 'combined') => {
+        const stats = get().getStats(mode);
+        if (stats.gamesPlayed === 0) return 0;
+        return Math.round((stats.gamesWon / stats.gamesPlayed) * 100);
+      },
+
+      getPickerWinRate: (mode: StatsMode | 'combined') => {
+        const stats = get().getStats(mode);
+        if (stats.timesPicked === 0) return 0;
+        return Math.round((stats.pickerWins / stats.timesPicked) * 100);
       },
 
       getAchievements: () => {
@@ -347,6 +475,12 @@ export const useStatsStore = create<StatsState>()(
           // Convert array back to Set
           if (data.state?.unlockedAchievements) {
             data.state.unlockedAchievements = new Set(data.state.unlockedAchievements);
+          }
+          // Migration: if old 'stats' exists, move to 'localStats'
+          if (data.state?.stats && !data.state?.localStats) {
+            data.state.localStats = data.state.stats;
+            data.state.onlineStats = DEFAULT_STATS;
+            delete data.state.stats;
           }
           return data;
         },

@@ -1355,7 +1355,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           isSchneider: handScore.isSchneider && humanWon,
           wasSchneidered: handScore.isSchneider && !humanWon,
         };
-        useStatsStore.getState().recordGameResult(gameResult);
+        useStatsStore.getState().recordGameResult(gameResult, 'local');
       }
 
       set({

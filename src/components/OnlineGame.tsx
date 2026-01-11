@@ -273,7 +273,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
       opponentPoints,
       isSchneider: handScore.isSchneider && humanWon,
       wasSchneidered: handScore.isSchneider && !humanWon,
-    });
+    }, 'online');
   }, [gameState?.handScore, myPosition, roomCode, handsPlayed, pickerPosition, myPlayer?.isPartner]);
 
   // Calculate legal plays
