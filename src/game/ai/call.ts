@@ -59,13 +59,22 @@ export function decideCall(
     };
   }
 
-  // Check if we SHOULD go alone (very strong hand)
+  // Check if we SHOULD go alone (extremely strong hand - should be RARE)
+  // Only go alone if we have overwhelming trump strength
   const trumpCount = hand.filter(c => isTrump(c)).length;
-  if (trumpCount >= 6 && failAces.length >= 2) {
+  const queens = hand.filter(c => c.rank === 'Q').length;
+  const jacks = hand.filter(c => c.rank === 'J').length;
+  const topTrump = queens + jacks; // Queens and Jacks are the top 8 trump
+
+  // Only go alone with: 7+ trump, OR 6 trump with 4+ queens/jacks
+  // This is much stricter - going alone should be rare
+  const shouldGoAlone = trumpCount >= 7 || (trumpCount >= 6 && topTrump >= 4);
+
+  if (shouldGoAlone && failAces.length >= 1) {
     return {
       suit: null,
       goAlone: true,
-      reason: `Going alone with ${trumpCount} trump and ${failAces.length} fail aces`,
+      reason: `Going alone with ${trumpCount} trump (${queens}Q, ${jacks}J)`,
     };
   }
 
