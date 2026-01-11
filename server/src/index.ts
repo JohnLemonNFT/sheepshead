@@ -780,7 +780,7 @@ function runAILoop(room: import('./room.js').Room): void {
       }
 
       roomTimers.get(room.code)?.delete(timer);
-    }, 1000);
+    }, 1500); // 1.5 second delay for readable pace
 
     if (!roomTimers.has(room.code)) {
       roomTimers.set(room.code, new Set());
