@@ -182,7 +182,10 @@ export function LocalGame() {
   // Auto-dismiss announcements
   useEffect(() => {
     if (announcement) {
-      const delay = announcement.type === 'call' || announcement.type === 'partnerReveal' || announcement.type === 'leaster' ? 2500 :
+      // Important announcements get longer display time
+      const delay = announcement.type === 'call' || announcement.type === 'callTen' ||
+                    announcement.type === 'goAlone' || announcement.type === 'partnerReveal' ||
+                    announcement.type === 'leaster' ? 2500 :
                     announcement.type === 'dealer' ? 2500 : 2000;
       const timer = setTimeout(() => setAnnouncement(null), delay);
       return () => clearTimeout(timer);

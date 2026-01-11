@@ -1169,9 +1169,9 @@ export function getAIAction(state: GameState, position: PlayerPosition): GameAct
 
     case 'burying': {
       // BEST PRACTICE: Strategic burying
-      // Goals: 1) Create voids (eliminate entire fail suits) 2) Bury points 3) Keep control
+      // Goals: 1) Keep at least one callable suit! 2) Create voids 3) Bury points 4) Keep control
       // NEVER bury queens or jacks (top trump)
-      // Better to have 2 clubs than 1 heart + 1 club
+      // CRITICAL: Must preserve at least one hold card for a callable suit!
 
       const hand = player.hand;
 
@@ -1187,35 +1187,89 @@ export function getAIAction(state: GameState, position: PlayerPosition): GameAct
         diamonds: [], // All diamonds are trump
       };
 
-      // Find suits we can void (1-2 cards) - these are ideal to bury
-      const voidableSuits = FAIL_SUITS.filter(suit =>
-        suitCounts[suit].length > 0 &&
-        suitCounts[suit].length <= 2 &&
-        !suitCounts[suit].some(c => c.rank === 'A') // Don't void if we have ace (control)
-      );
+      // CRITICAL: Identify callable suits (don't have ace, have at least one hold card)
+      const callableSuits = FAIL_SUITS.filter(suit => {
+        const hasAce = suitCounts[suit].some(c => c.rank === 'A');
+        const hasNonAce = suitCounts[suit].some(c => c.rank !== 'A');
+        return !hasAce && hasNonAce;
+      });
+
+      // Track hold cards per callable suit
+      const holdCardsPerSuit: Record<string, number> = {};
+      for (const suit of callableSuits) {
+        holdCardsPerSuit[suit] = suitCounts[suit].length;
+      }
+
+      // Find suits we can SAFELY void (won't eliminate our only callable suit)
+      const voidableSuits = FAIL_SUITS.filter(suit => {
+        const cards = suitCounts[suit];
+        if (cards.length === 0 || cards.length > 2) return false;
+        if (cards.some(c => c.rank === 'A')) return false; // Don't void if we have ace
+
+        // Check if voiding this suit would leave no callable suits
+        if (callableSuits.includes(suit)) {
+          const otherCallable = callableSuits.filter(s => s !== suit);
+          if (otherCallable.length === 0) return false; // Can't void our only callable suit!
+        }
+        return true;
+      });
 
       const toBury: Card[] = [];
+      const buriedPerSuit: Record<string, number> = {};
 
-      // Priority 1: Void an entire suit if possible
+      // Helper to check if we can bury a card from a callable suit
+      const canBuryFromSuit = (suit: Suit): boolean => {
+        if (!callableSuits.includes(suit)) return true; // Not callable, can bury freely
+
+        const buried = buriedPerSuit[suit] || 0;
+        const remaining = holdCardsPerSuit[suit] - buried;
+
+        // Check if another callable suit has hold cards
+        const otherCallable = callableSuits.filter(s => {
+          if (s === suit) return false;
+          const sBuried = buriedPerSuit[s] || 0;
+          return holdCardsPerSuit[s] - sBuried > 0;
+        });
+
+        // Can only bury if we have 2+ hold cards OR another callable suit exists
+        return remaining > 1 || otherCallable.length > 0;
+      };
+
+      // Priority 1: Void an entire suit if safe
       for (const suit of voidableSuits) {
         const cards = suitCounts[suit];
+        let canVoid = true;
+
+        // Check if we can bury all cards from this suit
         for (const card of cards) {
-          if (toBury.length < 2) {
-            toBury.push(card);
+          if (!canBuryFromSuit(suit)) {
+            canVoid = false;
+            break;
+          }
+        }
+
+        if (canVoid) {
+          for (const card of cards) {
+            if (toBury.length < 2) {
+              toBury.push(card);
+              buriedPerSuit[suit] = (buriedPerSuit[suit] || 0) + 1;
+            }
           }
         }
         if (toBury.length >= 2) break;
       }
 
-      // Priority 2: If not enough, add high-point non-ace fail cards
+      // Priority 2: If not enough, add high-point non-ace fail cards (safely)
       if (toBury.length < 2) {
         const otherFail = failCards
           .filter(c => !toBury.includes(c) && c.rank !== 'A')
           .sort((a, b) => getCardPoints(b) - getCardPoints(a)); // Highest points first
 
         for (const card of otherFail) {
-          if (toBury.length < 2) {
+          if (toBury.length >= 2) break;
+          if (canBuryFromSuit(card.suit)) {
             toBury.push(card);
+            buriedPerSuit[card.suit] = (buriedPerSuit[card.suit] || 0) + 1;
           }
         }
       }

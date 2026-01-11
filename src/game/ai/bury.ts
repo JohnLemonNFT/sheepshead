@@ -14,12 +14,26 @@ export interface BuryDecision {
  * Strategy:
  * 1. Bury points (Aces and 10s of fail suits are best)
  * 2. Create voids for trumping opportunities
- * 3. Keep "hold card" for called suit
+ * 3. Keep "hold card" for at least one callable suit (CRITICAL!)
  */
 export function decideBury(
   hand: Card[], // 8 cards (original 6 + 2 from blind)
   calledSuit: Suit | null
 ): BuryDecision {
+  // IMPORTANT: Identify suits we could potentially call (don't have the ace)
+  // We MUST keep at least one hold card in at least one callable suit
+  const callableSuits = FAIL_SUITS.filter(suit => {
+    const hasAce = hand.some(c => c.suit === suit && c.rank === 'A');
+    const hasNonAce = hand.some(c => c.suit === suit && c.rank !== 'A' && !isTrump(c));
+    return !hasAce && hasNonAce; // Can call: don't have ace, have hold card
+  });
+
+  // Track how many hold cards we have per callable suit
+  const holdCardsPerSuit: Record<string, number> = {};
+  for (const suit of callableSuits) {
+    holdCardsPerSuit[suit] = hand.filter(c => c.suit === suit && !isTrump(c)).length;
+  }
+
   // Score each card for burying
   const scoredCards = hand.map(card => ({
     card,
@@ -29,25 +43,49 @@ export function decideBury(
   // Sort by bury score (higher = better to bury)
   scoredCards.sort((a, b) => b.score - a.score);
 
-  // Can't bury all cards of called suit
+  // Track what we've selected to bury
   let selectedCards: Card[] = [];
-  const calledSuitCount = calledSuit
-    ? hand.filter(c => c.suit === calledSuit && !isTrump(c)).length
-    : 0;
-  let calledSuitBuried = 0;
+  const buriedPerSuit: Record<string, number> = {};
 
   for (const { card } of scoredCards) {
     if (selectedCards.length >= 2) break;
 
-    // Check if burying this would leave no hold card
-    if (calledSuit && card.suit === calledSuit && !isTrump(card)) {
-      if (calledSuitBuried + 1 >= calledSuitCount) {
-        continue; // Can't bury - need hold card
+    // Skip trump cards in this selection pass
+    if (isTrump(card)) continue;
+
+    const suit = card.suit;
+    const isCallableSuit = callableSuits.includes(suit);
+
+    // If this is a callable suit, check if we can afford to bury it
+    if (isCallableSuit) {
+      const alreadyBuried = buriedPerSuit[suit] || 0;
+      const remaining = holdCardsPerSuit[suit] - alreadyBuried;
+
+      // Check if any OTHER callable suit would remain with hold cards
+      const otherCallableSuitsWithHoldCards = callableSuits.filter(s => {
+        if (s === suit) return false;
+        const sBuried = buriedPerSuit[s] || 0;
+        return holdCardsPerSuit[s] - sBuried > 0;
+      });
+
+      // Only bury if: we have 2+ hold cards in this suit, OR another callable suit exists
+      if (remaining <= 1 && otherCallableSuitsWithHoldCards.length === 0) {
+        continue; // Can't bury - would leave no callable suits!
       }
-      calledSuitBuried++;
+
+      buriedPerSuit[suit] = alreadyBuried + 1;
     }
 
     selectedCards.push(card);
+  }
+
+  // If we still need more cards, consider trump or other cards
+  if (selectedCards.length < 2) {
+    for (const { card } of scoredCards) {
+      if (selectedCards.length >= 2) break;
+      if (selectedCards.includes(card)) continue;
+      selectedCards.push(card);
+    }
   }
 
   // Fallback if we couldn't find 2 cards
