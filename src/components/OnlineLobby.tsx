@@ -131,7 +131,7 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                 </div>
 
                 {/* Message changes based on time */}
-                {connectingSeconds < 3 ? (
+                {connectingSeconds < 8 ? (
                   <>
                     <h3 className="text-lg font-semibold text-white mb-2">
                       Connecting to server...
@@ -140,13 +140,13 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                       This usually takes a moment
                     </p>
                   </>
-                ) : connectingSeconds < 10 ? (
+                ) : connectingSeconds < 20 ? (
                   <>
                     <h3 className="text-lg font-semibold text-yellow-400 mb-2">
                       Waking up the server...
                     </h3>
                     <p className="text-gray-400 text-sm">
-                      The server is starting up. This can take 15-30 seconds.
+                      The server may be starting up. This can take 15-30 seconds.
                     </p>
                     <p className="text-gray-500 text-xs mt-2">
                       Thanks for your patience!
