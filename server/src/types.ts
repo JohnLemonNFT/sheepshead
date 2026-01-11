@@ -44,6 +44,7 @@ export interface Trick {
 export interface CalledAce {
   suit: Suit;
   revealed: boolean;
+  isTen?: boolean; // True if calling a 10 (picker has all 3 aces)
 }
 
 export interface GameConfig {
@@ -53,6 +54,7 @@ export interface GameConfig {
   doubleOnBump: boolean;
   cracking: boolean;
   blitzes: boolean;
+  callTen: boolean; // Allow calling a 10 when picker has all 3 fail aces
 }
 
 export interface GameState {
@@ -78,6 +80,7 @@ export type GameAction =
   | { type: 'pass' }
   | { type: 'bury'; cards: [Card, Card] }
   | { type: 'callAce'; suit: Suit }
+  | { type: 'callTen'; suit: Suit } // Call a 10 when picker has all 3 aces
   | { type: 'goAlone' }
   | { type: 'playCard'; card: Card };
 
@@ -96,6 +99,7 @@ export interface RoomSettings {
   partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
   noPickRule: 'leaster' | 'forcedPick';
   maxHands: 10 | 15 | 25; // Quick (10), Standard (15), Full (25)
+  callTen: boolean; // Allow calling a 10 when picker has all 3 fail aces
 }
 
 // Public room info for lobby browser
@@ -152,6 +156,17 @@ export type ServerMessage =
   | { type: 'game_restarting' }
   | { type: 'error'; message: string };
 
+// Hand score for end-of-hand display
+export interface HandScore {
+  pickerTeamPoints: number;
+  defenderTeamPoints: number;
+  pickerWins: boolean;
+  isSchneider: boolean;
+  isSchwarz: boolean;
+  multiplier: number;
+  playerScores: { position: PlayerPosition; points: number }[];
+}
+
 // Game state sent to clients (with hidden cards)
 export interface ClientGameState {
   phase: GamePhase;
@@ -168,6 +183,8 @@ export interface ClientGameState {
   // Score tracking
   playerScores: number[];
   handsPlayed: number;
+  // Hand result (only when phase is 'scoring')
+  handScore?: HandScore;
 }
 
 // Player info sent to clients

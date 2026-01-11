@@ -24,6 +24,7 @@ import {
   getLegalPlays,
   determineTrickWinner,
   getCallableSuits,
+  getCallableTens,
   isValidBury,
   mustGoAlone,
 } from '../game/rules';
@@ -79,6 +80,7 @@ export interface GameSettings {
   // Game Variants
   crackingEnabled: boolean; // Allow doubling stakes after pick
   blitzEnabled: boolean; // Black queens can blitz for double stakes
+  callTenEnabled: boolean; // Picker with all 3 aces can call a 10
   // Learning & Coaching
   showStrategyTips: boolean;
   showAIExplanations: boolean;
@@ -95,6 +97,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   // Game variants - off by default for standard play
   crackingEnabled: false,
   blitzEnabled: false,
+  callTenEnabled: true, // On by default - standard rule
   // Learning
   showStrategyTips: true,
   showAIExplanations: true,
@@ -304,6 +307,7 @@ interface GameStore {
   blitz: () => void;
   bury: (cards: [Card, Card]) => void;
   callAce: (suit: Suit) => void;
+  callTen: (suit: Suit) => void;
   goAlone: () => void;
   playCard: (card: Card) => void;
   clearTrickResult: () => void;
@@ -325,6 +329,7 @@ interface GameStore {
   // Helpers
   getLegalPlaysForHuman: () => Card[];
   getCallableSuitsForPicker: () => Suit[];
+  getCallableTensForPicker: () => Suit[];
   canBurySelection: () => { valid: boolean; reason?: string };
   canBlitz: () => boolean;
   getMultiplier: () => number;
@@ -586,6 +591,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       noPickVariant: gameSettings.noPickRule,
       cracking: gameSettings.crackingEnabled,
       blitzes: gameSettings.blitzEnabled,
+      callTen: gameSettings.callTenEnabled,
     };
 
     const gameState: GameState = {
@@ -1061,6 +1067,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
+  callTen: (suit: Suit) => {
+    const { gameState, playerTypes, isHotseatMode } = get();
+    if (gameState.phase !== 'calling') return;
+
+    // Find partner (player with the called 10)
+    const partnerPosition = gameState.players.findIndex(
+      p =>
+        p.hand.some(c => c.suit === suit && c.rank === '10' && !isTrump(c)) &&
+        p.position !== gameState.pickerPosition
+    );
+
+    // Mark partner (but keep hidden until 10 is played)
+    const newPlayers = gameState.players.map((p, i) => ({
+      ...p,
+      isPartner: i === partnerPosition,
+    }));
+
+    const firstPlayer = ((gameState.dealerPosition + 1) % 5) as PlayerPosition;
+    const firstIsHuman = playerTypes[firstPlayer] === 'human';
+    const hotseat = isHotseatMode();
+
+    set({
+      gameState: {
+        ...gameState,
+        phase: 'playing',
+        players: newPlayers,
+        calledAce: { suit, revealed: false, isTen: true },
+        currentPlayer: firstPlayer,
+        currentTrick: { cards: [], leadPlayer: firstPlayer },
+      },
+      // Trigger handoff if first player is human in hotseat mode
+      ...(hotseat && firstIsHuman ? {
+        awaitingHandoff: true,
+        activeHumanPosition: null,
+      } : {}),
+    });
+  },
+
   goAlone: () => {
     const { gameState, playerTypes, isHotseatMode } = get();
     if (gameState.phase !== 'calling') return;
@@ -1114,15 +1158,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       { card, playedBy: currentPlayer },
     ];
 
-    // Check if called ace was played
+    // Check if called card (ace or 10) was played
     let calledAce = gameState.calledAce;
-    if (
-      calledAce &&
-      !calledAce.revealed &&
-      card.suit === calledAce.suit &&
-      card.rank === 'A'
-    ) {
-      calledAce = { ...calledAce, revealed: true };
+    if (calledAce && !calledAce.revealed && card.suit === calledAce.suit) {
+      const calledRank = calledAce.isTen ? '10' : 'A';
+      if (card.rank === calledRank) {
+        calledAce = { ...calledAce, revealed: true };
+      }
     }
 
     // Update AI knowledge
@@ -1476,6 +1518,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 'blitz': actionDesc = 'declared blitz! (has both black Queens)'; break;
       case 'bury': actionDesc = 'buried 2 cards'; break;
       case 'callAce': actionDesc = `called ${(decision.action as any).suit} ace`; break;
+      case 'callTen': actionDesc = `called ${(decision.action as any).suit} 10`; break;
       case 'goAlone': actionDesc = 'is going alone'; break;
       case 'playCard': {
         const c = (decision.action as any).card;
@@ -1515,6 +1558,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         break;
       case 'callAce':
         get().callAce(decision.action.suit);
+        break;
+      case 'callTen':
+        get().callTen(decision.action.suit);
         break;
       case 'goAlone':
         get().goAlone();
@@ -1565,6 +1611,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const picker = gameState.players[gameState.pickerPosition];
     return getCallableSuits(picker.hand);
+  },
+
+  getCallableTensForPicker: () => {
+    const { gameState, gameSettings } = get();
+    // Only available if callTen is enabled
+    if (!gameSettings.callTenEnabled) return [];
+    if (gameState.pickerPosition === null) return [];
+
+    const picker = gameState.players[gameState.pickerPosition];
+    return getCallableTens(picker.hand);
   },
 
   canBurySelection: () => {

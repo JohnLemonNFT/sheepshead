@@ -172,6 +172,11 @@ export function OnlineWaitingRoom({ onlineState, onlineActions }: OnlineWaitingR
                 {gameSettings.noPickRule === 'leaster' ? 'Leaster' : 'Forced Pick'}
               </span>
             </div>
+            {gameSettings.partnerVariant === 'calledAce' && gameSettings.callTenEnabled && (
+              <div className="bg-amber-700/50 px-3 py-1.5 rounded-lg">
+                <span className="text-white font-medium">Call a 10</span>
+              </div>
+            )}
           </div>
         </section>
 

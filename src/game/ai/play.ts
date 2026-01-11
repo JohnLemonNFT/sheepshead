@@ -459,6 +459,10 @@ function decideFollowCard(
   const trumpWasLed = leadSuit === 'trump';
   const trumpInLegal = legalPlays.filter(c => isTrump(c));
 
+  // Check if we're trumping in (fail was led but we can't follow suit and have trump)
+  const canFollowLedSuit = legalPlays.some(c => !isTrump(c) && c.suit === leadCard.suit);
+  const isTrumpingIn = !trumpWasLed && !canFollowLedSuit && trumpInLegal.length > 0;
+
   if (trumpWasLed && isEarlyInTrick && trumpInLegal.length > 0 && !teammateWinning) {
     // Sort by trump power descending (higher index = weaker trump)
     const sortedByPower = [...trumpInLegal].sort(
@@ -523,6 +527,45 @@ function decideFollowCard(
 
   // OPPONENT IS WINNING - try to win or minimize loss
   if (canWin) {
+    // TRUMPING IN - when we can't follow suit and have trump to win
+    if (isTrumpingIn) {
+      const trumpWinners = winningPlays.filter(c => isTrump(c));
+      if (trumpWinners.length > 0) {
+        // Sort by trump power (lower index = higher power)
+        const sortedByPower = [...trumpWinners].sort(
+          (a, b) => getTrumpPower(a) - getTrumpPower(b)
+        );
+
+        // If we're not last to play, need to play high enough to hold
+        if (trickPosition < 4) {
+          // If trick has good points OR we're a defender, play high to secure
+          if (trickPoints >= 10 || (!isPicker && !isPartner)) {
+            return {
+              card: sortedByPower[0], // Play our highest trump
+              reason: getPersonalityMessage(myPosition, 'winTrick') || `Trumping in to take ${trickPoints} point trick`,
+              confidence: 0.85,
+            };
+          }
+          // Otherwise play a reasonably high trump
+          const highEnough = sortedByPower.find(c => getTrumpPower(c) < 10);
+          if (highEnough) {
+            return {
+              card: highEnough,
+              reason: getPersonalityMessage(myPosition, 'winTrick') || 'Trumping in',
+              confidence: 0.75,
+            };
+          }
+        }
+
+        // Last to play - use minimum winning trump
+        return {
+          card: sortedByPower[sortedByPower.length - 1],
+          reason: getPersonalityMessage(myPosition, 'winTrick') || 'Trumping in with minimum trump',
+          confidence: 0.8,
+        };
+      }
+    }
+
     // Win with minimum necessary trump/card
     const sortedWinners = [...winningPlays].sort((a, b) => {
       // Prefer winning with lowest trump power (save high trump)
@@ -536,20 +579,11 @@ function decideFollowCard(
       return getCardPoints(a) - getCardPoints(b);
     });
 
-    // If trick has high points, win it
-    if (trickPoints >= 15 || isPicker) {
-      return {
-        card: sortedWinners[0],
-        reason: getPersonalityMessage(myPosition, 'winTrick') || `Winning trick worth ${trickPoints + getCardPoints(sortedWinners[0])} points`,
-        confidence: 0.85,
-      };
-    }
-
-    // Low point trick - consider if worth winning
+    // ALWAYS try to win if we can - every trick counts!
     return {
       card: sortedWinners[0],
-      reason: getPersonalityMessage(myPosition, 'winTrick') || `Taking trick`,
-      confidence: 0.7,
+      reason: getPersonalityMessage(myPosition, 'winTrick') || `Taking trick worth ${trickPoints + getCardPoints(sortedWinners[0])} points`,
+      confidence: 0.8,
     };
   }
 
@@ -637,6 +671,7 @@ function canBeatCard(
 
 /**
  * Check if the current winner is a teammate
+ * BE CONSERVATIVE - only assume teammate if we're very sure
  */
 function isTeammateWinning(
   winnerPosition: number,
@@ -647,11 +682,12 @@ function isTeammateWinning(
 ): boolean {
   // Picker team perspective
   if (isPicker) {
-    // Partner winning is good
+    // Partner winning is good - but only if we're very confident
     const partnerProb = knowledge.partnerProbability.get(
       winnerPosition as PlayerPosition
     );
-    return partnerProb !== undefined && partnerProb > 0.6;
+    // Need high confidence (> 0.7) to trust this is partner
+    return partnerProb !== undefined && partnerProb > 0.7;
   }
 
   if (isPartner) {
@@ -659,14 +695,15 @@ function isTeammateWinning(
     return winnerPosition === pickerPosition;
   }
 
-  // Defender perspective - teammate is another defender
+  // Defender perspective - BE CAREFUL, winner could be partner!
   if (pickerPosition !== null && winnerPosition !== pickerPosition) {
     // Check if winner is likely partner
     const partnerProb = knowledge.partnerProbability.get(
       winnerPosition as PlayerPosition
     );
-    // If not likely partner, they're a defender teammate
-    return partnerProb !== undefined && partnerProb < 0.4;
+    // Only trust teammate if partner probability is VERY low (< 0.15)
+    // Early game everyone starts at ~0.25, so this prevents false positives
+    return partnerProb !== undefined && partnerProb < 0.15;
   }
 
   return false;

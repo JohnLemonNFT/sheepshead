@@ -93,6 +93,7 @@ export interface GameConfig {
   doubleOnBump: boolean;
   cracking: boolean;
   blitzes: boolean;
+  callTen: boolean; // Allow calling a 10 when picker has all 3 fail aces
 }
 
 // Default 5-handed config
@@ -103,12 +104,14 @@ export const DEFAULT_CONFIG: GameConfig = {
   doubleOnBump: true,
   cracking: false,
   blitzes: false,
+  callTen: true,
 };
 
-// Called ace info (when using called ace partner variant)
+// Called ace/ten info (when using called ace partner variant)
 export interface CalledAce {
   suit: Suit; // The fail suit that was called
-  revealed: boolean; // Has the ace been played?
+  revealed: boolean; // Has the called card been played?
+  isTen?: boolean; // True if calling a 10 (picker has all 3 aces)
 }
 
 // Cracking/Blitz state
@@ -154,6 +157,7 @@ export type GameAction =
   | { type: 'blitz' }       // Picker reveals black queens to double
   | { type: 'bury'; cards: [Card, Card] }
   | { type: 'callAce'; suit: Suit }
+  | { type: 'callTen'; suit: Suit } // Call a 10 when picker has all 3 aces
   | { type: 'goAlone' }
   | { type: 'playCard'; card: Card }
   | { type: 'newGame' };

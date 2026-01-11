@@ -58,6 +58,7 @@ export interface GameUIActions {
   onPass: () => void;
   onBury: (cards: [CardType, CardType]) => void;
   onCallAce: (suit: Suit) => void;
+  onCallTen?: (suit: Suit) => void;
   onGoAlone: () => void;
   onPlayCard: (card: CardType) => void;
   onCrack?: () => void;
@@ -93,6 +94,7 @@ export interface GameUIConfig {
   // Helpers
   getLegalPlays: () => CardType[];
   getCallableSuits: () => Suit[];
+  getCallableTens?: () => Suit[];
   canBury: (cards: CardType[]) => { valid: boolean; reason?: string };
   canBlitz?: () => boolean;
   getMultiplier?: () => number;
@@ -178,6 +180,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
     shuffleSeed,
     getLegalPlays,
     getCallableSuits,
+    getCallableTens,
     canBury,
     canBlitz,
     getMultiplier,
@@ -202,7 +205,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
   const [announcement, setAnnouncement] = useState<{
-    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal';
+    type: 'pick' | 'call' | 'callTen' | 'goAlone' | 'partnerReveal';
     playerPosition: number;
     details?: string;
   } | null>(null);
@@ -218,6 +221,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
   // Computed values
   const legalPlays = phase === 'playing' && isHumanTurn ? getLegalPlays() : [];
   const callableSuits = phase === 'calling' && isHumanTurn ? getCallableSuits() : [];
+  const callableTens = phase === 'calling' && isHumanTurn && getCallableTens ? getCallableTens() : [];
   const buryValidation = canBury(selectedCards);
   const multiplier = getMultiplier?.() ?? 1;
 
@@ -381,6 +385,16 @@ export function GameUI({ state, actions, config }: GameUIProps) {
       setAnnouncement(null);
       actions.onGoAlone();
     }, 2000);
+  }, [actions, activePlayerPosition]);
+
+  // Handle call 10 with announcement
+  const handleCallTen = useCallback((suit: Suit) => {
+    if (!actions.onCallTen) return;
+    setAnnouncement({ type: 'callTen', playerPosition: activePlayerPosition, details: suit });
+    setTimeout(() => {
+      setAnnouncement(null);
+      actions.onCallTen?.(suit);
+    }, 2500);
   }, [actions, activePlayerPosition]);
 
   // Get relative position for opponent rendering
@@ -687,10 +701,12 @@ export function GameUI({ state, actions, config }: GameUIProps) {
             onBlitz={actions.onBlitz}
             onBury={handleBury}
             onCallAce={handleCallAce}
+            onCallTen={actions.onCallTen ? handleCallTen : undefined}
             onGoAlone={handleGoAlone}
             onNewGame={actions.onNewGame || (() => {})}
             onPlayAgain={actions.onNewHand || (() => {})}
             callableSuits={callableSuits}
+            callableTens={callableTens}
             canBury={buryValidation.valid && selectedCards.length === 2}
             buryReason={buryValidation.reason}
             selectedCount={selectedCards.length}

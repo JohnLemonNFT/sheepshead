@@ -69,7 +69,7 @@ export function getAIDecision(
       return getBuryDecision(state, player, aiState, calledAce?.suit || null);
 
     case 'calling':
-      return getCallDecision(player, aiState);
+      return getCallDecision(player, aiState, state.config.callTen);
 
     case 'playing':
       return getPlayDecision(state, player, aiState);
@@ -208,12 +208,23 @@ function getBuryDecision(
 /**
  * Get call decision
  */
-function getCallDecision(player: Player, aiState: AIPlayerState): AIDecision {
-  const decision = decideCall(player.hand);
+function getCallDecision(player: Player, aiState: AIPlayerState, callTenEnabled: boolean): AIDecision {
+  const decision = decideCall(player.hand, callTenEnabled);
 
   if (decision.goAlone) {
     return {
       action: { type: 'goAlone' },
+      reason: decision.reason,
+    };
+  }
+
+  // If calling a 10 (has all 3 aces)
+  if (decision.callTen) {
+    return {
+      action: {
+        type: 'callTen',
+        suit: decision.suit!,
+      },
       reason: decision.reason,
     };
   }

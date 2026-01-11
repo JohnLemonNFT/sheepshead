@@ -46,7 +46,7 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
 
   // Announcement state
   const [announcement, setAnnouncement] = useState<{
-    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster' | 'dealer';
+    type: 'pick' | 'call' | 'callTen' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster' | 'dealer';
     playerPosition: number;
     details?: string;
   } | null>(null);
@@ -443,8 +443,8 @@ export function OnlineGame({ onlineState, onlineActions }: OnlineGameProps) {
     onBlitz: undefined,
   };
 
-  // Hand score (TODO: implement when server sends scoring data)
-  const currentHandScore = null;
+  // Hand score from server (sent when phase is 'scoring')
+  const currentHandScore = gameState?.handScore || null;
 
   // Build GameUIConfig
   const gameUIConfig: GameUIConfig = {

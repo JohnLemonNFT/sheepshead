@@ -5,6 +5,19 @@
 import type { WebSocket } from 'ws';
 import type { PlayerPosition, PlayerInfo, GameState, RoomSettings, PublicRoomInfo } from './types.js';
 
+// AI personality names by position (matches client-side personalities)
+const AI_NAMES: Record<PlayerPosition, string> = {
+  0: 'You', // Not used for AI
+  1: 'Greta',
+  2: 'Wild Bill',
+  3: 'Eddie',
+  4: 'Marie',
+};
+
+function getAIName(position: PlayerPosition): string {
+  return AI_NAMES[position] || `AI ${position + 1}`;
+}
+
 export interface RoomPlayer {
   ws: WebSocket;
   name: string;
@@ -63,6 +76,7 @@ const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   partnerVariant: 'calledAce',
   noPickRule: 'leaster',
   maxHands: 15, // Standard game
+  callTen: true, // Allow calling a 10 when picker has all 3 aces
 };
 
 // Create a new room
@@ -358,7 +372,7 @@ export function getPlayerInfoList(room: Room): PlayerInfo[] {
     } else if (room.aiPositions.has(pos)) {
       players.push({
         position: pos,
-        name: `AI ${pos + 1}`,
+        name: getAIName(pos),
         connected: true,
       });
     }
@@ -535,7 +549,7 @@ export function getFinalStandings(room: Room): Array<{ position: PlayerPosition;
   for (let i = 0; i < 5; i++) {
     const pos = i as PlayerPosition;
     const player = room.players.get(pos);
-    const name = player?.name || `AI ${pos + 1}`;
+    const name = player?.name || getAIName(pos);
     standings.push({
       position: pos,
       name,

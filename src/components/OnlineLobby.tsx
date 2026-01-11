@@ -73,6 +73,7 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
       const settings: RoomSettings = {
         partnerVariant: gameSettings.partnerVariant,
         noPickRule: gameSettings.noPickRule,
+        callTen: gameSettings.callTenEnabled,
       };
       onlineActions.createRoom(playerName.trim(), isPublic, settings);
     }
@@ -339,6 +340,28 @@ export function OnlineLobby({ onlineState, onlineActions, onBack }: OnlineLobbyP
                     ))}
                   </div>
                 </div>
+
+                {/* Call a 10 - only show when Called Ace is selected */}
+                {gameSettings.partnerVariant === 'calledAce' && (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs sm:text-sm text-white font-medium">Call a 10</div>
+                      <div className="text-[10px] text-gray-400">Picker with all 3 aces can call a 10</div>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ callTenEnabled: !gameSettings.callTenEnabled })}
+                      className={`
+                        w-11 h-6 rounded-full p-0.5 transition-colors flex-shrink-0
+                        ${gameSettings.callTenEnabled ? 'bg-amber-500' : 'bg-gray-600'}
+                      `}
+                    >
+                      <div className={`
+                        w-5 h-5 rounded-full bg-white transition-transform shadow
+                        ${gameSettings.callTenEnabled ? 'translate-x-5' : 'translate-x-0'}
+                      `} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button

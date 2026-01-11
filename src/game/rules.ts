@@ -31,8 +31,11 @@ export function getLegalPlays(
   isPicker: boolean,
   isPartner: boolean
 ): Card[] {
+  // Determine the called card rank (ace or 10)
+  const calledRank = calledAce?.isTen ? '10' : 'A';
+
   // If leading (no cards played yet), any card is legal
-  // EXCEPT: picker must keep hold card, partner must keep called ace until led
+  // EXCEPT: picker must keep hold card, partner must keep called card until led
   if (currentTrick.cards.length === 0) {
     return getLeadOptions(hand, calledAce, isPicker, isPartner);
   }
@@ -41,29 +44,35 @@ export function getLegalPlays(
   const leadCard = currentTrick.cards[0].card;
   const leadSuit = getEffectiveSuit(leadCard);
 
-  // Called ace rules:
-  // - Partner can ONLY play the called ace when the called suit is led
+  // Called card rules:
+  // - Partner can ONLY play the called card (ace or 10) when the called suit is led
   // - Picker must reserve hold card until called suit is led (can't discard it early)
-  const isCalledAce = (c: Card) =>
+  const isCalledCard = (c: Card) =>
     calledAce && !calledAce.revealed && isPartner &&
-    c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c);
+    c.suit === calledAce.suit && c.rank === calledRank && !isTrump(c);
 
-  // Check if this is the picker's last card of the called suit (hold card)
+  // Check if this is the picker's hold card
   const isPickerHoldCard = (c: Card) => {
     if (!calledAce || calledAce.revealed || !isPicker) return false;
     if (isTrump(c) || c.suit !== calledAce.suit) return false;
-    // It's the hold card if it's the picker's only remaining card of this suit
-    const cardsOfCalledSuit = hand.filter(card => card.suit === calledAce.suit && !isTrump(card));
-    return cardsOfCalledSuit.length === 1 && cardsOfCalledSuit[0].id === c.id;
+
+    if (calledAce.isTen) {
+      // When calling a 10, the picker's ace IS the hold card
+      return c.rank === 'A';
+    } else {
+      // Normal case: hold card is picker's only remaining card of this suit
+      const cardsOfCalledSuit = hand.filter(card => card.suit === calledAce.suit && !isTrump(card));
+      return cardsOfCalledSuit.length === 1 && cardsOfCalledSuit[0].id === c.id;
+    }
   };
 
-  // Check if called suit is led - partner MUST play the ace
-  if (calledAce && !calledAce.revealed && leadSuit !== 'trump') {
+  // Check if called suit is led - partner MUST play the called card
+  if (calledAce && !calledAce.revealed && isPartner && leadSuit !== 'trump') {
     const calledSuit = calledAce.suit;
     if (leadCard.suit === calledSuit && !isTrump(leadCard)) {
-      const calledAceCard = hand.find(c => c.suit === calledSuit && c.rank === 'A');
-      if (calledAceCard) {
-        return [calledAceCard]; // Must play the called ace
+      const calledCard = hand.find(c => c.suit === calledSuit && c.rank === calledRank);
+      if (calledCard) {
+        return [calledCard]; // Must play the called card
       }
     }
   }
@@ -77,10 +86,10 @@ export function getLegalPlays(
   }
 
   // Cannot follow suit - can play any card EXCEPT:
-  // - Partner's locked called ace
-  // - Picker's hold card (last card of called suit)
+  // - Partner's locked called card
+  // - Picker's hold card
   const offSuitOptions = getOffSuitOptions(hand, calledAce, isPicker);
-  const playable = offSuitOptions.filter(c => !isCalledAce(c) && !isPickerHoldCard(c));
+  const playable = offSuitOptions.filter(c => !isCalledCard(c) && !isPickerHoldCard(c));
   return playable.length > 0 ? playable : offSuitOptions; // Edge case: only card(s) left are restricted
 }
 
@@ -93,18 +102,21 @@ function getLeadOptions(
   isPicker: boolean,
   isPartner: boolean
 ): Card[] {
-  // Partner with called ace cannot lead OTHER fail cards of that suit
-  // They can lead the ace itself, or any other suit - but not "hide" behind small cards
+  // Determine the called card rank (ace or 10)
+  const calledRank = calledAce?.isTen ? '10' : 'A';
+
+  // Partner with called card cannot lead OTHER fail cards of that suit
+  // They can lead the called card itself, or any other suit - but not "hide" behind small cards
   if (isPartner && calledAce && !calledAce.revealed) {
     const calledSuit = calledAce.suit;
-    const hasCalledAce = hand.some(c => c.suit === calledSuit && c.rank === 'A' && !isTrump(c));
+    const hasCalledCard = hand.some(c => c.suit === calledSuit && c.rank === calledRank && !isTrump(c));
 
-    if (hasCalledAce) {
-      // Filter out non-ace cards of the called suit
+    if (hasCalledCard) {
+      // Filter out non-called-rank cards of the called suit
       return hand.filter(c => {
         if (isTrump(c)) return true; // Trump is always ok
         if (c.suit !== calledSuit) return true; // Other suits are ok
-        if (c.rank === 'A') return true; // The ace itself is ok to lead
+        if (c.rank === calledRank) return true; // The called card itself is ok to lead
         return false; // Other fail cards of called suit are NOT ok
       });
     }
@@ -250,12 +262,12 @@ export function allPlayersPassed(state: GameState): boolean {
 // ============================================
 
 /**
- * Get valid suits that can be called for partner
+ * Get valid suits that can be called for partner (calling an ace)
  * Picker must have at least one card of the suit (not the ace itself)
  */
 export function getCallableSuits(pickerHand: Card[]): Suit[] {
   const validSuits: Suit[] = [];
-  
+
   for (const suit of FAIL_SUITS) {
     // Check if picker has any non-ace card of this suit
     const hasNonAce = pickerHand.some(
@@ -265,12 +277,39 @@ export function getCallableSuits(pickerHand: Card[]): Suit[] {
     const hasAce = pickerHand.some(
       c => c.suit === suit && c.rank === 'A'
     );
-    
+
     if (hasNonAce && !hasAce) {
       validSuits.push(suit);
     }
   }
-  
+
+  return validSuits;
+}
+
+/**
+ * Get valid suits for calling a 10 (when picker has all 3 fail aces)
+ * Picker uses their ace as the hold card, partner has the 10
+ */
+export function getCallableTens(pickerHand: Card[]): Suit[] {
+  // Must have all 3 fail aces to call a 10
+  const hasAllAces = FAIL_SUITS.every(suit =>
+    pickerHand.some(c => c.suit === suit && c.rank === 'A' && !isTrump(c))
+  );
+  if (!hasAllAces) return [];
+
+  const validSuits: Suit[] = [];
+
+  for (const suit of FAIL_SUITS) {
+    // Check if picker does NOT have the 10 (can't call own 10)
+    const hasTen = pickerHand.some(
+      c => c.suit === suit && c.rank === '10' && !isTrump(c)
+    );
+
+    if (!hasTen) {
+      validSuits.push(suit);
+    }
+  }
+
   return validSuits;
 }
 
@@ -284,13 +323,23 @@ export function canGoAlone(pickerHand: Card[]): boolean {
 }
 
 /**
- * Check if picker MUST go alone (has all three fail aces)
+ * Check if picker MUST go alone (has all three fail aces and can't call a 10)
+ * @param callTenEnabled - if true, check if any 10s can be called first
  */
-export function mustGoAlone(pickerHand: Card[]): boolean {
+export function mustGoAlone(pickerHand: Card[], callTenEnabled: boolean = false): boolean {
   const hasAllAces = FAIL_SUITS.every(suit =>
     pickerHand.some(c => c.suit === suit && c.rank === 'A')
   );
-  return hasAllAces;
+
+  if (!hasAllAces) return false;
+
+  // If callTen is enabled, only must go alone if no 10s can be called
+  if (callTenEnabled) {
+    const callableTens = getCallableTens(pickerHand);
+    return callableTens.length === 0;
+  }
+
+  return true;
 }
 
 // ============================================

@@ -116,9 +116,14 @@ function calculatePlayerScores(
 ): { position: PlayerPosition; points: number }[] {
   const scores: { position: PlayerPosition; points: number }[] = [];
 
-  const basePickerScore = 2 * multiplier;
   const basePartnerScore = 1 * multiplier;
   const baseDefenderScore = 1 * multiplier;
+
+  // When going alone, picker takes on both picker and partner risk/reward
+  // With partner: picker ±2, partner ±1
+  // Going alone: picker ±4 (absorbs partner's ±1 from each defender)
+  const isGoingAlone = partnerPosition === null;
+  const basePickerScore = isGoingAlone ? 4 * multiplier : 2 * multiplier;
 
   for (let i = 0; i < playerCount; i++) {
     const position = i as PlayerPosition;

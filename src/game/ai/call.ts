@@ -3,28 +3,55 @@
 // ============================================
 
 import { Card, Suit, isTrump, FAIL_SUITS } from '../types';
-import { getCallableSuits } from '../rules';
+import { getCallableSuits, getCallableTens } from '../rules';
 
 export interface CallDecision {
   suit: Suit | null; // null = go alone
   goAlone: boolean;
+  callTen?: boolean; // true = calling a 10 instead of ace
   reason: string;
 }
 
 /**
- * Decide which suit's ace to call for partner
+ * Decide which suit's ace (or 10) to call for partner
  * Strategy:
  * 1. Prefer suits where we're void (partner plays ace, we trump)
  * 2. Prefer suits where we have 10 + other (can schmear to partner)
  * 3. Avoid suits with many cards (harder to get partner to win)
  * 4. Go alone if hand is extremely strong
+ * 5. If have all 3 aces and callTen is enabled, call a 10 instead
  */
 export function decideCall(
-  hand: Card[] // Hand after burying
+  hand: Card[], // Hand after burying
+  callTenEnabled: boolean = false
 ): CallDecision {
-  // Check if we MUST go alone (have all fail aces)
+  // Get callable suits
+  const callableSuits = getCallableSuits(hand);
+  const callableTenSuits = callTenEnabled ? getCallableTens(hand) : [];
+
+  // Check if we have all fail aces
   const failAces = hand.filter(c => !isTrump(c) && c.rank === 'A');
-  if (failAces.length >= 3) {
+  const hasAllAces = failAces.length >= 3;
+
+  // If have all aces but can call a 10, prefer that over going alone
+  if (hasAllAces && callableTenSuits.length > 0) {
+    // Score each callable 10 (prefer shortest suit)
+    const scoredTens = callableTenSuits.map(suit => {
+      const cardsInSuit = hand.filter(c => c.suit === suit && !isTrump(c));
+      return { suit, count: cardsInSuit.length };
+    });
+    scoredTens.sort((a, b) => a.count - b.count);
+
+    return {
+      suit: scoredTens[0].suit,
+      goAlone: false,
+      callTen: true,
+      reason: `Calling ${scoredTens[0].suit} 10 - have all fail aces`,
+    };
+  }
+
+  // If have all aces and can't call a 10, must go alone
+  if (hasAllAces) {
     return {
       suit: null,
       goAlone: true,
@@ -41,9 +68,6 @@ export function decideCall(
       reason: `Going alone with ${trumpCount} trump and ${failAces.length} fail aces`,
     };
   }
-
-  // Get callable suits
-  const callableSuits = getCallableSuits(hand);
 
   if (callableSuits.length === 0) {
     // No valid suits to call - must go alone

@@ -31,6 +31,19 @@ const POINT_VALUES: Record<Rank, number> = {
   'A': 11, '10': 10, 'K': 4, 'Q': 3, 'J': 2, '9': 0, '8': 0, '7': 0,
 };
 
+// AI personality names by position (matches client-side personalities)
+const AI_NAMES: Record<PlayerPosition, string> = {
+  0: 'You', // Not used for AI
+  1: 'Greta',
+  2: 'Wild Bill',
+  3: 'Eddie',
+  4: 'Marie',
+};
+
+function getAIName(position: PlayerPosition): string {
+  return AI_NAMES[position] || `AI ${position + 1}`;
+}
+
 const DEFAULT_CONFIG: GameConfig = {
   playerCount: 5,
   partnerVariant: 'calledAce',
@@ -38,6 +51,7 @@ const DEFAULT_CONFIG: GameConfig = {
   doubleOnBump: true,
   cracking: false,
   blitzes: false,
+  callTen: true,
 };
 
 // Helper functions
@@ -119,17 +133,30 @@ function dealCards(deck: Card[]): { hands: Card[][]; blind: Card[] } {
 function getLegalPlays(
   hand: Card[],
   currentTrick: Trick,
-  calledAce: { suit: Suit; revealed: boolean } | null,
+  calledAce: { suit: Suit; revealed: boolean; isTen?: boolean } | null,
   isPicker: boolean,
   isPartner: boolean
 ): Card[] {
+  // Determine the called card rank (ace or 10)
+  const calledRank = calledAce?.isTen ? '10' : 'A';
+  // Determine the hold card rank (for picker: normally any fail card, but when calling 10, it's the ace)
+  const holdCardRank = calledAce?.isTen ? 'A' : null; // When calling 10, picker uses ace as hold card
+
   if (currentTrick.cards.length === 0) {
-    // Leading - can play anything (with called ace restrictions)
+    // Leading - partner with called card cannot lead OTHER fail cards of that suit
+    // They can lead the called card itself, trump, or any other suit - but not "hide" behind small cards
     if (calledAce && !calledAce.revealed && isPartner) {
-      const failCards = hand.filter(c => c.suit === calledAce.suit && !isTrump(c));
-      if (failCards.length > 0 && failCards.length < 3) {
-        // Must lead with called ace if have fewer than 3 of suit
-        return failCards.filter(c => c.rank === 'A');
+      const calledSuit = calledAce.suit;
+      const hasCalledCard = hand.some(c => c.suit === calledSuit && c.rank === calledRank && !isTrump(c));
+
+      if (hasCalledCard) {
+        // Filter out non-called-rank cards of the called suit
+        return hand.filter(c => {
+          if (isTrump(c)) return true; // Trump is always ok
+          if (c.suit !== calledSuit) return true; // Other suits are ok
+          if (c.rank === calledRank) return true; // The called card itself is ok to lead
+          return false; // Other fail cards of called suit are NOT ok
+        });
       }
     }
     return hand;
@@ -140,27 +167,33 @@ function getLegalPlays(
   const leadIsTrump = isTrump(leadCard);
   const leadSuit = leadCard.suit;
 
-  // Called ace rules:
-  // - Partner can ONLY play the called ace when the called suit is led
-  // - Picker must reserve hold card until called suit is led (can't discard it early)
-  const isCalledAce = (c: Card) =>
+  // Called card rules:
+  // - Partner can ONLY play the called card (ace or 10) when the called suit is led
+  // - Picker must reserve hold card until called suit is led
+  const isCalledCard = (c: Card) =>
     calledAce && !calledAce.revealed && isPartner &&
-    c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c);
+    c.suit === calledAce.suit && c.rank === calledRank && !isTrump(c);
 
-  // Check if this is the picker's last card of the called suit (hold card)
+  // Check if this is the picker's hold card
   const isPickerHoldCard = (c: Card) => {
     if (!calledAce || calledAce.revealed || !isPicker) return false;
     if (isTrump(c) || c.suit !== calledAce.suit) return false;
-    // It's the hold card if it's the picker's only remaining card of this suit
-    const cardsOfCalledSuit = hand.filter(card => card.suit === calledAce.suit && !isTrump(card));
-    return cardsOfCalledSuit.length === 1 && cardsOfCalledSuit[0].id === c.id;
+
+    if (calledAce.isTen) {
+      // When calling a 10, the picker's ace IS the hold card
+      return c.rank === 'A';
+    } else {
+      // Normal case: hold card is picker's only remaining card of this suit
+      const cardsOfCalledSuit = hand.filter(card => card.suit === calledAce.suit && !isTrump(card));
+      return cardsOfCalledSuit.length === 1 && cardsOfCalledSuit[0].id === c.id;
+    }
   };
 
-  // Check if called suit is led - partner MUST play the ace
+  // Check if called suit is led - partner MUST play the called card
   if (calledAce && !calledAce.revealed && isPartner && !leadIsTrump && leadSuit === calledAce.suit) {
-    const ace = hand.filter(c => c.suit === calledAce.suit && c.rank === 'A' && !isTrump(c));
-    if (ace.length > 0) {
-      return ace; // Must play the called ace
+    const calledCard = hand.filter(c => c.suit === calledAce.suit && c.rank === calledRank && !isTrump(c));
+    if (calledCard.length > 0) {
+      return calledCard; // Must play the called card
     }
   }
 
@@ -169,8 +202,8 @@ function getLegalPlays(
     if (trumpInHand.length > 0) {
       return trumpInHand;
     }
-    // No trump - can play any card EXCEPT locked cards (called ace, picker's hold card)
-    const playable = hand.filter(c => !isCalledAce(c) && !isPickerHoldCard(c));
+    // No trump - can play any card EXCEPT locked cards (called card, picker's hold card)
+    const playable = hand.filter(c => !isCalledCard(c) && !isPickerHoldCard(c));
     return playable.length > 0 ? playable : hand; // Edge case: only card(s) left are restricted
   }
 
@@ -179,8 +212,8 @@ function getLegalPlays(
     return suitInHand; // Must follow suit
   }
 
-  // Can't follow suit - can play any card EXCEPT locked cards (called ace, picker's hold card)
-  const playable = hand.filter(c => !isCalledAce(c) && !isPickerHoldCard(c));
+  // Can't follow suit - can play any card EXCEPT locked cards (called card, picker's hold card)
+  const playable = hand.filter(c => !isCalledCard(c) && !isPickerHoldCard(c));
   return playable.length > 0 ? playable : hand; // Edge case: only card(s) left are restricted
 }
 
@@ -212,7 +245,7 @@ function determineTrickWinner(trick: Trick): PlayerPosition {
   return winningPlay.playedBy;
 }
 
-// Get callable suits
+// Get callable suits (for calling an ace)
 // Picker can only call a suit where they:
 // 1. Don't have the ace (someone else has it to be partner)
 // 2. Have at least one fail card of that suit (hold card to receive lead)
@@ -234,14 +267,46 @@ function getCallableSuits(hand: Card[]): Suit[] {
   return callable;
 }
 
-// Check if must go alone
-function mustGoAlone(hand: Card[]): boolean {
+// Get callable suits for calling a 10 (when picker has all 3 fail aces)
+// Picker uses their ace as the hold card, partner has the 10
+function getCallableTens(hand: Card[]): Suit[] {
   const failSuits: Suit[] = ['clubs', 'spades', 'hearts'];
+
+  // Must have all 3 fail aces to call a 10
+  const hasAllAces = failSuits.every(suit =>
+    hand.some(c => c.suit === suit && c.rank === 'A' && !isTrump(c))
+  );
+  if (!hasAllAces) return [];
+
+  const callable: Suit[] = [];
+
   for (const suit of failSuits) {
-    const hasAce = hand.some(c => c.suit === suit && c.rank === 'A' && !isTrump(c));
-    if (!hasAce) return false;
+    // Check if picker does NOT have the 10 (can't call own 10)
+    const hasTen = hand.some(c => c.suit === suit && c.rank === '10' && !isTrump(c));
+    if (!hasTen) {
+      callable.push(suit);
+    }
   }
-  return true; // Has all 3 fail aces
+
+  return callable;
+}
+
+// Check if must go alone (has all 3 aces and can't call a 10)
+function mustGoAlone(hand: Card[], callTenEnabled: boolean = false): boolean {
+  const failSuits: Suit[] = ['clubs', 'spades', 'hearts'];
+  const hasAllAces = failSuits.every(suit =>
+    hand.some(c => c.suit === suit && c.rank === 'A' && !isTrump(c))
+  );
+
+  if (!hasAllAces) return false;
+
+  // If callTen is enabled, only must go alone if no 10s can be called
+  if (callTenEnabled) {
+    const callableTens = getCallableTens(hand);
+    return callableTens.length === 0;
+  }
+
+  return true;
 }
 
 // ============================================
@@ -526,18 +591,27 @@ function selectFollowCard(
   const { winner: currentWinner, card: currentWinnerCard } = currentWinnerInfo;
 
   // Check if teammate is winning
+  // IMPORTANT: Be conservative - only trust teammate if partner is revealed
   let teammateWinning = false;
 
   if (isPicker) {
-    // For picker, partner winning is good (but we may not know who partner is)
-    // Conservative: assume not teammate unless obvious
+    // For picker, partner winning is good only if revealed
+    if (calledAce?.revealed) {
+      // Partner is revealed - check if they're winning
+      // We'd need to track partner position, so for now be conservative
+    }
   } else if (isPartner && pickerPosition !== null) {
     // Partner knows picker - check if picker is winning
     teammateWinning = currentWinner === pickerPosition;
   } else if (!isPicker && !isPartner && pickerPosition !== null) {
-    // Defender - teammate is another non-picker/non-partner
-    // If current winner is NOT the picker, might be teammate
-    teammateWinning = currentWinner !== pickerPosition;
+    // Defender - BE CAREFUL: unknown player could be partner!
+    // Only assume teammate if partner has been revealed
+    if (calledAce?.revealed) {
+      // Partner revealed - current winner is teammate only if not picker AND not partner
+      // But we don't track partner position here, so only trust if winner is clearly not picker
+      teammateWinning = currentWinner !== pickerPosition;
+    }
+    // If partner NOT revealed, don't assume teammate - they might be the partner!
   }
 
   // Calculate trick points
@@ -552,8 +626,11 @@ function selectFollowCard(
   );
   const canWin = winningPlays.length > 0;
 
-  // Check if we're trumping in (fail was led but we're playing trump)
-  const isTrumpingIn = !leadIsTrump && legalPlays.every(c => isTrump(c));
+  // Check if we're trumping in (fail was led but we can't follow suit and have trump)
+  // This happens when: fail led, we don't have that fail suit, but we have trump to win with
+  const trumpInLegal = legalPlays.filter(c => isTrump(c));
+  const canFollowLedSuit = legalPlays.some(c => !isTrump(c) && c.suit === leadCard.suit);
+  const isTrumpingIn = !leadIsTrump && !canFollowLedSuit && trumpInLegal.length > 0;
 
   // BEST PRACTICE: 2nd/3rd player on trump lead plays LOW trump (don't waste high)
   // Only applies when teammate is likely winning or we don't need to contest
@@ -590,24 +667,28 @@ function selectFollowCard(
     // BEST PRACTICE: "Go high or go home" when trumping in
     // When trumping a fail trick, play high enough to actually win
     // Don't play a low trump that someone behind you can beat
-    if (isTrumpingIn && trickPosition < 4) {
-      // We're trumping and not last - need to consider players behind us
-      // Play a trump that's likely to hold up
+    if (isTrumpingIn) {
+      // We're trumping in - ALWAYS try to win the trick (opponent has the lead!)
       const trumpWinners = winningPlays.filter(c => isTrump(c));
       if (trumpWinners.length > 0) {
         // Sort by trump power (lower index = higher power)
         const sortedByPower = [...trumpWinners].sort(
           (a, b) => getTrumpPower(a) - getTrumpPower(b)
         );
-        // If trick has good points, play high trump to secure it
-        if (trickPoints >= 15) {
-          return sortedByPower[0]; // Play our highest trump
+
+        // If we're not last to play, need to play high enough to hold
+        if (trickPosition < 4) {
+          // If trick has good points OR we're a defender (want to deny picker), play high
+          if (trickPoints >= 10 || (!isPicker && !isPartner)) {
+            return sortedByPower[0]; // Play our highest trump
+          }
+          // Otherwise play a reasonably high trump (queens/jacks if available)
+          const highEnough = sortedByPower.find(c => getTrumpPower(c) < 10);
+          if (highEnough) return highEnough;
         }
-        // Otherwise play a reasonably high trump (queens/jacks if available)
-        const highEnough = sortedByPower.find(c => getTrumpPower(c) < 10);
-        if (highEnough) return highEnough;
-        // If no high trump, play our best
-        return sortedByPower[0];
+
+        // Last to play or low-value trick - use minimum winning trump
+        return sortedByPower[sortedByPower.length - 1];
       }
     }
 
@@ -624,12 +705,7 @@ function selectFollowCard(
       return getCardPoints(a) - getCardPoints(b);
     });
 
-    // If trick has good points, win it
-    if (trickPoints >= 10 || isPicker) {
-      return sortedWinners[0];
-    }
-
-    // Low point trick - still take it with minimum card
+    // ALWAYS try to win if we can - every trick counts!
     return sortedWinners[0];
   }
 
@@ -770,6 +846,37 @@ export function applyAction(state: GameState, position: PlayerPosition, action: 
       return true;
     }
 
+    case 'callTen': {
+      if (state.phase !== 'calling') return false;
+      if (state.pickerPosition !== position) return false;
+
+      const suit = action.suit;
+
+      // Validate: picker must have all 3 fail aces (to use ace as hold card)
+      // and NOT have the 10 of the called suit
+      const callableTens = getCallableTens(player.hand);
+      if (!callableTens.includes(suit)) {
+        return false; // Can't call a 10 without having all aces
+      }
+
+      // Find partner (who has the 10)
+      const partnerPos = state.players.findIndex(p =>
+        p.hand.some(c => c.suit === suit && c.rank === '10' && !isTrump(c)) &&
+        p.position !== position
+      );
+
+      if (partnerPos !== -1) {
+        state.players[partnerPos].isPartner = true;
+      }
+
+      state.calledAce = { suit, revealed: false, isTen: true };
+      state.phase = 'playing';
+      const firstPlayer = ((state.dealerPosition + 1) % 5) as PlayerPosition;
+      state.currentPlayer = firstPlayer;
+      state.currentTrick = { cards: [], leadPlayer: firstPlayer };
+      return true;
+    }
+
     case 'goAlone': {
       if (state.phase !== 'calling') return false;
       if (state.pickerPosition !== position) return false;
@@ -803,10 +910,13 @@ export function applyAction(state: GameState, position: PlayerPosition, action: 
       // Add to trick
       state.currentTrick.cards.push({ card, playedBy: position });
 
-      // Check if called ace played
+      // Check if called card played (ace or 10)
       if (state.calledAce && !state.calledAce.revealed &&
-          card.suit === state.calledAce.suit && card.rank === 'A') {
-        state.calledAce.revealed = true;
+          card.suit === state.calledAce.suit) {
+        const calledRank = state.calledAce.isTen ? '10' : 'A';
+        if (card.rank === calledRank) {
+          state.calledAce.revealed = true;
+        }
       }
 
       // Check if trick complete
@@ -890,13 +1000,70 @@ export function calculateScores(state: GameState, room: Room): void {
   room.handsPlayed++;
 }
 
+// Calculate hand score for display (doesn't modify room scores)
+function getHandScore(state: GameState): import('./types.js').HandScore | undefined {
+  if (state.phase !== 'scoring' || state.pickerPosition === null) {
+    return undefined;
+  }
+
+  // Calculate points for each team
+  let pickerTeamPoints = state.buried.reduce((sum, c) => sum + getCardPoints(c), 0);
+  let defenderPoints = 0;
+
+  for (const player of state.players) {
+    const trickPoints = player.tricksWon.flat().reduce((sum, c) => sum + getCardPoints(c), 0);
+    if (player.isPicker || player.isPartner) {
+      pickerTeamPoints += trickPoints;
+    } else {
+      defenderPoints += trickPoints;
+    }
+  }
+
+  const pickerWins = pickerTeamPoints >= 61;
+  const isSchneider = pickerWins ? defenderPoints < 31 : pickerTeamPoints < 31;
+  const isSchwarz = pickerWins
+    ? state.players.filter(p => !p.isPicker && !p.isPartner).every(p => p.tricksWon.length === 0)
+    : state.players.filter(p => p.isPicker || p.isPartner).every(p => p.tricksWon.length === 0);
+
+  let multiplier = 1;
+  if (isSchneider) multiplier = 2;
+  if (isSchwarz) multiplier = 3;
+
+  const partnerPos = state.players.findIndex(p => p.isPartner);
+  const hasPartner = partnerPos !== -1;
+
+  const playerScores: { position: PlayerPosition; points: number }[] = [];
+  for (let i = 0; i < 5; i++) {
+    const player = state.players[i];
+    let points: number;
+    if (player.isPicker) {
+      points = (pickerWins ? multiplier : -multiplier) * (hasPartner ? 2 : 4);
+    } else if (player.isPartner) {
+      points = pickerWins ? multiplier : -multiplier;
+    } else {
+      points = pickerWins ? -multiplier : multiplier;
+    }
+    playerScores.push({ position: i as PlayerPosition, points });
+  }
+
+  return {
+    pickerTeamPoints,
+    defenderTeamPoints: defenderPoints,
+    pickerWins,
+    isSchneider,
+    isSchwarz,
+    multiplier,
+    playerScores,
+  };
+}
+
 // Create client view of game state
 export function getClientGameState(state: GameState, position: PlayerPosition, room: Room): ClientGameState {
   const clientPlayers: ClientPlayer[] = state.players.map((p, i) => {
     const roomPlayer = room.players.get(i as PlayerPosition);
     return {
       position: p.position,
-      name: roomPlayer?.name ?? `AI ${i + 1}`,
+      name: roomPlayer?.name ?? getAIName(i as PlayerPosition),
       cardCount: p.hand.length,
       hand: i === position ? p.hand : null,
       tricksWon: p.tricksWon,
@@ -922,6 +1089,7 @@ export function getClientGameState(state: GameState, position: PlayerPosition, r
     trickNumber: state.trickNumber,
     playerScores: room.playerScores,
     handsPlayed: room.handsPlayed,
+    handScore: getHandScore(state),
   };
 }
 
@@ -1082,6 +1250,9 @@ export function getAIAction(state: GameState, position: PlayerPosition): GameAct
 
     case 'calling': {
       const callable = getCallableSuits(player.hand);
+      const callableTenSuits = getCallableTens(player.hand);
+
+      // If can call an ace, do so
       if (callable.length > 0) {
         // BEST PRACTICE: Strategic ace calling
         // Priority 1: Call suit we're void in (80% walk rate vs 50%)
@@ -1114,6 +1285,24 @@ export function getAIAction(state: GameState, position: PlayerPosition): GameAct
         suitScores.sort((a, b) => b.score - a.score);
         return { type: 'callAce', suit: suitScores[0].suit };
       }
+
+      // If has all 3 aces and can call a 10, do so
+      if (callableTenSuits.length > 0) {
+        // Prefer calling a 10 over going alone - partner helps!
+        // Call the suit where we have fewest other fail cards
+        const hand = player.hand;
+        const suitScores = callableTenSuits.map(suit => {
+          // With calling a 10, we have the ace as hold card
+          // Prefer suits where we have the ace and not too many other cards
+          const cardsInSuit = hand.filter(c => c.suit === suit && !isTrump(c));
+          const count = cardsInSuit.length; // Should be 1 (just the ace) typically
+          return { suit, count };
+        });
+        // Prefer shortest suit
+        suitScores.sort((a, b) => a.count - b.count);
+        return { type: 'callTen', suit: suitScores[0].suit };
+      }
+
       return { type: 'goAlone' };
     }
 

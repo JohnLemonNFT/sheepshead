@@ -42,6 +42,7 @@ export interface RoomSettings {
   partnerVariant: 'calledAce' | 'jackOfDiamonds' | 'none';
   noPickRule: 'leaster' | 'forcedPick';
   maxHands?: 10 | 15 | 25;
+  callTen?: boolean; // Allow calling a 10 when picker has all 3 fail aces
 }
 
 // Final standings for game over
@@ -50,6 +51,17 @@ export interface FinalStanding {
   name: string;
   score: number;
   rank: number;
+}
+
+// Hand score for end-of-hand display
+export interface HandScore {
+  pickerTeamPoints: number;
+  defenderTeamPoints: number;
+  pickerWins: boolean;
+  isSchneider: boolean;
+  isSchwarz: boolean;
+  multiplier: number;
+  playerScores: { position: PlayerPosition; points: number }[];
 }
 
 // Public room info for lobby browser
@@ -76,6 +88,7 @@ export interface ClientGameState {
   trickNumber: number;
   playerScores: number[];
   handsPlayed: number;
+  handScore?: HandScore; // Only when phase is 'scoring'
 }
 
 // Server message types

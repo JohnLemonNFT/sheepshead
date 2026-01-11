@@ -250,6 +250,35 @@ export function GameSetup() {
                 Note: Blitz requires Cracking to be enabled to work.
               </div>
             )}
+
+            {/* Call a 10 - only show when Called Ace is selected */}
+            {gameSettings.partnerVariant === 'calledAce' && (
+              <button
+                onClick={() => updateSettings({ callTenEnabled: !gameSettings.callTenEnabled })}
+                className={`
+                  w-full flex items-center justify-between p-3 rounded-lg transition-all
+                  ${gameSettings.callTenEnabled
+                    ? 'bg-amber-600/30 ring-2 ring-amber-400/50'
+                    : 'bg-slate-700/40 hover:bg-slate-600/40'}
+                `}
+              >
+                <div className="text-left">
+                  <div className="font-semibold text-white text-sm sm:text-base">Call a 10</div>
+                  <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5">
+                    Picker with all 3 fail aces can call a 10 instead.
+                  </div>
+                </div>
+                <div className={`
+                  w-12 h-7 rounded-full p-1 transition-colors flex-shrink-0
+                  ${gameSettings.callTenEnabled ? 'bg-amber-500' : 'bg-slate-600'}
+                `}>
+                  <div className={`
+                    w-5 h-5 rounded-full bg-white transition-transform shadow
+                    ${gameSettings.callTenEnabled ? 'translate-x-5' : 'translate-x-0'}
+                  `} />
+                </div>
+              </button>
+            )}
           </div>
         </section>
 

@@ -3,7 +3,7 @@
 import { PlayerAvatar, getPlayerName } from './PlayerAvatar';
 
 interface AnnouncementProps {
-  type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster' | 'dealer';
+  type: 'pick' | 'call' | 'callTen' | 'goAlone' | 'partnerReveal' | 'trickWin' | 'leaster' | 'dealer';
   playerPosition: number;
   details?: string;
   onDismiss?: () => void;
@@ -34,20 +34,36 @@ export function Announcement({
           borderColor: 'border-yellow-500',
         };
       case 'call':
-        const suit = details ? SUIT_DISPLAY[details] : null;
+        const suitAce = details ? SUIT_DISPLAY[details] : null;
         return {
           title: `${playerName} Calls...`,
-          subtitle: suit ? (
+          subtitle: suitAce ? (
             <span className="flex items-center justify-center gap-2 text-2xl">
               <span>Ace of</span>
-              <span className={`${suit.color} bg-white px-3 py-1 rounded-lg text-3xl`}>
-                {suit.symbol}
+              <span className={`${suitAce.color} bg-white px-3 py-1 rounded-lg text-3xl`}>
+                {suitAce.symbol}
               </span>
-              <span>{suit.name}</span>
+              <span>{suitAce.name}</span>
             </span>
           ) : 'Partner ace',
           bgColor: 'bg-purple-900/90',
           borderColor: 'border-purple-500',
+        };
+      case 'callTen':
+        const suitTen = details ? SUIT_DISPLAY[details] : null;
+        return {
+          title: `${playerName} Calls...`,
+          subtitle: suitTen ? (
+            <span className="flex items-center justify-center gap-2 text-2xl">
+              <span>10 of</span>
+              <span className={`${suitTen.color} bg-white px-3 py-1 rounded-lg text-3xl`}>
+                {suitTen.symbol}
+              </span>
+              <span>{suitTen.name}</span>
+            </span>
+          ) : 'Partner 10',
+          bgColor: 'bg-amber-900/90',
+          borderColor: 'border-amber-500',
         };
       case 'goAlone':
         return {

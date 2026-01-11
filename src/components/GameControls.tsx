@@ -14,10 +14,12 @@ interface GameControlsProps {
   onBlitz?: () => void;
   onBury: () => void;
   onCallAce: (suit: Suit) => void;
+  onCallTen?: (suit: Suit) => void;
   onGoAlone: () => void;
   onNewGame: () => void;
   onPlayAgain: () => void;
   callableSuits: Suit[];
+  callableTens?: Suit[];
   canBury: boolean;
   buryReason?: string;
   selectedCount: number;
@@ -46,10 +48,12 @@ export function GameControls({
   onBlitz,
   onBury,
   onCallAce,
+  onCallTen,
   onGoAlone,
   onNewGame,
   onPlayAgain,
   callableSuits,
+  callableTens = [],
   canBury,
   buryReason,
   selectedCount,
@@ -192,28 +196,60 @@ export function GameControls({
 
   // Calling phase
   if (phase === 'calling' && isHumanTurn) {
+    const hasCallableAces = callableSuits.length > 0;
+    const hasCallableTens = callableTens.length > 0;
+
     return (
       <div className="flex flex-col items-center gap-2 sm:gap-3">
         <FirstTimeHelp phase="calling" />
         <div className="flex items-center gap-2">
-          <p className="text-sm sm:text-base md:text-lg">Call an ace for your partner</p>
+          <p className="text-sm sm:text-base md:text-lg">
+            {hasCallableAces ? 'Call an ace for your partner' : hasCallableTens ? 'Call a 10 for your partner' : 'No partner available'}
+          </p>
           <PhaseHelp phase={phase} isHumanTurn={isHumanTurn} />
         </div>
-        <p className="text-xs text-gray-400">Whoever has this ace is your secret teammate</p>
-        <div className="flex gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-center">
-          {callableSuits.map(suit => (
-            <button
-              key={suit}
-              onClick={() => onCallAce(suit)}
-              className="bg-white hover:bg-gray-100 active:bg-gray-200 text-black font-bold py-2.5 px-3 sm:py-3 sm:px-4 md:px-6 rounded-lg text-sm sm:text-base md:text-lg transition-colors flex items-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px]"
-            >
-              <span className={SUIT_DISPLAY[suit].color}>
-                {SUIT_DISPLAY[suit].symbol}
-              </span>
-              <span className="hidden sm:inline">{suit.charAt(0).toUpperCase() + suit.slice(1)}</span>
-            </button>
-          ))}
-        </div>
+        <p className="text-xs text-gray-400">
+          {hasCallableAces ? 'Whoever has this ace is your secret teammate' :
+           hasCallableTens ? 'You have all 3 aces - call a 10 instead!' :
+           'You must go alone'}
+        </p>
+        {/* Call Ace buttons */}
+        {hasCallableAces && (
+          <div className="flex gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-center">
+            {callableSuits.map(suit => (
+              <button
+                key={suit}
+                onClick={() => onCallAce(suit)}
+                className="bg-white hover:bg-gray-100 active:bg-gray-200 text-black font-bold py-2.5 px-3 sm:py-3 sm:px-4 md:px-6 rounded-lg text-sm sm:text-base md:text-lg transition-colors flex items-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px]"
+              >
+                <span className={SUIT_DISPLAY[suit].color}>
+                  {SUIT_DISPLAY[suit].symbol}
+                </span>
+                <span className="hidden sm:inline">{suit.charAt(0).toUpperCase() + suit.slice(1)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Call Ten buttons (when picker has all 3 aces) */}
+        {hasCallableTens && onCallTen && (
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs text-amber-400">Call a 10 (you have all 3 aces)</p>
+            <div className="flex gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-center">
+              {callableTens.map(suit => (
+                <button
+                  key={`ten-${suit}`}
+                  onClick={() => onCallTen(suit)}
+                  className="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-black font-bold py-2.5 px-3 sm:py-3 sm:px-4 md:px-6 rounded-lg text-sm sm:text-base md:text-lg transition-colors flex items-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px]"
+                >
+                  <span>10</span>
+                  <span className={SUIT_DISPLAY[suit].color}>
+                    {SUIT_DISPLAY[suit].symbol}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <button
           onClick={onGoAlone}
           className="bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-bold py-2.5 px-4 sm:px-6 rounded-lg text-xs sm:text-sm md:text-base transition-colors min-h-[44px]"

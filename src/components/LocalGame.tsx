@@ -40,6 +40,7 @@ export function LocalGame() {
     blitz,
     bury,
     callAce,
+    callTen,
     goAlone,
     playCard,
     clearTrickResult,
@@ -51,6 +52,7 @@ export function LocalGame() {
     executeAITurn,
     getLegalPlaysForHuman,
     getCallableSuitsForPicker,
+    getCallableTensForPicker,
     canBurySelection,
     canBlitz,
     getMultiplier,
@@ -74,7 +76,7 @@ export function LocalGame() {
 
   // Announcement state
   const [announcement, setAnnouncement] = useState<{
-    type: 'pick' | 'call' | 'goAlone' | 'partnerReveal' | 'leaster' | 'dealer';
+    type: 'pick' | 'call' | 'callTen' | 'goAlone' | 'partnerReveal' | 'leaster' | 'dealer';
     playerPosition: number;
     details?: string;
   } | null>(null);
@@ -252,6 +254,16 @@ export function LocalGame() {
     }, 2000);
   }, [goAlone, addLogEntry, getActivePlayerName, activeHumanPosition]);
 
+  const handleCallTen = useCallback((suit: Suit) => {
+    const pos = activeHumanPosition ?? 0;
+    addLogEntry(getActivePlayerName(), `called ${suit} 10`, '', true, 'calling');
+    setAnnouncement({ type: 'callTen', playerPosition: pos, details: suit });
+    setTimeout(() => {
+      setAnnouncement(null);
+      callTen(suit);
+    }, 2500);
+  }, [callTen, addLogEntry, getActivePlayerName, activeHumanPosition]);
+
   const handlePlayCard = useCallback((card: CardType) => {
     const playerName = getPlayerDisplayInfo((activeHumanPosition ?? 0) as PlayerPosition).name;
 
@@ -300,6 +312,7 @@ export function LocalGame() {
     onPass: handlePass,
     onBury: handleBury,
     onCallAce: handleCallAce,
+    onCallTen: handleCallTen,
     onGoAlone: handleGoAlone,
     onPlayCard: handlePlayCard,
     onCrack: crack,
@@ -338,9 +351,21 @@ export function LocalGame() {
     // Helpers
     getLegalPlays: getLegalPlaysForHuman,
     getCallableSuits: getCallableSuitsForPicker,
+    getCallableTens: getCallableTensForPicker,
     canBury: (cards) => {
       if (cards.length !== 2) return { valid: false, reason: 'Select exactly 2 cards' };
-      return canBurySelection();
+      // Validate the cards passed from GameUI, not store's selectedCards
+      if (gameState.pickerPosition === null) {
+        return { valid: false, reason: 'No picker' };
+      }
+      const picker = players[gameState.pickerPosition];
+      // Check all selected cards are in hand
+      for (const card of cards) {
+        if (!picker.hand.some(c => c.id === card.id)) {
+          return { valid: false, reason: 'Selected card not in hand' };
+        }
+      }
+      return { valid: true };
     },
     canBlitz,
     getMultiplier,
