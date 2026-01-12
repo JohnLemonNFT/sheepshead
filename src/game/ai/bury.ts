@@ -80,17 +80,46 @@ export function decideBury(
   }
 
   // If we still need more cards, consider trump or other cards
+  // BUT STILL respect callable suit protection!
   if (selectedCards.length < 2) {
     for (const { card } of scoredCards) {
       if (selectedCards.length >= 2) break;
       if (selectedCards.includes(card)) continue;
+
+      // Even in fallback, protect the last hold card of callable suits
+      if (!isTrump(card)) {
+        const suit = card.suit;
+        const isCallableSuit = callableSuits.includes(suit);
+        if (isCallableSuit) {
+          const alreadyBuried = buriedPerSuit[suit] || 0;
+          const remaining = holdCardsPerSuit[suit] - alreadyBuried;
+          const otherCallableSuitsWithHoldCards = callableSuits.filter(s => {
+            if (s === suit) return false;
+            const sBuried = buriedPerSuit[s] || 0;
+            return holdCardsPerSuit[s] - sBuried > 0;
+          });
+          // Skip if this would eliminate all callable suits
+          if (remaining <= 1 && otherCallableSuitsWithHoldCards.length === 0) {
+            continue;
+          }
+          buriedPerSuit[suit] = alreadyBuried + 1;
+        }
+      }
+
       selectedCards.push(card);
     }
   }
 
-  // Fallback if we couldn't find 2 cards
+  // Final fallback - if we STILL can't find 2 cards, we have no choice
+  // This should be rare (means we're forced to bury our only hold card)
   if (selectedCards.length < 2) {
     const remaining = hand.filter(c => !selectedCards.includes(c));
+    // Prefer trump over the last hold card
+    remaining.sort((a, b) => {
+      if (isTrump(a) && !isTrump(b)) return -1;
+      if (!isTrump(a) && isTrump(b)) return 1;
+      return 0;
+    });
     while (selectedCards.length < 2 && remaining.length > 0) {
       selectedCards.push(remaining.shift()!);
     }
