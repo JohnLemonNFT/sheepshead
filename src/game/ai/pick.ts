@@ -42,14 +42,25 @@ export function decideWhetherToPick(
   let score = 0;
   let reasons: string[] = [];
 
-  // Trump count is primary factor (reduced from 15 to 12)
+  // CRITICAL: Minimum trump requirement
+  // Without at least 2-3 trump, you have no control and will likely lose
+  // This prevents picking with "3 aces + 1 queen" type hands
+  if (eval_.trumpCount < 2) {
+    // With 0-1 trump, almost never pick (massive penalty)
+    score -= 30;
+    reasons.push(`only ${eval_.trumpCount} trump - no control!`);
+  } else if (eval_.trumpCount === 2) {
+    // 2 trump is marginal - need very strong other factors
+    score -= 10;
+    reasons.push(`only ${eval_.trumpCount} trump`);
+  }
+
+  // Trump count is primary factor
   score += eval_.trumpCount * 12;
   if (eval_.trumpCount >= 4) {
     reasons.push(`${eval_.trumpCount} trump`);
   } else if (eval_.trumpCount >= 3) {
     reasons.push(`${eval_.trumpCount} trump`);
-  } else {
-    reasons.push(`only ${eval_.trumpCount} trump`);
   }
 
   // High trump bonus (Queens are very valuable)
@@ -61,10 +72,21 @@ export function decideWhetherToPick(
   // Trump power (reduced weight - already counting trump quantity)
   score += Math.floor(eval_.trumpPower * 0.5);
 
-  // Fail aces are valuable
-  score += eval_.failAces * 8;
+  // Fail aces are valuable BUT only with adequate trump
+  // Aces without trump control are worthless - you can't set them up
+  const aceValue = eval_.trumpCount >= 3 ? 8 : (eval_.trumpCount >= 2 ? 4 : 0);
+  score += eval_.failAces * aceValue;
   if (eval_.failAces > 0) {
     reasons.push(`${eval_.failAces} fail ace${eval_.failAces > 1 ? 's' : ''}`);
+  }
+
+  // CRITICAL: Having all 3 fail aces means going alone (no partner!)
+  // This is VERY risky without excellent trump - need at least 4 trump with queens
+  if (eval_.failAces === 3) {
+    if (eval_.trumpCount < 4 || !eval_.hasHighTrump) {
+      score -= 25; // Huge penalty - going alone with weak trump is suicide
+      reasons.push('going alone with weak trump!');
+    }
   }
 
   // Void suits are great for trumping
