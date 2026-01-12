@@ -253,18 +253,38 @@ function decideLeadCard(
       };
     }
 
-    // No trump - lead called suit to find partner
+    // BEST PRACTICE: DELAY the called suit!
+    // Delaying helps the partner's ace "walk" (win without being trumped)
+    // Only lead called suit as LAST resort when picker has no other options
+    // Lead any OTHER fail suit first to give partner trumping opportunities
+    const nonCalledFail = failInHand.filter(c =>
+      !calledAce || c.suit !== calledAce.suit
+    );
+
+    if (nonCalledFail.length > 0) {
+      // Lead lowest of non-called fail suit
+      const sorted = [...nonCalledFail].sort(
+        (a, b) => getCardPoints(a) - getCardPoints(b)
+      );
+      return {
+        card: sorted[0],
+        reason: getPersonalityMessage(position, 'leadFail') || 'Leading fail suit, delaying called suit',
+        confidence: 0.75,
+      };
+    }
+
+    // Only lead called suit if it's the ONLY option
     if (calledAce && !calledAce.revealed) {
       const calledSuitCards = failInHand.filter(c => c.suit === calledAce.suit);
       if (calledSuitCards.length > 0) {
-        // Lead lowest of called suit
+        // Lead lowest of called suit (last resort)
         const sorted = [...calledSuitCards].sort(
           (a, b) => getCardPoints(a) - getCardPoints(b)
         );
         return {
           card: sorted[0],
-          reason: getPersonalityMessage(position, 'leadCalledSuit') || `Leading ${calledAce.suit} to find partner`,
-          confidence: 0.85,
+          reason: getPersonalityMessage(position, 'leadCalledSuit') || `Leading ${calledAce.suit} - no other option`,
+          confidence: 0.6,
         };
       }
     }
@@ -282,7 +302,21 @@ function decideLeadCard(
 
   // PARTNER STRATEGY: Support picker, lead trump or called suit
   if (isPartner) {
-    // Lead trump to help picker
+    // BEST PRACTICE: Partner should lead Q♣ if they have it!
+    // "Picker will know that you are probably partner and will give you points"
+    // Also bleeds 5 trump from opposition
+    if (trumpInHand.length > 0) {
+      const queenOfClubs = trumpInHand.find(c => c.rank === 'Q' && c.suit === 'clubs');
+      if (queenOfClubs) {
+        return {
+          card: queenOfClubs,
+          reason: getPersonalityMessage(position, 'leadTrump') || 'Leading Q♣ as partner - signals to picker!',
+          confidence: 0.95,
+        };
+      }
+    }
+
+    // Lead trump to help picker (once revealed or with high trump)
     if (trumpInHand.length > 0 && calledAce?.revealed) {
       const sortedTrump = [...trumpInHand].sort(
         (a, b) => getTrumpPower(a) - getTrumpPower(b)
@@ -379,15 +413,17 @@ function decideLeadCard(
     }
 
     // Have to lead trump (no fail cards left)
+    // STRATEGY: "Never lead trump unless absolutely necessary; doing so will
+    // likely hurt the opponent's team more than the picker/partner" - gambiter.com
     if (trumpInHand.length > 0) {
       // Lead LOWEST trump - minimize damage when forced to lead trump as defender
       const sortedTrump = [...trumpInHand].sort(
-        (a, b) => getTrumpPower(a) - getTrumpPower(b)  // Ascending: lowest first
+        (a, b) => getTrumpPower(b) - getTrumpPower(a)  // Higher power index = weaker trump, so descending puts weakest first
       );
       return {
         card: sortedTrump[0],
-        reason: getPersonalityMessage(position, 'leadTrump') || 'Forced to lead trump - playing lowest',
-        confidence: 0.5,
+        reason: getPersonalityMessage(position, 'leadTrump') || 'Forced to lead trump - playing weakest',
+        confidence: 0.4, // Low confidence - this hurts defenders
       };
     }
   }
@@ -480,41 +516,60 @@ function decideFollowCard(
   }
 
   // TEAMMATE IS WINNING - schmear or throw off
+  // BEST PRACTICE: "Always go for the points first rather than hoping to take a trick later"
+  // Schmear aces and tens to your partner - don't hold onto them hoping to win later!
   if (teammateWinning) {
-    // Schmear points to teammate
-    const highPointCards = legalPlays.filter(c => getCardPoints(c) >= 10);
-    if (highPointCards.length > 0 && trickPoints >= 10) {
-      // BEST PRACTICE: "Don't risk your only schmear"
-      // If we only have ONE high-point card, only schmear if trick is SURE
-      // (teammate winning with high trump, or we're last to play)
-      const isLastToPlay = trick.cards.length === 4;
-      const winnerCard = trick.cards.find(c => c.playedBy === currentWinner)!.card;
-      const winnerIsSafe = isTrump(winnerCard) && getTrumpPower(winnerCard) < 6; // Queen or high Jack
+    // Find schmearable high-point cards (10+ points)
+    // EXCEPTION: Never schmear the called ace - partner needs to keep it
+    const highPointCards = legalPlays.filter(c => {
+      if (getCardPoints(c) < 10) return false;
+      // Protect the called ace - partner should NOT schmear it
+      if (calledAce && !calledAce.revealed && c.rank === 'A' && c.suit === calledAce.suit) {
+        return false;
+      }
+      return true;
+    });
 
-      if (highPointCards.length === 1 && !isLastToPlay && !winnerIsSafe) {
-        // Only schmear - save it for a sure trick
-        const sorted = [...legalPlays].sort(
-          (a, b) => getCardPoints(a) - getCardPoints(b)
-        );
-        return {
-          card: sorted[0],
-          reason: getPersonalityMessage(myPosition, 'cantWin') || 'Saving only schmear for sure trick',
-          confidence: 0.75,
-        };
+    if (highPointCards.length > 0) {
+      const winnerCard = trick.cards.find(c => c.playedBy === currentWinner)!.card;
+      // Winner is "safe" if they have high trump (Queen or Jack♣/Jack♠)
+      const winnerIsSafe = isTrump(winnerCard) && getTrumpPower(winnerCard) < 6;
+
+      // Only be cautious if:
+      // 1. We're 2nd to play (3 opponents can still play)
+      // 2. Winner is NOT safe (could be overtrumped)
+      // 3. The trick isn't worth much yet
+      // Even then, prefer schmearing over saving - aces rarely "walk" as fail cards
+      const veryRisky = trickPosition === 1 && !winnerIsSafe && trickPoints < 5;
+
+      if (veryRisky && highPointCards.length === 1) {
+        // Only in this extreme case, consider not schmearing
+        // But still schmear tens - only protect single aces in very risky spots
+        const singleAce = highPointCards[0].rank === 'A';
+        if (singleAce) {
+          const sorted = [...legalPlays].sort(
+            (a, b) => getCardPoints(a) - getCardPoints(b)
+          );
+          return {
+            card: sorted[0],
+            reason: getPersonalityMessage(myPosition, 'cantWin') || 'Very early - playing safe',
+            confidence: 0.6,
+          };
+        }
       }
 
-      // Sort by points, play highest
+      // SCHMEAR! Sort by points, play highest
       const sorted = [...highPointCards].sort(
         (a, b) => getCardPoints(b) - getCardPoints(a)
       );
       return {
         card: sorted[0],
-        reason: getPersonalityMessage(myPosition, 'schmear') || `Schmearing ${getCardPoints(sorted[0])} points`,
+        reason: getPersonalityMessage(myPosition, 'schmear') || `Schmearing ${getCardPoints(sorted[0])} points to partner`,
         confidence: 0.9,
       };
     }
 
-    // Throw off low card
+    // No high point cards to schmear - throw off lowest
     const sorted = [...legalPlays].sort(
       (a, b) => getCardPoints(a) - getCardPoints(b)
     );

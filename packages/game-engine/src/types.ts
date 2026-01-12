@@ -114,6 +114,12 @@ export interface CalledAce {
   isTen?: boolean; // True if calling a 10 (picker has all 3 aces)
 }
 
+// Jack of Diamonds partner info (when using J♦ partner variant)
+export interface JackOfDiamondsPartner {
+  revealed: boolean; // Has J♦ been played?
+  goingAlone: boolean; // True if picker has J♦ (no partner)
+}
+
 // Cracking/Blitz state
 export interface CrackState {
   cracked: boolean; // Has anyone cracked?
@@ -144,6 +150,7 @@ export interface GameState {
   // Variant state
   crackState?: CrackState; // Cracking/recracking state
   isLeaster?: boolean; // True when playing leaster (no picker)
+  jackOfDiamondsPartner?: JackOfDiamondsPartner; // J♦ partner variant state
 }
 
 // Actions that can be taken

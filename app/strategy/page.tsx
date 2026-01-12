@@ -60,9 +60,18 @@ export default function StrategyPage() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Page Title */}
         <h1 className="text-4xl font-bold mb-2">Sheepshead Strategy</h1>
-        <p className="text-xl text-green-300 mb-8">
+        <p className="text-xl text-green-300 mb-4">
           Tips and tactics to improve your game
         </p>
+
+        {/* Win Rate Stats */}
+        <div className="bg-blue-900/30 border border-blue-600/50 rounded-lg p-4 mb-8">
+          <p className="text-sm text-blue-300">
+            <strong>Did you know?</strong> In competitive play, the picker's team wins about <strong className="text-white">70%</strong> of hands.
+            When the picker has the high Queen (Q♣), that jumps to <strong className="text-white">75%</strong>.
+            Master these strategies to be on the winning side!
+          </p>
+        </div>
 
         {/* Detailed Strategy Guides */}
         <section className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-600/50 rounded-xl p-6 mb-8">
@@ -96,6 +105,54 @@ export default function StrategyPage() {
               <h3 className="font-bold text-white">FAQ</h3>
               <p className="text-xs text-gray-400">Common strategy questions</p>
             </Link>
+          </div>
+        </section>
+
+        {/* Ten Commandments */}
+        <section className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-600/50 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold text-yellow-400 mb-4">📜 The Ten Commandments of Sheepshead</h2>
+          <p className="text-gray-300 text-sm mb-4">Traditional wisdom passed down through generations of players:</p>
+          <div className="grid md:grid-cols-2 gap-3 text-sm">
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">I.</span>
+              <span className="text-gray-200 ml-2">Lead trump as picker to pull enemy trump</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">II.</span>
+              <span className="text-gray-200 ml-2">NEVER lead trump as defender</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">III.</span>
+              <span className="text-gray-200 ml-2">Lead the called suit to expose the partner</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">IV.</span>
+              <span className="text-gray-200 ml-2">Schmear points to your winning teammates</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">V.</span>
+              <span className="text-gray-200 ml-2">Count trump and track what's been played</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">VI.</span>
+              <span className="text-gray-200 ml-2">Bury points, create voids, keep hold cards</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">VII.</span>
+              <span className="text-gray-200 ml-2">Call a suit you're void in when possible</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">VIII.</span>
+              <span className="text-gray-200 ml-2">As picker, delay the called suit</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">IX.</span>
+              <span className="text-gray-200 ml-2">Q♣ is the boss - respect it, lead it, fear it</span>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <span className="text-yellow-400 font-bold">X.</span>
+              <span className="text-gray-200 ml-2">When in doubt, play your lowest card</span>
+            </div>
           </div>
         </section>
 

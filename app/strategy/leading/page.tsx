@@ -114,13 +114,32 @@ export default function LeadingStrategyPage() {
           </div>
         </section>
 
+        {/* Picker: Delay the Called Suit */}
+        <section className="bg-green-900/30 border border-green-600 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold text-green-400 mb-3">Picker's Secret: DELAY the Called Suit</h2>
+          <p className="text-gray-200 mb-4">
+            <strong className="text-green-300">When you lead fail suits, lead ANYTHING except the called suit.</strong>
+            This is one of the best strategic moves for the picker.
+          </p>
+          <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
+            <p className="text-gray-300">
+              <strong>Why delay works:</strong> When the called suit is led, the partner must play their Ace
+              and reveal themselves. By delaying, you let the partner's Ace "walk" - potentially winning
+              a late trick when defenders have run out of trump to stop it.
+            </p>
+          </div>
+          <p className="text-gray-400 text-sm">
+            <strong>Tip:</strong> Lead your other fail suits first. The partner's called Ace is strongest
+            when played late in the hand after trump has been depleted.
+          </p>
+        </section>
+
         {/* Exceptions for Picker */}
         <section className="bg-orange-900/30 border border-orange-600 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-bold text-orange-400 mb-3">When Picker Should Lead Fail</h2>
+          <h2 className="text-xl font-bold text-orange-400 mb-3">Other Times Picker Should Lead Fail</h2>
           <ul className="text-gray-300 space-y-2">
             <li>• <strong className="text-white">You have bare Aces:</strong> An Ace in a short suit might win before opponents can trump it</li>
             <li>• <strong className="text-white">Trump is exhausted:</strong> Once most trump is gone, fail Aces are king</li>
-            <li>• <strong className="text-white">Partner needs to find you:</strong> Leading your hold suit (called suit) can help coordinate</li>
             <li>• <strong className="text-white">You're weak in trump:</strong> If you picked light, fail-first might be your only chance</li>
           </ul>
         </section>
@@ -152,15 +171,24 @@ export default function LeadingStrategyPage() {
           </div>
         </section>
 
-        {/* Exceptions for Defender */}
-        <section className="bg-blue-900/30 border border-blue-600 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-bold text-blue-400 mb-3">When Defender Should Lead Trump</h2>
-          <ul className="text-gray-300 space-y-2">
-            <li>• <strong className="text-white">You have mostly trump:</strong> If dealt 5+ trump, you're basically a secondary picker</li>
-            <li>• <strong className="text-white">Partner identified and strong:</strong> Help your partner by clearing the field</li>
-            <li>• <strong className="text-white">Late game trump pull:</strong> To get remaining trump out before leading your winning fail</li>
-            <li>• <strong className="text-white">Picker is nearly out:</strong> If you know picker has 1-2 trump left, pull them!</li>
-          </ul>
+        {/* NEVER Lead Trump as Defender */}
+        <section className="bg-red-900/30 border border-red-600 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold text-red-400 mb-3">⚠️ Defenders: Almost NEVER Lead Trump</h2>
+          <p className="text-gray-200 mb-4">
+            <strong className="text-red-300">This is one of the most important rules in Sheepshead.</strong>
+            When defenders lead trump, it actually helps the picker more than hurts them!
+          </p>
+          <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
+            <p className="text-gray-300">
+              <strong>Why leading trump hurts defenders:</strong> The picker has more trump than any individual defender.
+              When you lead trump, you're bleeding trump from your fellow defenders while the picker
+              gladly follows suit. After a few trump leads, the picker's fail cards become unbeatable.
+            </p>
+          </div>
+          <p className="text-gray-400 text-sm">
+            <strong className="text-yellow-400">Rare exceptions:</strong> Only lead trump if you have 5+ trump yourself
+            (you're essentially a second picker) or in the endgame when you know exactly what's left.
+          </p>
         </section>
 
         {/* Lead Selection Chart */}

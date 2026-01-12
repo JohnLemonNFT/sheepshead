@@ -334,13 +334,16 @@ function simulateHand(gameNumber: number): {
 
       // Update all players' knowledge
       for (let k = 0; k < 5; k++) {
+        const kIsPicker = k === pickerPosition;
+        const kIsKnownPartner = calledAceRevealed && k === partnerPosition;
         playerKnowledge[k] = updateKnowledgeAfterPlay(
           playerKnowledge[k],
           cardToPlay,
           pos,
           currentTrick,
-          calledAceState,
-          pickerPosition
+          kIsPicker,
+          kIsKnownPartner,
+          calledSuit
         );
       }
     }
@@ -583,4 +586,12 @@ function formatIssue(issue: AIIssue): string {
   if (h.buried) s += `\n  Buried: ${h.buried.map(c => `${c.rank}${c.suit[0]}`).join(', ')}`;
 
   return s;
+}
+
+// Main entry point - run when executed directly
+const isMainModule = import.meta.url.endsWith(process.argv[1]?.replace(/^file:\/\//, '') || '');
+if (isMainModule || process.argv[1]?.includes('analyzer')) {
+  console.log('Running AI analysis (1000 games)...\n');
+  const result = analyzeAI(1000);
+  console.log(formatAnalysisReport(result));
 }

@@ -18,6 +18,7 @@ export type {
   GameConfig,
   GameAction,
   CalledAce,
+  JackOfDiamondsPartner,
   CrackState,
   HandScore,
   AIDecision,

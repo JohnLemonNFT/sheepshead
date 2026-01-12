@@ -90,6 +90,7 @@ export function LocalGame() {
     currentPlayer,
     pickerPosition,
     calledAce,
+    jackOfDiamondsPartner,
     trickNumber,
     dealerPosition,
   } = gameState;
@@ -305,6 +306,7 @@ export function LocalGame() {
     dealerPosition,
     pickerPosition,
     calledAce,
+    jackOfDiamondsPartner,
     trickNumber,
     crackState: gameState.crackState,
   };

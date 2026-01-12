@@ -5,6 +5,7 @@
 import { Card, AIDifficulty, PlayerPosition, isTrump, FAIL_SUITS } from '../types';
 import { evaluateHandStrength } from './tracking';
 import { getPickThresholdModifier, getPersonalityMessage, getPersonality } from './personalities';
+import { simulatePickDecision, QUICK_SIMULATIONS } from './monteCarlo';
 
 export interface PickDecision {
   shouldPick: boolean;
@@ -64,9 +65,17 @@ export function decideWhetherToPick(
   }
 
   // High trump bonus (Queens are very valuable)
+  // STATS: "If picker's side has the high Queen, they win 75% vs 70% baseline"
   if (eval_.hasHighTrump) {
     score += 15;
     reasons.push('have queens');
+  }
+
+  // STATS: Q♣ is the BEST card - guarantees first trick win and bleeds 5 trump
+  const hasQueenOfClubs = hand.some(c => c.rank === 'Q' && c.suit === 'clubs');
+  if (hasQueenOfClubs) {
+    score += 8; // Extra bonus for Q♣ specifically
+    reasons.push('have Q♣ (the boss)');
   }
 
   // Trump power (reduced weight - already counting trump quantity)
@@ -90,23 +99,31 @@ export function decideWhetherToPick(
   }
 
   // CRITICAL: Check if we'd be forced to go alone due to no callable suits
-  // This happens when we have 2 fail aces and no hold card in the 3rd suit
-  if (eval_.failAces === 2) {
-    // Find which suits we have aces in
-    const failCards = hand.filter(c => !isTrump(c));
-    const aceSuits = failCards.filter(c => c.rank === 'A').map(c => c.suit);
+  // A callable suit requires: we DON'T have the ace, and we DO have a hold card
+  const failCards = hand.filter(c => !isTrump(c));
+  const aceSuits = new Set(failCards.filter(c => c.rank === 'A').map(c => c.suit));
 
-    // The third suit (the one we'd need to call) must have a non-ace hold card
-    const thirdSuit = FAIL_SUITS.find(s => !aceSuits.includes(s));
-    if (thirdSuit) {
-      const holdCardsInThirdSuit = failCards.filter(c => c.suit === thirdSuit && c.rank !== 'A');
-      if (holdCardsInThirdSuit.length === 0) {
-        // No hold card = forced to go alone!
-        if (eval_.trumpCount < 5 || !eval_.hasHighTrump) {
-          score -= 30; // Big penalty - will be forced alone with weak trump
-          reasons.push('no hold card - would go alone!');
-        }
-      }
+  // Find callable suits: suits where we have a non-ace card but NOT the ace
+  const callableSuits = FAIL_SUITS.filter(suit => {
+    const hasAce = aceSuits.has(suit);
+    const hasHoldCard = failCards.some(c => c.suit === suit && c.rank !== 'A');
+    return !hasAce && hasHoldCard;
+  });
+
+  // If no callable suits exist, we'd be forced to go alone!
+  if (callableSuits.length === 0) {
+    // Check if hand is strong enough to go alone
+    const hasMonsterHand = eval_.trumpCount >= 6 && eval_.hasHighTrump;
+    const hasGoodAloneHand = eval_.trumpCount >= 5 && eval_.failAces >= 2;
+
+    if (!hasMonsterHand && !hasGoodAloneHand) {
+      // Weak hand for going alone - big penalty
+      score -= 35;
+      reasons.push('would be forced alone!');
+    } else if (hasMonsterHand) {
+      // Strong enough to go alone
+      score += 5;
+      reasons.push('monster hand - can go alone');
     }
   }
 
@@ -152,8 +169,32 @@ export function decideWhetherToPick(
   const personalityModifier = getPickThresholdModifier(position) * 5;
   const adjustedThreshold = thresholds.pick + personalityModifier;
 
-  const shouldPick = score >= adjustedThreshold;
-  const confidence = Math.min(1, Math.max(0, (score - thresholds.maybe) / 40));
+  // Initial decision based on heuristics
+  let shouldPick = score >= adjustedThreshold;
+  let confidence = Math.min(1, Math.max(0, (score - thresholds.maybe) / 40));
+
+  // For advanced/expert difficulty with marginal hands, use Monte Carlo
+  // "Marginal" = score is within 15 points of threshold (could go either way)
+  const isMarginal = Math.abs(score - adjustedThreshold) < 15;
+  const useMonteCarloDecision = (difficulty === 'expert' || difficulty === 'advanced') && isMarginal;
+
+  if (useMonteCarloDecision) {
+    const simResult = simulatePickDecision(hand, position, passCount, QUICK_SIMULATIONS);
+
+    // Monte Carlo can override heuristic if strong enough recommendation
+    if (simResult.recommendationStrength > 0.2) {
+      shouldPick = simResult.recommendation === 'pick';
+      // Blend heuristic confidence with MC confidence
+      confidence = Math.min(1, (confidence + simResult.recommendationStrength) / 2);
+
+      // Add note about MC usage for explanation
+      if (simResult.recommendation === 'pick' && !shouldPick) {
+        reasons.push('MC simulation favors picking');
+      } else if (simResult.recommendation === 'pass' && shouldPick) {
+        reasons.push('MC simulation favors passing');
+      }
+    }
+  }
 
   // Get personality-appropriate message
   const personality = getPersonality(position);
@@ -201,13 +242,13 @@ function getPickThresholds(difficulty: AIDifficulty): {
       return { pick: 38, maybe: 30 };
     case 'intermediate':
       // Intermediate is reasonable - needs ~3 trump + something extra
-      return { pick: 48, maybe: 40 };
+      return { pick: 52, maybe: 42 };
     case 'advanced':
       // Advanced is more selective
-      return { pick: 52, maybe: 44 };
+      return { pick: 55, maybe: 46 };
     case 'expert':
       // Expert knows when marginal hands work
-      return { pick: 55, maybe: 47 };
+      return { pick: 58, maybe: 48 };
   }
 }
 

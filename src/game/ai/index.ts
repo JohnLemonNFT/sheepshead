@@ -5,3 +5,5 @@ export * from './pick';
 export * from './bury';
 export * from './call';
 export * from './play';
+export * from './monteCarlo';
+export * from './gameLog';

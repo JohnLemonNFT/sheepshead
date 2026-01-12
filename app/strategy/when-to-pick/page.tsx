@@ -123,6 +123,37 @@ export default function WhenToPickPage() {
           </div>
         </section>
 
+        {/* Trump Quality - Q♣ and The Ma's */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">Trump Quality Matters</h2>
+          <div className="space-y-4">
+            <div className="bg-purple-900/30 border border-purple-600 rounded-lg p-4">
+              <h3 className="font-bold text-purple-300 mb-2">Q♣ is the Boss Card</h3>
+              <p className="text-gray-300">
+                The Queen of Clubs is the most valuable card in Sheepshead. Leading Q♣ guarantees
+                you win the first trick AND forces all 4 opponents to play trump. That's 5 trump
+                out of play in one trick! If you have Q♣, add extra weight to picking.
+              </p>
+            </div>
+            <div className="bg-purple-900/30 border border-purple-600 rounded-lg p-4">
+              <h3 className="font-bold text-purple-300 mb-2">The Ma's - Black Queens Together</h3>
+              <p className="text-gray-300">
+                Having both Q♣ and Q♠ (called "The Ma's") is extremely powerful. You control the
+                top two trump and can pull 10 trump from opponents in just two tricks. With the
+                Ma's, pick even with slightly fewer trump than normal.
+              </p>
+            </div>
+            <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-4">
+              <h3 className="font-bold text-blue-300 mb-2">Quality Over Quantity</h3>
+              <p className="text-gray-300">
+                Having Q♣ Q♠ J♣ J♠ (4 high trump) is often better than having 6 low trump
+                like J♦ A♦ 10♦ K♦ 9♦ 8♦. High trump lets you control the game and pull
+                trump from opponents.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Position Matters */}
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">Position Matters</h2>
@@ -142,9 +173,20 @@ export default function WhenToPickPage() {
                 </div>
               </div>
               <div className="flex items-start gap-4">
-                <span className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">2-3</span>
+                <span className="bg-red-600 text-white px-3 py-1 rounded font-bold text-sm">2nd</span>
                 <div>
-                  <p className="font-bold text-white">Middle Positions</p>
+                  <p className="font-bold text-white">Second Position (Most Dangerous!)</p>
+                  <p className="text-gray-400 text-sm">
+                    <span className="text-red-400">Be extra careful here.</span> Three players can still "go over" you
+                    (pick after you). If you pick weak and someone else has a monster hand,
+                    you're in trouble. Need a stronger hand than other positions.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <span className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">3rd</span>
+                <div>
+                  <p className="font-bold text-white">Middle Position</p>
                   <p className="text-gray-400 text-sm">
                     Standard guidelines apply. Pick with 4+ good trump.
                   </p>

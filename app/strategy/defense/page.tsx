@@ -114,6 +114,16 @@ export default function DefenseStrategyPage() {
                 </div>
               </div>
               <div className="flex items-start gap-3">
+                <span className="text-purple-400 font-bold">👑</span>
+                <div>
+                  <strong className="text-white">Leading Q♣ as non-picker</strong>
+                  <p className="text-gray-400 text-sm">
+                    <strong className="text-purple-300">This is a strong partner signal!</strong> If someone leads the Queen of Clubs
+                    and isn't the picker, they're almost certainly the partner signaling to the picker.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
                 <span className="text-green-400 font-bold">✓</span>
                 <div>
                   <strong className="text-white">Playing to lose deliberately</strong>
@@ -196,14 +206,34 @@ export default function DefenseStrategyPage() {
           </div>
         </section>
 
+        {/* THE Cardinal Rule */}
+        <section className="bg-red-900/30 border border-red-600 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold text-red-400 mb-3">⚠️ THE Most Important Defensive Rule</h2>
+          <p className="text-xl text-center text-white mb-4">
+            <strong>NEVER lead trump as a defender!</strong>
+          </p>
+          <p className="text-gray-300 mb-4">
+            This is so important it bears repeating. When you lead trump as a defender, you're
+            actually helping the picker more than hurting them:
+          </p>
+          <ul className="text-gray-300 space-y-2">
+            <li>• The picker has more trump than you - they win the war of attrition</li>
+            <li>• Your fellow defenders lose their trump while the picker follows happily</li>
+            <li>• Once defenders run out of trump, the picker's fail cards become unbeatable</li>
+          </ul>
+          <p className="text-gray-400 text-sm mt-4">
+            <strong className="text-yellow-400">Exception:</strong> Only if you have 5+ trump yourself (making you almost a second picker)
+          </p>
+        </section>
+
         {/* Common Mistakes */}
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">Common Defensive Mistakes</h2>
           <div className="space-y-4">
             <div className="bg-red-900/30 border border-red-600 rounded-lg p-4">
-              <h3 className="font-bold text-red-300 mb-2">Leading Trump</h3>
+              <h3 className="font-bold text-red-300 mb-2">Leading Trump (Worth Repeating!)</h3>
               <p className="text-gray-300 text-sm">
-                Unless you have a specific plan, leading trump helps the picker by clearing out defenders' trump. Stick to fail!
+                This is the #1 mistake defenders make. Unless you have 5+ trump yourself, NEVER lead trump. It helps the picker more than it hurts them!
               </p>
             </div>
             <div className="bg-red-900/30 border border-red-600 rounded-lg p-4">

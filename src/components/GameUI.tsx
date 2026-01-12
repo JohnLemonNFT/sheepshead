@@ -49,6 +49,7 @@ export interface GameUIState {
   dealerPosition: PlayerPosition;
   pickerPosition: PlayerPosition | null;
   calledAce: { suit: Suit; revealed: boolean } | null;
+  jackOfDiamondsPartner?: { revealed: boolean; goingAlone: boolean } | null;
   trickNumber: number;
   crackState?: { cracked: boolean; recracked: boolean };
 }
@@ -164,6 +165,7 @@ export function GameUI({ state, actions, config }: GameUIProps) {
     dealerPosition,
     pickerPosition,
     calledAce,
+    jackOfDiamondsPartner,
     trickNumber,
     crackState,
   } = state;
@@ -228,7 +230,14 @@ export function GameUI({ state, actions, config }: GameUIProps) {
   const multiplier = getMultiplier?.() ?? 1;
 
   // Find partner position (if revealed)
-  const partnerPosition = calledAce?.revealed
+  // For called ace: revealed when ace is played
+  // For J♦: revealed when J♦ is played (or if going alone, there's no partner)
+  const isPartnerKnown = calledAce?.revealed ||
+    jackOfDiamondsPartner?.revealed ||
+    jackOfDiamondsPartner?.goingAlone ||
+    (!calledAce && !jackOfDiamondsPartner && pickerPosition !== null);  // Solo variant
+
+  const partnerPosition = isPartnerKnown
     ? players.findIndex(p => p.isPartner)
     : null;
 
@@ -414,7 +423,11 @@ export function GameUI({ state, actions, config }: GameUIProps) {
     const isCurrent = player.position === currentPlayer;
     const isPicker = player.isPicker;
     // Only show partner for OTHER players when revealed
-    const isPartnerRevealed = player.position !== activePlayerPosition && player.isPartner && (calledAce?.revealed ?? false);
+    // Check both called ace variant and J♦ variant
+    const partnerIsRevealed = calledAce?.revealed ||
+      jackOfDiamondsPartner?.revealed ||
+      jackOfDiamondsPartner?.goingAlone;  // If going alone, no partner to reveal
+    const isPartnerRevealed = player.position !== activePlayerPosition && player.isPartner && (partnerIsRevealed ?? false);
     const displayInfo = getPlayerDisplayInfo(player.position);
 
     return (
@@ -554,6 +567,23 @@ export function GameUI({ state, actions, config }: GameUIProps) {
           )}
           {calledAce ? (
             <CalledAceBadge suit={calledAce.suit} revealed={calledAce.revealed} />
+          ) : jackOfDiamondsPartner ? (
+            // Jack of Diamonds variant
+            jackOfDiamondsPartner.goingAlone ? (
+              phase === 'playing' ? <GoingAloneBadge /> : null
+            ) : (
+              // Has a partner - show J♦ badge
+              phase === 'playing' ? (
+                <span className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${
+                  jackOfDiamondsPartner.revealed
+                    ? 'bg-purple-600/80 text-purple-100'
+                    : 'bg-gray-600/80 text-gray-200'
+                }`}>
+                  <span className="text-red-400">J♦</span>
+                  {jackOfDiamondsPartner.revealed ? 'Partner' : 'Partner ?'}
+                </span>
+              ) : null
+            )
           ) : pickerPosition !== null && phase === 'playing' ? (
             <GoingAloneBadge />
           ) : null}
@@ -573,16 +603,40 @@ export function GameUI({ state, actions, config }: GameUIProps) {
           {/* Center game area */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 max-w-lg px-4">
-              {/* Called Ace or Going Alone indicator - always visible during play */}
+              {/* Called Ace or Going Alone or J♦ Partner indicator - always visible during play */}
               {phase === 'playing' && calledAce && (
                 <CalledAceIndicator suit={calledAce.suit} revealed={calledAce.revealed} size="sm" />
               )}
-              {phase === 'playing' && !calledAce && pickerPosition !== null && (
+              {phase === 'playing' && jackOfDiamondsPartner && !calledAce && (
+                // Jack of Diamonds variant - show J♦ indicator or Going Alone
+                jackOfDiamondsPartner.goingAlone ? (
+                  <GoingAloneIndicator size="sm" />
+                ) : (
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                    jackOfDiamondsPartner.revealed
+                      ? 'bg-purple-800/90 border border-purple-500'
+                      : 'bg-gray-800/90 border border-gray-600'
+                  }`}>
+                    <span className="text-2xl text-red-400 font-bold">J♦</span>
+                    <span className={`text-sm font-medium ${
+                      jackOfDiamondsPartner.revealed ? 'text-purple-200' : 'text-gray-300'
+                    }`}>
+                      {jackOfDiamondsPartner.revealed ? 'Partner Revealed!' : 'Partner Unknown'}
+                    </span>
+                  </div>
+                )
+              )}
+              {phase === 'playing' && !calledAce && !jackOfDiamondsPartner && pickerPosition !== null && (
                 <GoingAloneIndicator size="sm" />
               )}
 
               {/* Running score - show after partner revealed OR when going alone */}
-              {phase === 'playing' && pickerPosition !== null && (calledAce?.revealed || !calledAce) && (
+              {phase === 'playing' && pickerPosition !== null && (
+                calledAce?.revealed ||  // Called ace variant - revealed
+                jackOfDiamondsPartner?.revealed ||  // J♦ variant - revealed
+                jackOfDiamondsPartner?.goingAlone ||  // J♦ variant - going alone
+                (!calledAce && !jackOfDiamondsPartner)  // Solo variant - no partner
+              ) && (
                 <div className="flex gap-2">
                   <span className="bg-yellow-700/90 px-3 py-1 rounded-full text-sm font-bold">
                     👑 {pickerTeamPoints}/61

@@ -16,6 +16,7 @@ import {
   DEFAULT_CONFIG,
   HandScore,
   AIDecision,
+  JackOfDiamondsPartner,
   isTrump,
   getCardPoints,
 } from '../game/types';
@@ -832,6 +833,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         isPartner: partnerPosition >= 0 && i === partnerPosition,
       }));
 
+      // Track J♦ partner state - partner identity hidden until J♦ is played
+      const jackOfDiamondsPartner: JackOfDiamondsPartner = {
+        revealed: false,
+        goingAlone: pickerHasJackDiamonds,
+      };
+
       set({
         gameState: {
           ...gameState,
@@ -840,6 +847,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           buried: cards,
           currentPlayer: firstPlayer,
           currentTrick: { cards: [], leadPlayer: firstPlayer },
+          jackOfDiamondsPartner,
         },
         selectedCards: [],
         ...(hotseat && firstIsHuman ? {
@@ -1172,6 +1180,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
+    // Check if J♦ was played (Jack of Diamonds partner variant)
+    let jackOfDiamondsPartner = gameState.jackOfDiamondsPartner;
+    if (jackOfDiamondsPartner && !jackOfDiamondsPartner.revealed && card.id === 'J-diamonds') {
+      jackOfDiamondsPartner = { ...jackOfDiamondsPartner, revealed: true };
+    }
+
     // Update AI knowledge
     const newAIStates = new Map(aiStates);
     for (const [pos, aiState] of newAIStates) {
@@ -1215,6 +1229,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             cards: newTrickCards,
           },
           calledAce,
+          jackOfDiamondsPartner,
         },
         aiStates: newAIStates,
         trickResult: {
@@ -1247,6 +1262,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           },
           currentPlayer: nextPlayer,
           calledAce,
+          jackOfDiamondsPartner,
         },
         aiStates: newAIStates,
         // Trigger handoff if next player is human in hotseat mode
