@@ -1,132 +1,81 @@
 // ============================================
 // AI BURY DECISION - What cards should picker bury?
 // ============================================
+// Key strategy from consumed sources:
+// - "Plan the call BEFORE you bury" - decide what to call first
+// - "Never bury your hold card" - protect the suit you'll call
+// - "Bury points" - 10s are best (10 pts, can't beat aces)
+// - "Create voids" - being void lets you trump
+// - "Consolidate suits" - don't spread across many fail suits
+// - Aces are CONTROL cards - only bury if needed to avoid forced alone
 
 import { Card, Suit, isTrump, getCardPoints, FAIL_SUITS } from '../types';
 
 export interface BuryDecision {
   cardsToBury: [Card, Card];
   reason: string;
+  plannedCall?: Suit; // The suit we plan to call after burying
+}
+
+interface CallPlan {
+  suit: Suit | null; // null = go alone
+  holdCards: Card[]; // Cards we must keep for this plan
+  score: number; // How good this plan is
+  reason: string;
 }
 
 /**
  * Decide which 2 cards to bury
- * Strategy:
- * 1. Bury points (Aces and 10s of fail suits are best)
- * 2. Create voids for trumping opportunities
- * 3. Keep "hold card" for at least one callable suit (CRITICAL!)
+ *
+ * Strategy (from consumed sources):
+ * 1. PLAN THE CALL FIRST - decide what suit to call
+ * 2. Protect hold cards for planned call suit
+ * 3. Bury 10s first (best points-to-power ratio)
+ * 4. Create voids for trumping opportunities
+ * 5. Consider burying an ace if it avoids forced go-alone
  */
 export function decideBury(
   hand: Card[], // 8 cards (original 6 + 2 from blind)
-  calledSuit: Suit | null
+  calledSuit: Suit | null // Will be null during bury phase
 ): BuryDecision {
-  // IMPORTANT: Identify suits we could potentially call (don't have the ace)
-  // We MUST keep at least one hold card in at least one callable suit
-  const callableSuits = FAIL_SUITS.filter(suit => {
-    const hasAce = hand.some(c => c.suit === suit && c.rank === 'A');
-    const hasNonAce = hand.some(c => c.suit === suit && c.rank !== 'A' && !isTrump(c));
-    return !hasAce && hasNonAce; // Can call: don't have ace, have hold card
-  });
+  // STEP 1: Plan the call - what suit should we call?
+  const callPlan = planBestCall(hand);
 
-  // Track how many hold cards we have per callable suit
-  const holdCardsPerSuit: Record<string, number> = {};
-  for (const suit of callableSuits) {
-    holdCardsPerSuit[suit] = hand.filter(c => c.suit === suit && !isTrump(c)).length;
-  }
+  // STEP 2: Identify cards we MUST keep (hold cards for planned call)
+  const protectedCards = new Set(callPlan.holdCards.map(c => c.id));
 
-  // Score each card for burying
-  const scoredCards = hand.map(card => ({
+  // STEP 3: Score all cards for burying (higher = better to bury)
+  const buryableCards = hand.filter(c => !protectedCards.has(c.id));
+
+  const scoredCards = buryableCards.map(card => ({
     card,
-    score: calculateBuryScore(card, hand, calledSuit),
+    score: calculateBuryScore(card, hand, callPlan),
   }));
 
-  // Sort by bury score (higher = better to bury)
+  // Sort by bury score (higher = bury first)
   scoredCards.sort((a, b) => b.score - a.score);
 
-  // Track what we've selected to bury
+  // STEP 4: Select best 2 cards to bury
   let selectedCards: Card[] = [];
-  const buriedPerSuit: Record<string, number> = {};
 
   for (const { card } of scoredCards) {
     if (selectedCards.length >= 2) break;
-
-    // Skip trump cards in this selection pass
-    if (isTrump(card)) continue;
-
-    // NEVER bury aces in first pass - they're control cards!
-    // Aces win tricks and are too valuable to bury
-    if (card.rank === 'A') continue;
-
-    const suit = card.suit;
-    const isCallableSuit = callableSuits.includes(suit);
-
-    // If this is a callable suit, check if we can afford to bury it
-    if (isCallableSuit) {
-      const alreadyBuried = buriedPerSuit[suit] || 0;
-      const remaining = holdCardsPerSuit[suit] - alreadyBuried;
-
-      // Check if any OTHER callable suit would remain with hold cards
-      const otherCallableSuitsWithHoldCards = callableSuits.filter(s => {
-        if (s === suit) return false;
-        const sBuried = buriedPerSuit[s] || 0;
-        return holdCardsPerSuit[s] - sBuried > 0;
-      });
-
-      // Only bury if: we have 2+ hold cards in this suit, OR another callable suit exists
-      if (remaining <= 1 && otherCallableSuitsWithHoldCards.length === 0) {
-        continue; // Can't bury - would leave no callable suits!
-      }
-
-      buriedPerSuit[suit] = alreadyBuried + 1;
-    }
-
     selectedCards.push(card);
   }
 
-  // If we still need more cards, consider trump or other cards
-  // BUT STILL respect callable suit protection!
+  // STEP 5: If we couldn't find 2 cards (all protected), we need fallback
+  // This means we're going alone - just pick lowest value cards
   if (selectedCards.length < 2) {
-    for (const { card } of scoredCards) {
-      if (selectedCards.length >= 2) break;
-      if (selectedCards.includes(card)) continue;
+    const remaining = hand
+      .filter(c => !selectedCards.some(s => s.id === c.id))
+      .sort((a, b) => {
+        // Prefer burying non-trump over trump
+        if (isTrump(a) && !isTrump(b)) return 1;
+        if (!isTrump(a) && isTrump(b)) return -1;
+        // Then by points (lower points = keep)
+        return getCardPoints(b) - getCardPoints(a);
+      });
 
-      // Still skip aces in first fallback - try to find other options
-      if (card.rank === 'A') continue;
-
-      // Even in fallback, protect the last hold card of callable suits
-      if (!isTrump(card)) {
-        const suit = card.suit;
-        const isCallableSuit = callableSuits.includes(suit);
-        if (isCallableSuit) {
-          const alreadyBuried = buriedPerSuit[suit] || 0;
-          const remaining = holdCardsPerSuit[suit] - alreadyBuried;
-          const otherCallableSuitsWithHoldCards = callableSuits.filter(s => {
-            if (s === suit) return false;
-            const sBuried = buriedPerSuit[s] || 0;
-            return holdCardsPerSuit[s] - sBuried > 0;
-          });
-          // Skip if this would eliminate all callable suits
-          if (remaining <= 1 && otherCallableSuitsWithHoldCards.length === 0) {
-            continue;
-          }
-          buriedPerSuit[suit] = alreadyBuried + 1;
-        }
-      }
-
-      selectedCards.push(card);
-    }
-  }
-
-  // Final fallback - if we STILL can't find 2 cards, we have no choice
-  // This should be rare (means we're forced to bury our only hold card)
-  if (selectedCards.length < 2) {
-    const remaining = hand.filter(c => !selectedCards.includes(c));
-    // Prefer trump over the last hold card
-    remaining.sort((a, b) => {
-      if (isTrump(a) && !isTrump(b)) return -1;
-      if (!isTrump(a) && isTrump(b)) return 1;
-      return 0;
-    });
     while (selectedCards.length < 2 && remaining.length > 0) {
       selectedCards.push(remaining.shift()!);
     }
@@ -136,73 +85,203 @@ export function decideBury(
 
   // Build reason
   const points = cardsToBury.reduce((sum, c) => sum + getCardPoints(c), 0);
-  const createsVoid = checkCreatesVoid(hand, cardsToBury);
+  const voids = checkCreatesVoid(hand, cardsToBury);
 
   let reason = `Buried ${points} points`;
-  if (createsVoid.length > 0) {
-    reason += `, created void in ${createsVoid.join(', ')}`;
+  if (voids.length > 0) {
+    reason += `, void in ${voids.join('/')}`;
+  }
+  if (callPlan.suit) {
+    reason += ` (will call ${callPlan.suit})`;
+  } else {
+    reason += ` (going alone)`;
   }
 
-  return { cardsToBury, reason };
+  return {
+    cardsToBury,
+    reason,
+    plannedCall: callPlan.suit || undefined,
+  };
 }
 
 /**
- * Calculate how good a card is to bury (higher = bury it)
+ * Plan the best calling strategy BEFORE burying
+ * This is the key insight: decide the call first, then bury to support it
+ */
+function planBestCall(hand: Card[]): CallPlan {
+  const plans: CallPlan[] = [];
+
+  // Analyze current hand state
+  const failCards = hand.filter(c => !isTrump(c));
+  const trumpCount = hand.filter(c => isTrump(c)).length;
+  const queens = hand.filter(c => c.rank === 'Q').length;
+
+  // Check each fail suit for calling potential
+  for (const suit of FAIL_SUITS) {
+    const suitCards = failCards.filter(c => c.suit === suit);
+    const hasAce = suitCards.some(c => c.rank === 'A');
+    const nonAceCards = suitCards.filter(c => c.rank !== 'A');
+
+    if (!hasAce && nonAceCards.length > 0) {
+      // This suit is callable - we don't have the ace but have hold card(s)
+      const score = calculateCallPlanScore(hand, suit, nonAceCards);
+      plans.push({
+        suit,
+        holdCards: nonAceCards.slice(0, 1), // Keep at least 1 hold card
+        score,
+        reason: `Call ${suit}`,
+      });
+    } else if (hasAce && nonAceCards.length > 0) {
+      // We have the ace - but what if we BURY it?
+      // This creates a callable suit! Consider this option.
+      const aceCard = suitCards.find(c => c.rank === 'A')!;
+      const scoreIfBuryAce = calculateCallPlanScore(hand, suit, nonAceCards) - 15; // Penalty for losing ace control
+
+      // Only consider if no other callable suits exist
+      const otherCallable = FAIL_SUITS.filter(s => {
+        if (s === suit) return false;
+        const cards = failCards.filter(c => c.suit === s);
+        return !cards.some(c => c.rank === 'A') && cards.length > 0;
+      });
+
+      if (otherCallable.length === 0) {
+        // No other callable suits - burying this ace creates one
+        plans.push({
+          suit,
+          holdCards: nonAceCards.slice(0, 1),
+          score: scoreIfBuryAce + 30, // Bonus: avoids forced alone!
+          reason: `Bury ${suit} ace to create callable suit`,
+        });
+      }
+    }
+  }
+
+  // Check for forced/voluntary go-alone
+  const hasMonsterHand = queens >= 3 || (queens >= 2 && trumpCount >= 6);
+
+  if (plans.length === 0 || hasMonsterHand) {
+    // Going alone - either forced or voluntary
+    const goAlonePlan: CallPlan = {
+      suit: null,
+      holdCards: [], // No hold cards needed when going alone
+      score: hasMonsterHand ? 100 : -50, // Monster hand = good, forced = bad
+      reason: hasMonsterHand ? 'Monster hand - go alone' : 'No callable suits - forced alone',
+    };
+
+    if (hasMonsterHand) {
+      // Monster hand prefers going alone
+      return goAlonePlan;
+    }
+
+    // Not monster hand - if we have plans, use them; otherwise forced alone
+    if (plans.length === 0) {
+      return goAlonePlan;
+    }
+  }
+
+  // Sort plans by score and return best
+  plans.sort((a, b) => b.score - a.score);
+  return plans[0];
+}
+
+/**
+ * Score a calling plan (higher = better)
+ */
+function calculateCallPlanScore(hand: Card[], suit: Suit, holdCards: Card[]): number {
+  let score = 50; // Base score for having a callable suit
+
+  const holdCount = holdCards.length;
+
+  // Void is best (can trump partner's ace)
+  // But we need at least 1 hold card... so 1 card is actually best
+  if (holdCount === 1) {
+    score += 30; // Perfect - minimal exposure
+  } else if (holdCount === 2) {
+    score += 15; // Good - can lead to partner
+  } else {
+    score -= (holdCount - 2) * 5; // Many cards = harder for partner
+  }
+
+  // Having the 10 is great (can schmear to partner)
+  if (holdCards.some(c => c.rank === '10')) {
+    score += 25;
+  }
+
+  // Low cards are better hold cards (less points at risk)
+  const holdPoints = holdCards.reduce((sum, c) => sum + getCardPoints(c), 0);
+  score -= holdPoints * 0.5; // Slight penalty for high-point hold cards
+
+  return score;
+}
+
+/**
+ * Calculate how good a card is to bury (higher = better to bury)
  */
 function calculateBuryScore(
   card: Card,
   hand: Card[],
-  calledSuit: Suit | null
+  callPlan: CallPlan
 ): number {
   let score = 0;
 
-  // Trump should generally not be buried
+  // === TRUMP ===
   if (isTrump(card)) {
-    score -= 50;
-    // But low trump with many trump can be buried
-    if (card.rank === '7' || card.rank === '8') {
+    score -= 100; // Almost never bury trump
+
+    // Exception: low diamonds with lots of trump
+    if (card.suit === 'diamonds' && (card.rank === '7' || card.rank === '8')) {
       const trumpCount = hand.filter(c => isTrump(c)).length;
-      if (trumpCount >= 6) {
-        score += 30; // OK to bury low trump if we have lots
+      if (trumpCount >= 7) {
+        score += 80; // OK to bury low diamond with 7+ trump
       }
     }
     return score;
   }
 
-  // BEST PRACTICE: NEVER bury fail aces!
-  // Aces are CONTROL cards - they WIN tricks. 11 points that can win is better
-  // than 11 points buried. Bury points that CAN'T win (10s, Kings).
-  if (card.rank === 'A') {
-    score -= 50; // Strong penalty - aces are control cards!
-  }
+  // === FAIL CARDS ===
 
-  // 10s are GREAT to bury (10 points but don't beat aces)
+  // BEST: 10s are the ideal cards to bury
+  // - 10 points (great value!)
+  // - Can't beat aces (limited trick-winning power)
+  // - "Bury 10s first" is standard advice
   if (card.rank === '10') {
-    score += 30; // 10s are the best cards to bury
+    score += 40;
   }
 
-  // Kings are decent to bury (4 points, rarely win)
+  // GOOD: Kings (4 points, rarely win tricks)
   if (card.rank === 'K') {
-    score += 12;
+    score += 20;
   }
 
-  // Creating void is valuable
-  const suitCount = hand.filter(c => c.suit === card.suit && !isTrump(c)).length;
-  if (suitCount === 1) {
-    score += 20; // Burying creates void
-  } else if (suitCount === 2) {
-    score += 10; // Getting closer to void
+  // ACES: Control cards - generally don't bury
+  // Exception: Burying creates a callable suit (handled in planBestCall)
+  if (card.rank === 'A') {
+    // Check if this is the ace we SHOULD bury (per call plan)
+    if (callPlan.reason.includes(`Bury ${card.suit} ace`)) {
+      score += 35; // This ace should be buried to create callable suit
+    } else {
+      score -= 30; // Don't bury aces - they win tricks!
+    }
   }
 
-  // Penalty for called suit cards (need hold card)
-  if (calledSuit && card.suit === calledSuit) {
-    score -= 25; // Prefer not to bury called suit
-  }
-
-  // Low cards without points are less valuable to bury
-  // (burying 0 points doesn't help, but creating void might)
+  // Low cards (7, 8, 9) - less valuable to bury (0 points)
   if (card.rank === '7' || card.rank === '8' || card.rank === '9') {
-    score -= 5;
+    score -= 10;
+  }
+
+  // === VOID CREATION ===
+  // Burying to create void is valuable (can trump that suit later)
+  const suitCards = hand.filter(c => c.suit === card.suit && !isTrump(c));
+  if (suitCards.length === 1) {
+    score += 25; // Creates void!
+  } else if (suitCards.length === 2) {
+    score += 10; // Gets closer to void
+  }
+
+  // === PROTECT CALL SUIT ===
+  // If this card is in our planned call suit, prefer not to bury
+  if (callPlan.suit && card.suit === callPlan.suit) {
+    score -= 20;
   }
 
   return score;
@@ -248,11 +327,14 @@ export function explainBuryDecision(
   const points = getCardPoints(card1) + getCardPoints(card2);
   lines.push(`Total: ${points} points secured for picker team`);
 
-  if (calledSuit) {
+  const actualCalledSuit = calledSuit || decision.plannedCall;
+  if (actualCalledSuit) {
     const holdCards = hand.filter(
-      c => c.suit === calledSuit && !isTrump(c) && !decision.cardsToBury.includes(c)
+      c => c.suit === actualCalledSuit && !isTrump(c) && !decision.cardsToBury.includes(c)
     );
-    lines.push(`Hold card${holdCards.length > 1 ? 's' : ''}: ${holdCards.map(c => c.rank).join(', ')} of ${calledSuit}`);
+    if (holdCards.length > 0) {
+      lines.push(`Hold card${holdCards.length > 1 ? 's' : ''}: ${holdCards.map(c => c.rank).join(', ')} of ${actualCalledSuit}`);
+    }
   }
 
   return lines.join('\n');
