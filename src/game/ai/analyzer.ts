@@ -59,6 +59,8 @@ export interface AnalysisResult {
     schwarzes: number;
     goAlones: number;
     goAloneWins: number;
+    goAloneForced: number;      // Had all 3 aces or no callable suit
+    goAloneVoluntary: number;   // Chose to go alone with monster hand
     averagePickerTrump: number;
     averagePickerPoints: number;
   };
@@ -69,6 +71,7 @@ function simulateHand(gameNumber: number): {
   issue: AIIssue | null;
   pickerWon: boolean | null;
   wentAlone: boolean;
+  goAloneReason: 'none' | 'all_aces' | 'no_callable' | 'monster_hand';
   pickerTrump: number;
   pickerPoints: number;
   wasSchneider: boolean;
@@ -105,6 +108,7 @@ function simulateHand(gameNumber: number): {
       issue: null,
       pickerWon: null,
       wentAlone: false,
+      goAloneReason: 'none',
       pickerTrump: 0,
       pickerPoints: 0,
       wasSchneider: false,
@@ -127,6 +131,18 @@ function simulateHand(gameNumber: number): {
   const callDecision = decideCall(handAfterBury, true);
   const wentAlone = callDecision.goAlone;
   const calledSuit = callDecision.suit;
+
+  // Determine reason for going alone
+  let goAloneReason: 'none' | 'all_aces' | 'no_callable' | 'monster_hand' = 'none';
+  if (wentAlone) {
+    if (pickerFailAces >= 3) {
+      goAloneReason = 'all_aces';
+    } else if (callableSuits.length === 0) {
+      goAloneReason = 'no_callable';
+    } else {
+      goAloneReason = 'monster_hand';
+    }
+  }
 
   // Check for issues so far
   let issue: AIIssue | null = null;
@@ -387,6 +403,7 @@ function simulateHand(gameNumber: number): {
     issue,
     pickerWon,
     wentAlone,
+    goAloneReason,
     pickerTrump: pickerTrumpCount,
     pickerPoints: pickerTeamPoints,
     wasSchneider,
@@ -405,6 +422,8 @@ export function analyzeAI(numGames: number = 100): AnalysisResult {
   let schwarzes = 0;
   let goAlones = 0;
   let goAloneWins = 0;
+  let goAloneForced = 0;
+  let goAloneVoluntary = 0;
   let totalPickerTrump = 0;
   let totalPickerPoints = 0;
 
@@ -423,6 +442,12 @@ export function analyzeAI(numGames: number = 100): AnalysisResult {
     if (result.wentAlone) {
       goAlones++;
       if (result.pickerWon) goAloneWins++;
+      // Track reason
+      if (result.goAloneReason === 'all_aces' || result.goAloneReason === 'no_callable') {
+        goAloneForced++;
+      } else if (result.goAloneReason === 'monster_hand') {
+        goAloneVoluntary++;
+      }
     }
 
     if (result.pickerWon) {
@@ -451,6 +476,8 @@ export function analyzeAI(numGames: number = 100): AnalysisResult {
       schwarzes,
       goAlones,
       goAloneWins,
+      goAloneForced,
+      goAloneVoluntary,
       averagePickerTrump: totalPicks > 0 ? totalPickerTrump / totalPicks : 0,
       averagePickerPoints: totalPicks > 0 ? totalPickerPoints / totalPicks : 0,
     },
@@ -478,7 +505,9 @@ export function formatAnalysisReport(result: AnalysisResult): string {
   lines.push(`Schneiders: ${result.stats.schneiders}`);
   lines.push(`Schwarzes: ${result.stats.schwarzes}`);
   lines.push('');
-  lines.push(`Go alones: ${result.stats.goAlones} (${result.stats.goAloneWins} wins)`);
+  lines.push(`Go alones: ${result.stats.goAlones} (${result.stats.goAloneWins} wins, ${((result.stats.goAloneWins / Math.max(1, result.stats.goAlones)) * 100).toFixed(0)}% win rate)`);
+  lines.push(`  - Forced (all aces/no callable): ${result.stats.goAloneForced}`);
+  lines.push(`  - Voluntary (monster hand): ${result.stats.goAloneVoluntary}`);
   lines.push(`Average picker trump: ${result.stats.averagePickerTrump.toFixed(1)}`);
   lines.push(`Average picker points: ${result.stats.averagePickerPoints.toFixed(1)}`);
   lines.push('');

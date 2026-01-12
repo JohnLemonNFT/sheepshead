@@ -53,6 +53,10 @@ export function decideBury(
     // Skip trump cards in this selection pass
     if (isTrump(card)) continue;
 
+    // NEVER bury aces in first pass - they're control cards!
+    // Aces win tricks and are too valuable to bury
+    if (card.rank === 'A') continue;
+
     const suit = card.suit;
     const isCallableSuit = callableSuits.includes(suit);
 
@@ -85,6 +89,9 @@ export function decideBury(
     for (const { card } of scoredCards) {
       if (selectedCards.length >= 2) break;
       if (selectedCards.includes(card)) continue;
+
+      // Still skip aces in first fallback - try to find other options
+      if (card.rank === 'A') continue;
 
       // Even in fallback, protect the last hold card of callable suits
       if (!isTrump(card)) {
