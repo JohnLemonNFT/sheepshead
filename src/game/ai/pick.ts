@@ -2,7 +2,7 @@
 // AI PICK DECISION - Should the AI pick up the blind?
 // ============================================
 
-import { Card, AIDifficulty, PlayerPosition } from '../types';
+import { Card, AIDifficulty, PlayerPosition, isTrump, FAIL_SUITS } from '../types';
 import { evaluateHandStrength } from './tracking';
 import { getPickThresholdModifier, getPersonalityMessage, getPersonality } from './personalities';
 
@@ -86,6 +86,27 @@ export function decideWhetherToPick(
     if (eval_.trumpCount < 4 || !eval_.hasHighTrump) {
       score -= 25; // Huge penalty - going alone with weak trump is suicide
       reasons.push('going alone with weak trump!');
+    }
+  }
+
+  // CRITICAL: Check if we'd be forced to go alone due to no callable suits
+  // This happens when we have 2 fail aces and no hold card in the 3rd suit
+  if (eval_.failAces === 2) {
+    // Find which suits we have aces in
+    const failCards = hand.filter(c => !isTrump(c));
+    const aceSuits = failCards.filter(c => c.rank === 'A').map(c => c.suit);
+
+    // The third suit (the one we'd need to call) must have a non-ace hold card
+    const thirdSuit = FAIL_SUITS.find(s => !aceSuits.includes(s));
+    if (thirdSuit) {
+      const holdCardsInThirdSuit = failCards.filter(c => c.suit === thirdSuit && c.rank !== 'A');
+      if (holdCardsInThirdSuit.length === 0) {
+        // No hold card = forced to go alone!
+        if (eval_.trumpCount < 5 || !eval_.hasHighTrump) {
+          score -= 30; // Big penalty - will be forced alone with weak trump
+          reasons.push('no hold card - would go alone!');
+        }
+      }
     }
   }
 

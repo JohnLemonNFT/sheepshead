@@ -15,6 +15,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:ai": "vitest run --testNamePattern='AI simulation'",
+    "analyze:ai": "npx tsx test-ai-comprehensive.ts",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npm run build && npx cap sync ios && npx cap open ios",
     "cap:android": "npm run build && npx cap sync android && npx cap open android"
